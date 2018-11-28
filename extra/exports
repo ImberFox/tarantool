@@ -138,6 +138,7 @@ luaT_toibuf
 luaT_tolstring
 luaT_tuple_encode
 luaT_tuple_new
+luaL_iscallable
 box_txn
 box_txn_begin
 box_txn_commit

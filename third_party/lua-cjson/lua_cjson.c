@@ -831,6 +831,48 @@ static void json_next_token(json_parse_t *json, json_token_t *token)
     json_set_token_error(token, json, "invalid token");
 }
 
+enum context_length {
+    CONTEXT_ARROW_LENGTH = 4,
+    CONTEXT_MAX_LENGTH_BEFORE = 8,
+    CONTEXT_MAX_LENGTH_AFTER = 8,
+    CONTEXT_MAX_LENGTH = CONTEXT_MAX_LENGTH_BEFORE + CONTEXT_MAX_LENGTH_AFTER +
+    CONTEXT_ARROW_LENGTH,
+};
+
+/**
+ * Copy characters near wrong token with the position @a
+ * column_index to a static string buffer @a context and lay out
+ * arrow " >> " before this token.
+ *
+ * @param context      String static buffer to fill.
+ * @param json         Structure with pointers to parsing string.
+ * @param column_index Position of wrong token in the current
+ *                     line.
+ */
+static void fill_context(char *context, json_parse_t *json, int column_index)
+{
+    assert(column_index >= 0);
+    int length_before = column_index < CONTEXT_MAX_LENGTH_BEFORE ?
+                        column_index : CONTEXT_MAX_LENGTH_BEFORE;
+    const char *src = json->cur_line_ptr + column_index - length_before;
+    /* Fill context before the arrow. */
+    memcpy(context, src, length_before);
+    context += length_before;
+    src += length_before;
+
+    /* Make the arrow. */
+    *(context++) = ' ';
+    memset(context, '>', CONTEXT_ARROW_LENGTH - 2);
+    context += CONTEXT_ARROW_LENGTH - 2;
+    *(context++) = ' ';
+
+    /* Fill context after the arrow. */
+    const char *end = context + CONTEXT_MAX_LENGTH_AFTER;
+    for (; context < end && *src != '\0' && *src != '\n'; ++src, ++context)
+        *context = *src;
+    *context = '\0';
+}
+
 /* This function does not return.
  * DO NOT CALL WITH DYNAMIC MEMORY ALLOCATED.
  * The only supported exception is the temporary parser string
@@ -849,9 +891,13 @@ static void json_throw_parse_error(lua_State *l, json_parse_t *json,
     else
         found = json_token_type_name[token->type];
 
+    int column_index = token->column_index;
+    char context[CONTEXT_MAX_LENGTH + 1];
+    fill_context(context, json, column_index);
+
     /* Note: token->column_index is 0 based, display starting from 1 */
-    luaL_error(l, "Expected %s but found %s on line %d at character %d", exp,
-               found, json->line_count, token->column_index + 1);
+    luaL_error(l, "Expected %s but found %s on line %d at character %d here "
+               "'%s'", exp, found, json->line_count, column_index + 1, context);
 }
 
 static inline void json_decode_ascend(json_parse_t *json)
@@ -868,10 +914,13 @@ static void json_decode_descend(lua_State *l, json_parse_t *json, int slots)
         return;
     }
 
+    char context[CONTEXT_MAX_LENGTH + 1];
+    fill_context(context, json, json->ptr - json->cur_line_ptr - 1);
+
     strbuf_free(json->tmp);
-    luaL_error(l, "Found too many nested data structures (%d) on line %d at "
-               "character %d", json->current_depth, json->line_count,
-               json->ptr - json->cur_line_ptr);
+    luaL_error(l, "Found too many nested data structures (%d) on line %d at cha"
+               "racter %d here '%s'", json->current_depth, json->line_count,
+               json->ptr - json->cur_line_ptr, context);
 }
 
 static void json_parse_object_context(lua_State *l, json_parse_t *json)

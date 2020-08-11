@@ -64,3 +64,13 @@ box.execute('SELECT field70, field64 FROM test')
 pk:alter({parts = {66}})
 box.execute('SELECT field66, field68, field70 FROM test')
 box.space.TEST:drop()
+
+-- gh-4933: Make sure that autoindex optimization is used.
+box.execute('CREATE TABLE t1(i int primary key, a int);')
+box.execute('CREATE TABLE t2(i int primary key, b int);')
+--
+-- There is no need to insert values in the tables since planner assumes a
+-- default number of tuples for each space, regardless of how many tuples there
+-- actually are in those spaces. The default value is 1048576 (== 2^20).
+--
+box.execute('EXPLAIN QUERY PLAN SELECT a, b FROM t1, t2 WHERE a = b;')

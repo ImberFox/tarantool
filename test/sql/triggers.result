@@ -299,7 +299,7 @@ box.execute("CREATE TABLE m (s0 INT PRIMARY KEY, s1 TEXT UNIQUE);")
 ---
 - row_count: 1
 ...
-box.execute("CREATE TRIGGER m1 BEFORE UPDATE ON m FOR EACH ROW BEGIN UPDATE n SET s2 = 'now'; END;")
+box.execute("CREATE TRIGGER m1 BEFORE UPDATE ON m FOR EACH ROW BEGIN UPDATE n SET s2 = DATETIME('now'); END;")
 ---
 - row_count: 1
 ...
@@ -343,7 +343,7 @@ box.execute("CREATE TABLE m (s0 INT PRIMARY KEY, s1 TEXT UNIQUE);")
 ---
 - row_count: 1
 ...
-box.execute("CREATE TRIGGER m1 BEFORE UPDATE ON m FOR EACH ROW BEGIN UPDATE n SET s2 = 'now'; END;")
+box.execute("CREATE TRIGGER m1 BEFORE UPDATE ON m FOR EACH ROW BEGIN UPDATE n SET s2 = DATETIME('now'); END;")
 ---
 - row_count: 1
 ...

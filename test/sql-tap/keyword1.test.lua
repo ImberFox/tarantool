@@ -1,6 +1,6 @@
 #!/usr/bin/env tarantool
 test = require("sqltester")
-test:plan(184)
+test:plan(181)
 
 --!./tcltestrunner.lua
 -- 2009 January 29
@@ -67,9 +67,6 @@ local bannedkws = {
 	"constraint",
 	"create",
 	"cross",
-	"current_date",
-	"current_time",
-	"current_timestamp",
 	"default",
 	"delete",
 	"desc",

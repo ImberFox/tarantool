@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017, Tarantool AUTHORS, please see AUTHORS file.
+ * Copyright 2010-2020, Tarantool AUTHORS, please see AUTHORS file.
  *
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -64,16 +64,10 @@
  *      Willmann-Bell, Inc
  *      Richmond, Virginia (USA)
  */
-#include "sqlInt.h"
+#include "dateInt.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
-
-/*
- * Till time-like types are implemented as native Tarantool
- * types, built-in functions below make no sense.
- */
-#if 0
 
 /*
  * A structure for holding a single date and time.
@@ -958,7 +952,7 @@ isDate(sql_context * context, int argc, sql_value ** argv, DateTime * p)
  *
  * Return the julian day number of the date specified in the arguments
  */
-static void
+void
 juliandayFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	DateTime x;
@@ -973,7 +967,7 @@ juliandayFunc(sql_context * context, int argc, sql_value ** argv)
  *
  * Return YYYY-MM-DD HH:MM:SS
  */
-static void
+void
 datetimeFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	DateTime x;
@@ -992,7 +986,7 @@ datetimeFunc(sql_context * context, int argc, sql_value ** argv)
  *
  * Return HH:MM:SS
  */
-static void
+void
 timeFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	DateTime x;
@@ -1010,7 +1004,7 @@ timeFunc(sql_context * context, int argc, sql_value ** argv)
  *
  * Return YYYY-MM-DD
  */
-static void
+void
 dateFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	DateTime x;
@@ -1042,7 +1036,7 @@ dateFunc(sql_context * context, int argc, sql_value ** argv)
  *   %Y  year 0000-9999
  *   %%  %
  */
-static void
+void
 strftimeFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	DateTime x;
@@ -1215,7 +1209,7 @@ strftimeFunc(sql_context * context, int argc, sql_value ** argv)
  *
  * This function returns the same value as time('now').
  */
-static void
+void
 ctimeFunc(sql_context * context, int NotUsed, sql_value ** NotUsed2)
 {
 	UNUSED_PARAMETER2(NotUsed, NotUsed2);
@@ -1227,7 +1221,7 @@ ctimeFunc(sql_context * context, int NotUsed, sql_value ** NotUsed2)
  *
  * This function returns the same value as date('now').
  */
-static void
+void
 cdateFunc(sql_context * context, int NotUsed, sql_value ** NotUsed2)
 {
 	UNUSED_PARAMETER2(NotUsed, NotUsed2);
@@ -1239,54 +1233,10 @@ cdateFunc(sql_context * context, int NotUsed, sql_value ** NotUsed2)
  *
  * This function returns the same value as datetime('now').
  */
-static void
+void
 ctimestampFunc(sql_context * context,
 	       int NotUsed, sql_value ** NotUsed2)
 {
 	UNUSED_PARAMETER2(NotUsed, NotUsed2);
 	datetimeFunc(context, 0, 0);
 }
-#endif				/* !defined(SQL_OMIT_DATETIME_FUNCS) */
-
-#ifdef SQL_OMIT_DATETIME_FUNCS
-/*
- * If the library is compiled to omit the full-scale date and time
- * handling (to get a smaller binary), the following minimal version
- * of the functions current_time(), current_date() and current_timestamp()
- * are included instead. This is to support column declarations that
- * include "DEFAULT CURRENT_TIME" etc.
- *
- * This function uses the C-library functions time(), gmtime()
- * and strftime(). The format string to pass to strftime() is supplied
- * as the user-data for the function.
- */
-static void
-currentTimeFunc(sql_context * context, int argc, sql_value ** argv)
-{
-	time_t t;
-	char *zFormat = (char *)sql_user_data(context);
-	sql_int64 iT;
-	struct tm *pTm;
-	struct tm sNow;
-	char zBuf[20];
-
-	UNUSED_PARAMETER(argc);
-	UNUSED_PARAMETER(argv);
-
-	iT = sqlStmtCurrentTime(context);
-	if (iT <= 0)
-		return;
-	t = iT / 1000 - 10000 * (sql_int64) 21086676;
-#if HAVE_GMTIME_R
-	pTm = gmtime_r(&t, &sNow);
-#else
-	pTm = gmtime(&t);
-	if (pTm)
-		memcpy(&sNow, pTm, sizeof(sNow));
-#endif
-	if (pTm) {
-		strftime(zBuf, 20, zFormat, &sNow);
-		sql_result_text(context, zBuf, -1, SQL_TRANSIENT);
-	}
-}
-#endif

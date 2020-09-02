@@ -1,6 +1,6 @@
 #!/usr/bin/env tarantool
 test = require("sqltester")
-test:plan(5)
+test:plan(4)
 
 --!./tcltestrunner.lua
 -- 2011 December 9
@@ -81,6 +81,7 @@ if (1 > 0)
 
 
 
+    if (0 > 0) then
     ---------------------------------------------------------------------------
     -- The following test case - 2.* - is from the original bug report as 
     -- posted to the mailing list.
@@ -92,7 +93,7 @@ if (1 > 0)
               InventoryControlId INTEGER,
               SKU INTEGER NOT NULL PRIMARY KEY,
               Variant INTEGER NOT NULL DEFAULT 0,
-              ControlDate TEXT NOT NULL,
+              ControlDate DATE NOT NULL,
               ControlState INTEGER NOT NULL DEFAULT -1,
               DeliveredQty TEXT
             );
@@ -162,12 +163,11 @@ if (1 > 0)
 
 
             INSERT INTO InventoryControl(SKU, Variant, ControlDate) SELECT 
-                II.SKU AS SKU, II.Variant AS Variant, '2011-08-30' AS ControlDate
+                II.SKU AS SKU, II.Variant AS Variant, julianday('2011-08-30') AS ControlDate
                 FROM InventoryItem II;
         ]])
 
     -- MUST_WORK_TEST triggers
-    if (0 > 0) then
         test:do_execsql_test(
             2.2,
             [[

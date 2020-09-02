@@ -1,7 +1,7 @@
 #!/usr/bin/env tarantool
 test = require("sqltester")
 -- test:plan(6)
-test:plan(4)
+test:plan(6)
 
 --!./tcltestrunner.lua
 -- 2007 January 26
@@ -24,9 +24,6 @@ test:plan(4)
 -- ["set","testdir",[["file","dirname",["argv0"]]]]
 -- ["source",[["testdir"],"\/tester.tcl"]]
 
---  Disabled until #3694 is resolved.
---
-if false then
 test:do_execsql_test(
     "tkt2192-1.1",
     [[
@@ -108,7 +105,6 @@ test:do_test(
 
         -- </tkt2192-1.2>
     })
-end -- if false
 
 test:do_execsql_test(
     "tkt2192-2.1",

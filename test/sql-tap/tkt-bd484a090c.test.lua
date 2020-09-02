@@ -20,9 +20,6 @@ test:plan(0)
 -- ["source",[["testdir"],"\/tester.tcl"]]
 testprefix = "tkt-bd484a090c"
 
--- Disabled until #3694 is resolved.
---
-if false then
 test:do_test(
     1.1,
     function()
@@ -34,7 +31,8 @@ test:do_test(
     function()
         return test:catchsql(" SELECT datetime('now', 'utc') ")[1]
     end, 0)
-end -- if false
+
+-- FIXME - uncomment?
 -- TBI to be implemented feature
 --sql_test_control("sql_TESTCTRL_LOCALTIME_FAULT", 1)
 --test:do_catchsql_test(

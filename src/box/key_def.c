@@ -627,6 +627,19 @@ box_key_def_extract_key(box_key_def_t *key_def, box_tuple_t *tuple,
 	return tuple_extract_key(tuple, key_def, multikey_idx, key_size_ptr);
 }
 
+int
+box_key_def_validate_key(const box_key_def_t *key_def, const char *key)
+{
+	uint32_t part_count = mp_decode_array(&key);
+	if (part_count > key_def->part_count) {
+		diag_set(ClientError, ER_KEY_PART_COUNT, key_def->part_count,
+			 part_count);
+		return -1;
+	}
+	const char *key_end;
+	return key_validate_parts(key_def, key, part_count, true, &key_end);
+}
+
 /* }}} Module API functions */
 
 int

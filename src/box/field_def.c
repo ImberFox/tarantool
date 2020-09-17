@@ -127,6 +127,7 @@ field_type_by_name_wrapper(const char *str, uint32_t len)
  * For an i row and j column the value is true, if the i type
  * values can be stored in the j type.
  */
+/* clang-format off */
 static const bool field_type_compatibility[] = {
 	   /*   ANY   UNSIGNED  STRING   NUMBER  DOUBLE  INTEGER  BOOLEAN VARBINARY SCALAR  DECIMAL   UUID    ARRAY    MAP  */
 /*   ANY    */ true,   false,   false,   false,   false,   false,   false,   false,  false,  false,  false,   false,   false,
@@ -143,6 +144,7 @@ static const bool field_type_compatibility[] = {
 /*   ARRAY  */ true,   false,   false,   false,   false,   false,   false,   false,  false,  false,  false,   true,    false,
 /*    MAP   */ true,   false,   false,   false,   false,   false,   false,   false,  false,  false,  false,   false,   true,
 };
+/* clang-format on */
 
 bool
 field_type1_contains_type2(enum field_type type1, enum field_type type2)

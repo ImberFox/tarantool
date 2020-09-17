@@ -30,6 +30,8 @@
  */
 #include "iproto_constants.h"
 
+/* clang-format off */
+
 const unsigned char iproto_key_type[IPROTO_KEY_MAX] =
 {
 	/* {{{ header */
@@ -226,3 +228,5 @@ const char *vy_row_index_key_strs[VY_ROW_INDEX_KEY_MAX] = {
 	NULL,
 	"row index",
 };
+
+/* clang-format on */

@@ -1144,6 +1144,7 @@ struct comparator_signature {
 /**
  * field1 no, field1 type, field2 no, field2 type, ...
  */
+/* clang-format off */
 static const comparator_signature cmp_arr[] = {
 	COMPARATOR(0, FIELD_TYPE_UNSIGNED)
 	COMPARATOR(0, FIELD_TYPE_STRING)
@@ -1160,6 +1161,7 @@ static const comparator_signature cmp_arr[] = {
 	COMPARATOR(0, FIELD_TYPE_UNSIGNED, 1, FIELD_TYPE_STRING  , 2, FIELD_TYPE_STRING)
 	COMPARATOR(0, FIELD_TYPE_STRING  , 1, FIELD_TYPE_STRING  , 2, FIELD_TYPE_STRING)
 };
+/* clang-format on */
 
 #undef COMPARATOR
 
@@ -1330,6 +1332,7 @@ struct comparator_with_key_signature
 #define KEY_COMPARATOR(...) \
 	{ TupleCompareWithKey<0, __VA_ARGS__>::compare, { __VA_ARGS__ } },
 
+/* clang-format off */
 static const comparator_with_key_signature cmp_wk_arr[] = {
 	KEY_COMPARATOR(0, FIELD_TYPE_UNSIGNED, 1, FIELD_TYPE_UNSIGNED, 2, FIELD_TYPE_UNSIGNED)
 	KEY_COMPARATOR(0, FIELD_TYPE_STRING  , 1, FIELD_TYPE_UNSIGNED, 2, FIELD_TYPE_UNSIGNED)
@@ -1345,6 +1348,7 @@ static const comparator_with_key_signature cmp_wk_arr[] = {
 	KEY_COMPARATOR(1, FIELD_TYPE_UNSIGNED, 2, FIELD_TYPE_STRING)
 	KEY_COMPARATOR(1, FIELD_TYPE_STRING  , 2, FIELD_TYPE_STRING)
 };
+/* clang-format on */
 
 /**
  * A functional index tuple compare.

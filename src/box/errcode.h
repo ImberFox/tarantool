@@ -51,7 +51,8 @@ struct errcode_record {
  * Please don't forget to do it!
  */
 
-#define ERROR_CODES(_)					    \
+/* clang-format off */
+#define ERROR_CODES(_)						 \
 	/*  0 */_(ER_UNKNOWN,			"Unknown error") \
 	/*  1 */_(ER_ILLEGAL_PARAMS,		"Illegal parameters, %s") \
 	/*  2 */_(ER_MEMORY_ISSUE,		"Failed to allocate %u bytes in %s for %s") \
@@ -273,6 +274,7 @@ struct errcode_record {
 	/*218 */_(ER_TUPLE_METADATA_IS_TOO_BIG,	"Can't create tuple: metadata size %u is too big") \
 	/*219 */_(ER_XLOG_GAP,			"%s") \
 	/*220 */_(ER_TOO_EARLY_SUBSCRIBE,	"Can't subscribe non-anonymous replica %s until join is done") \
+/* clang-format on */
 
 /*
  * !IMPORTANT! Please follow instructions at start of the file

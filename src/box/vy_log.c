@@ -68,6 +68,7 @@
  * Integer key of a field in the vy_log_record structure.
  * Used for packing a record in MsgPack.
  */
+/* clang-format off */
 enum vy_log_key {
 	VY_LOG_KEY_LSM_ID		= 0,
 	VY_LOG_KEY_RANGE_ID		= 1,
@@ -130,6 +131,7 @@ static const char *vy_log_type_name[] = {
 	[VY_LOG_REBOOTSTRAP]		= "rebootstrap",
 	[VY_LOG_ABORT_REBOOTSTRAP]	= "abort_rebootstrap",
 };
+/* clang-format on */
 
 /** Batch of vylog records that must be written in one go. */
 struct vy_log_tx {

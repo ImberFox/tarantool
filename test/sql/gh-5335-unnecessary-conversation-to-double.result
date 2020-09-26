@@ -1,0 +1,51 @@
+-- test-run result file version 2
+-- Make sure that INTEGER is not converted to DOUBLE in cases below.
+box.execute("CREATE TABLE t (i NUMBER PRIMARY KEY, n NUMBER);")
+ | ---
+ | - row_count: 1
+ | ...
+box.execute("CREATE TRIGGER t AFTER INSERT ON t FOR EACH ROW BEGIN UPDATE t SET n = new.n; END;")
+ | ---
+ | - row_count: 1
+ | ...
+box.execute("INSERT INTO t VALUES (1, 1);")
+ | ---
+ | - row_count: 1
+ | ...
+box.execute("SELECT i / 2, n / 2 FROM t;")
+ | ---
+ | - metadata:
+ |   - name: COLUMN_1
+ |     type: number
+ |   - name: COLUMN_2
+ |     type: number
+ |   rows:
+ |   - [0, 0]
+ | ...
+box.execute("DROP TABLE t;")
+ | ---
+ | - row_count: 1
+ | ...
+
+box.execute("CREATE TABLE t (i NUMBER PRIMARY KEY, n NUMBER);")
+ | ---
+ | - row_count: 1
+ | ...
+box.execute("INSERT INTO t VALUES (1,1);")
+ | ---
+ | - row_count: 1
+ | ...
+box.execute("SELECT i / 2, n / 2 FROM t GROUP BY n;")
+ | ---
+ | - metadata:
+ |   - name: COLUMN_1
+ |     type: number
+ |   - name: COLUMN_2
+ |     type: number
+ |   rows:
+ |   - [0, 0]
+ | ...
+box.execute("DROP TABLE t;")
+ | ---
+ | - row_count: 1
+ | ...

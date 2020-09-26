@@ -565,18 +565,6 @@ sql_generate_index_key(struct Parse *parse, struct index *index, int cursor,
 		}
 		uint32_t tabl_col = index->def->key_def->parts[j].fieldno;
 		sqlVdbeAddOp3(v, OP_Column, cursor, tabl_col, reg_base + j);
-		/*
-		 * If the column type is NUMBER but the number
-		 * is an integer, then it might be stored in the
-		 * table as an integer (using a compact
-		 * representation) then converted to REAL by an
-		 * OP_Realify opcode. But we are getting
-		 * ready to store this value back into an index,
-		 * where it should be converted by to INTEGER
-		 * again.  So omit the OP_Realify opcode if
-		 * it is present
-		 */
-		sqlVdbeDeletePriorOpcode(v, OP_Realify);
 	}
 	if (reg_out != 0)
 		sqlVdbeAddOp3(v, OP_MakeRecord, reg_base, col_cnt, reg_out);

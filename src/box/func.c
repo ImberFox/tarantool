@@ -59,19 +59,9 @@ struct func_name {
 struct func_c {
 	/** Function object base class. */
 	struct func base;
-	/**
-	 * Anchor for module membership.
-	 */
-	struct rlist item;
-	/**
-	 * For C functions, the body of the function.
-	 */
-	box_function_f func;
-	/**
-	 * Each stored function keeps a handle to the
-	 * dynamic library for the C callback.
-	 */
-	struct module *module;
+
+	/** C function module symbol. */
+	struct module_sym mod_sym;
 };
 
 /***
@@ -372,6 +362,53 @@ module_sym(struct module *module, const char *name)
 }
 
 int
+module_sym_load(struct module_sym *mod_sym)
+{
+	assert(mod_sym->addr == NULL);
+
+	struct func_name name;
+	func_split_name(mod_sym->name, &name);
+
+	struct module *module = module_cache_find(name.package,
+						  name.package_end);
+	if (module == NULL) {
+		/* Try to find loaded module in the cache */
+		module = module_load(name.package, name.package_end);
+		if (module == NULL)
+			return -1;
+		if (module_cache_put(module)) {
+			module_delete(module);
+			return -1;
+		}
+	}
+
+	mod_sym->addr = module_sym(module, name.sym);
+	if (mod_sym->addr == NULL)
+		return -1;
+	mod_sym->module = module;
+	rlist_add(&module->funcs, &mod_sym->item);
+	return 0;
+}
+
+void
+module_sym_unload(struct module_sym *mod_sym)
+{
+	if (mod_sym->module == NULL)
+		return;
+
+	rlist_del(&mod_sym->item);
+	if (rlist_empty(&mod_sym->module->funcs)) {
+		struct func_name name;
+		func_split_name(mod_sym->name, &name);
+		module_cache_del(name.package, name.package_end);
+	}
+	module_gc(mod_sym->module);
+
+	mod_sym->module = NULL;
+	mod_sym->addr = NULL;
+}
+
+int
 module_reload(const char *package, const char *package_end, struct module **module)
 {
 	struct module *old_module = module_cache_find(package, package_end);
@@ -385,15 +422,15 @@ module_reload(const char *package, const char *package_end, struct module **modu
 	if (new_module == NULL)
 		return -1;
 
-	struct func_c *func, *tmp_func;
-	rlist_foreach_entry_safe(func, &old_module->funcs, item, tmp_func) {
+	struct module_sym *mod_sym, *tmp;
+	rlist_foreach_entry_safe(mod_sym, &old_module->funcs, item, tmp) {
 		struct func_name name;
-		func_split_name(func->base.def->name, &name);
-		func->func = module_sym(new_module, name.sym);
-		if (func->func == NULL)
+		func_split_name(mod_sym->name, &name);
+		mod_sym->addr = module_sym(new_module, name.sym);
+		if (mod_sym->addr == NULL)
 			goto restore;
-		func->module = new_module;
-		rlist_move(&new_module->funcs, &func->item);
+		mod_sym->module = new_module;
+		rlist_move(&new_module->funcs, &mod_sym->item);
 	}
 	module_cache_del(package, package_end);
 	if (module_cache_put(new_module) != 0)
@@ -408,9 +445,9 @@ restore:
 	 */
 	do {
 		struct func_name name;
-		func_split_name(func->base.def->name, &name);
-		func->func = module_sym(old_module, name.sym);
-		if (func->func == NULL) {
+		func_split_name(mod_sym->name, &name);
+		mod_sym->addr = module_sym(old_module, name.sym);
+		if (mod_sym->addr == NULL) {
 			/*
 			 * Something strange was happen, an early loaden
 			 * function was not found in an old dso.
@@ -418,10 +455,11 @@ restore:
 			panic("Can't restore module function, "
 			      "server state is inconsistent");
 		}
-		func->module = old_module;
-		rlist_move(&old_module->funcs, &func->item);
-	} while (func != rlist_first_entry(&old_module->funcs,
-					   struct func_c, item));
+		mod_sym->module = old_module;
+		rlist_move(&old_module->funcs, &mod_sym->item);
+	} while (mod_sym != rlist_first_entry(&old_module->funcs,
+					      struct module_sym,
+					      item));
 	assert(rlist_empty(&new_module->funcs));
 	module_delete(new_module);
 	return -1;
@@ -484,25 +522,10 @@ func_c_new(MAYBE_UNUSED struct func_def *def)
 		return NULL;
 	}
 	func->base.vtab = &func_c_vtab;
-	func->func = NULL;
-	func->module = NULL;
+	func->mod_sym.addr = NULL;
+	func->mod_sym.module = NULL;
+	func->mod_sym.name = def->name;
 	return &func->base;
-}
-
-static void
-func_c_unload(struct func_c *func)
-{
-	if (func->module) {
-		rlist_del(&func->item);
-		if (rlist_empty(&func->module->funcs)) {
-			struct func_name name;
-			func_split_name(func->base.def->name, &name);
-			module_cache_del(name.package, name.package_end);
-		}
-		module_gc(func->module);
-	}
-	func->module = NULL;
-	func->func = NULL;
 }
 
 static void
@@ -511,42 +534,9 @@ func_c_destroy(struct func *base)
 	assert(base->vtab == &func_c_vtab);
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_C);
 	struct func_c *func = (struct func_c *) base;
-	func_c_unload(func);
+	module_sym_unload(&func->mod_sym);
 	TRASH(base);
 	free(func);
-}
-
-/**
- * Resolve func->func (find the respective DLL and fetch the
- * symbol from it).
- */
-static int
-func_c_load(struct func_c *func)
-{
-	assert(func->func == NULL);
-
-	struct func_name name;
-	func_split_name(func->base.def->name, &name);
-
-	struct module *module = module_cache_find(name.package,
-						  name.package_end);
-	if (module == NULL) {
-		/* Try to find loaded module in the cache */
-		module = module_load(name.package, name.package_end);
-		if (module == NULL)
-			return -1;
-		if (module_cache_put(module)) {
-			module_delete(module);
-			return -1;
-		}
-	}
-
-	func->func = module_sym(module, name.sym);
-	if (func->func == NULL)
-		return -1;
-	func->module = module;
-	rlist_add(&module->funcs, &func->item);
-	return 0;
 }
 
 int
@@ -555,8 +545,8 @@ func_c_call(struct func *base, struct port *args, struct port *ret)
 	assert(base->vtab == &func_c_vtab);
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_C);
 	struct func_c *func = (struct func_c *) base;
-	if (func->func == NULL) {
-		if (func_c_load(func) != 0)
+	if (func->mod_sym.addr == NULL) {
+		if (module_sym_load(&func->mod_sym) != 0)
 			return -1;
 	}
 
@@ -571,10 +561,10 @@ func_c_call(struct func *base, struct port *args, struct port *ret)
 	box_function_ctx_t ctx = { ret };
 
 	/* Module can be changed after function reload. */
-	struct module *module = func->module;
+	struct module *module = func->mod_sym.module;
 	assert(module != NULL);
 	++module->calls;
-	int rc = func->func(&ctx, data, data + data_sz);
+	int rc = func->mod_sym.addr(&ctx, data, data + data_sz);
 	--module->calls;
 	module_gc(module);
 	region_truncate(region, region_svp);

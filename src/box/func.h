@@ -152,6 +152,20 @@ void
 module_sym_unload(struct module_sym *mod_sym);
 
 /**
+ * Execute a module symbol call.
+ *
+ * @param mod_sym module symbol pointer.
+ * @param args arguments to pass to the callee.
+ * @param ret execution results passed to the caller.
+ *
+ * @retval -1 on error.
+ * @retval 0 on success.
+ */
+int
+module_sym_call(struct module_sym *mod_sym, struct port *args,
+		struct port *ret);
+
+/**
  * Reload dynamically loadable module.
  *
  * @param package name begin pointer.

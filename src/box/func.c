@@ -409,6 +409,50 @@ module_sym_unload(struct module_sym *mod_sym)
 }
 
 int
+module_sym_call(struct module_sym *mod_sym, struct port *args, struct port *ret)
+{
+	if (mod_sym->addr == NULL) {
+		if (module_sym_load(mod_sym) != 0)
+			return -1;
+	}
+
+	struct region *region = &fiber()->gc;
+	size_t region_svp = region_used(region);
+	uint32_t data_sz;
+	const char *data = port_get_msgpack(args, &data_sz);
+	if (data == NULL)
+		return -1;
+
+	port_c_create(ret);
+	box_function_ctx_t ctx = {
+		.port = ret,
+	};
+
+	/*
+	 * Module can be changed after function reload. Also
+	 * keep in mind that stored C procedure may yield inside.
+	 */
+	struct module *module = mod_sym->module;
+	assert(module != NULL);
+	++module->calls;
+	int rc = mod_sym->addr(&ctx, data, data + data_sz);
+	--module->calls;
+	module_gc(module);
+	region_truncate(region, region_svp);
+
+	if (rc != 0) {
+		if (diag_last_error(&fiber()->diag) == NULL) {
+			/* Stored procedure forget to set diag  */
+			diag_set(ClientError, ER_PROC_C, "unknown error");
+		}
+		port_destroy(ret);
+		return -1;
+	}
+
+	return rc;
+}
+
+int
 module_reload(const char *package, const char *package_end, struct module **module)
 {
 	struct module *old_module = module_cache_find(package, package_end);
@@ -544,39 +588,9 @@ func_c_call(struct func *base, struct port *args, struct port *ret)
 {
 	assert(base->vtab == &func_c_vtab);
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_C);
+
 	struct func_c *func = (struct func_c *) base;
-	if (func->mod_sym.addr == NULL) {
-		if (module_sym_load(&func->mod_sym) != 0)
-			return -1;
-	}
-
-	struct region *region = &fiber()->gc;
-	size_t region_svp = region_used(region);
-	uint32_t data_sz;
-	const char *data = port_get_msgpack(args, &data_sz);
-	if (data == NULL)
-		return -1;
-
-	port_c_create(ret);
-	box_function_ctx_t ctx = { ret };
-
-	/* Module can be changed after function reload. */
-	struct module *module = func->mod_sym.module;
-	assert(module != NULL);
-	++module->calls;
-	int rc = func->mod_sym.addr(&ctx, data, data + data_sz);
-	--module->calls;
-	module_gc(module);
-	region_truncate(region, region_svp);
-	if (rc != 0) {
-		if (diag_last_error(&fiber()->diag) == NULL) {
-			/* Stored procedure forget to set diag  */
-			diag_set(ClientError, ER_PROC_C, "unknown error");
-		}
-		port_destroy(ret);
-		return -1;
-	}
-	return rc;
+	return module_sym_call(&func->mod_sym, args, ret);
 }
 
 static struct func_vtab func_c_vtab = {

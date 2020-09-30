@@ -2888,7 +2888,10 @@ tnt_error:
 	}
 
 	/* Automatic indexes */
+	/* Use when number of tuples N > 2^20 -> tmp = 10 log(N) > 200. */
 	rSize = DEFAULT_TUPLE_LOG_COUNT;
+	if (!space->def->opts.is_view && sql_space_tuple_log_count(space) < 133)
+		rSize += DEFAULT_TUPLE_LOG_COUNT;
 	LogEst rLogSize = estLog(rSize);
 	if (!pBuilder->pOrSet && /* Not pqart of an OR optimization */
 	    (pWInfo->wctrlFlags & WHERE_OR_SUBCLAUSE) == 0 &&
@@ -2919,12 +2922,7 @@ tnt_error:
 				 * those objects, since there is no opportunity to add schema
 				 * indexes on subqueries and views.
 				 */
-				pNew->rSetup = rLogSize + rSize + 4;
-				if (space->def->opts.is_view ||
-				    space->def->id != 0)
-					pNew->rSetup += 24;
-				if (pNew->rSetup < 0)
-					pNew->rSetup = 0;
+				pNew->rSetup = rLogSize + rSize;
 				/* TUNING: Each index lookup yields 20 rows in the table.  This
 				 * is more than the usual guess of 10 rows, since we have no way
 				 * of knowing how selective the index will ultimately be.  It would

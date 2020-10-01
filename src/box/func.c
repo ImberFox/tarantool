@@ -471,8 +471,11 @@ module_reload(const char *package, const char *package_end, struct module **modu
 		struct func_name name;
 		func_split_name(mod_sym->name, &name);
 		mod_sym->addr = module_sym(new_module, name.sym);
-		if (mod_sym->addr == NULL)
+		if (mod_sym->addr == NULL) {
+			say_error("module: reload %s, symbol %s not found",
+				  package, name.sym);
 			goto restore;
+		}
 		mod_sym->module = new_module;
 		rlist_move(&new_module->funcs, &mod_sym->item);
 	}

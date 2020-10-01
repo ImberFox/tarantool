@@ -108,6 +108,27 @@ struct func {
 };
 
 /**
+ * Parsed symbol and package names.
+ */
+struct func_name {
+	/** Null-terminated symbol name, e.g. "func" for "mod.submod.func" */
+	const char *sym;
+	/** Package name, e.g. "mod.submod" for "mod.submod.func" */
+	const char *package;
+	/** A pointer to the last character in ->package + 1 */
+	const char *package_end;
+};
+
+/***
+ * Split function name to symbol and package names.
+ * For example, str = foo.bar.baz => sym = baz, package = foo.bar
+ * @param str function name, e.g. "module.submodule.function".
+ * @param[out] name parsed symbol and package names.
+ */
+void
+func_split_name(const char *str, struct func_name *name);
+
+/**
  * Initialize modules subsystem.
  */
 int

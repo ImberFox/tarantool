@@ -35,7 +35,8 @@ extern "C" {
 #endif /* defined(__cplusplus) */
 
 struct lua_State;
-void box_lua_stat_init(struct lua_State *L);
+void
+box_lua_stat_init(struct lua_State *L);
 
 #if defined(__cplusplus)
 } /* extern "C" */

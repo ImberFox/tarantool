@@ -39,12 +39,7 @@
 #include "sql_stmt_cache.h"
 
 const char *session_type_strs[] = {
-	"background",
-	"binary",
-	"console",
-	"repl",
-	"applier",
-	"unknown",
+	"background", "binary", "console", "repl", "applier", "unknown",
 };
 
 static struct session_vtab generic_session_vtab = {
@@ -98,8 +93,8 @@ session_on_stop(struct trigger *trigger, void * /* event */)
 static int
 closed_session_push(struct session *session, struct port *port)
 {
-	(void) session;
-	(void) port;
+	(void)session;
+	(void)port;
 	diag_set(ClientError, ER_SESSION_CLOSED);
 	return -1;
 }
@@ -129,7 +124,7 @@ struct session *
 session_create(enum session_type type)
 {
 	struct session *session =
-		(struct session *) mempool_alloc(&session_pool);
+		(struct session *)mempool_alloc(&session_pool);
 	if (session == NULL) {
 		diag_set(OutOfMemory, session_pool.objsize, "mempool",
 			 "new slab");
@@ -168,9 +163,8 @@ session_create_on_demand(void)
 	struct session *s = session_create(SESSION_TYPE_BACKGROUND);
 	if (s == NULL)
 		return NULL;
-	s->fiber_on_stop = {
-		RLIST_LINK_INITIALIZER, session_on_stop, NULL, NULL
-	};
+	s->fiber_on_stop = { RLIST_LINK_INITIALIZER, session_on_stop, NULL,
+			     NULL };
 	/* Add a trigger to destroy session on fiber stop */
 	trigger_add(&fiber()->on_stop, &s->fiber_on_stop);
 	credentials_reset(&s->credentials, admin_user);
@@ -270,8 +264,7 @@ session_find(uint64_t sid)
 	mh_int_t k = mh_i64ptr_find(session_registry, sid, NULL);
 	if (k == mh_end(session_registry))
 		return NULL;
-	return (struct session *)
-		mh_i64ptr_node(session_registry, k)->val;
+	return (struct session *)mh_i64ptr_node(session_registry, k)->val;
 }
 
 extern "C" void
@@ -305,8 +298,7 @@ access_check_session(struct user *user)
 	 */
 	if (!(universe.access[user->auth_token].effective & PRIV_S)) {
 		diag_set(AccessDeniedError, priv_name(PRIV_S),
-			 schema_object_name(SC_UNIVERSE), "",
-			 user->def->name);
+			 schema_object_name(SC_UNIVERSE), "", user->def->name);
 		return -1;
 	}
 	return 0;
@@ -325,12 +317,12 @@ access_check_universe_object(user_access_t access,
 		 * The user may not exist already, if deleted
 		 * from a different connection.
 		 */
-		int denied_access = access & ((credentials->universal_access
-					       & access) ^ access);
+		int denied_access =
+			access &
+			((credentials->universal_access & access) ^ access);
 		struct user *user = user_find(credentials->uid);
 		if (user != NULL) {
-			diag_set(AccessDeniedError,
-				 priv_name(denied_access),
+			diag_set(AccessDeniedError, priv_name(denied_access),
 				 schema_object_name(object_type), object_name,
 				 user->def->name);
 		} else {
@@ -355,7 +347,7 @@ access_check_universe(user_access_t access)
 int
 generic_session_push(struct session *session, struct port *port)
 {
-	(void) port;
+	(void)port;
 	const char *name =
 		tt_sprintf("Session '%s'", session_type_strs[session->type]);
 	diag_set(ClientError, ER_UNSUPPORTED, name, "push()");
@@ -365,13 +357,13 @@ generic_session_push(struct session *session, struct port *port)
 int
 generic_session_fd(struct session *session)
 {
-	(void) session;
+	(void)session;
 	return -1;
 }
 
 int64_t
 generic_session_sync(struct session *session)
 {
-	(void) session;
+	(void)session;
 	return 0;
 }

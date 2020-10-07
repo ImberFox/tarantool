@@ -60,12 +60,12 @@ struct space_vtab {
 	/** Return binary size of a space. */
 	size_t (*bsize)(struct space *);
 
-	int (*execute_replace)(struct space *, struct txn *,
-			       struct request *, struct tuple **result);
-	int (*execute_delete)(struct space *, struct txn *,
-			      struct request *, struct tuple **result);
-	int (*execute_update)(struct space *, struct txn *,
-			      struct request *, struct tuple **result);
+	int (*execute_replace)(struct space *, struct txn *, struct request *,
+			       struct tuple **result);
+	int (*execute_delete)(struct space *, struct txn *, struct request *,
+			      struct tuple **result);
+	int (*execute_update)(struct space *, struct txn *, struct request *,
+			      struct tuple **result);
 	int (*execute_upsert)(struct space *, struct txn *, struct request *);
 
 	int (*ephemeral_replace)(struct space *, const char *, const char *);
@@ -140,8 +140,7 @@ struct space_vtab {
 	 * Notify the engine about the changed space,
 	 * before it's done, to prepare 'new_space' object.
 	 */
-	int (*prepare_alter)(struct space *old_space,
-			     struct space *new_space);
+	int (*prepare_alter)(struct space *old_space, struct space *new_space);
 	/**
 	 * Called right after removing a space from the cache.
 	 * The engine should abort all transactions involving
@@ -253,7 +252,10 @@ space_create(struct space *space, struct engine *engine,
 
 /** Get space ordinal number. */
 static inline uint32_t
-space_id(struct space *space) { return space->def->id; }
+space_id(struct space *space)
+{
+	return space->def->id;
+}
 
 /** Get space name. */
 static inline const char *
@@ -302,7 +304,7 @@ space_index(struct space *space, uint32_t id)
 static inline struct index *
 space_index_by_name(struct space *space, const char *index_name)
 {
-	for(uint32_t i = 0; i < space->index_count; i++) {
+	for (uint32_t i = 0; i < space->index_count; i++) {
 		struct index *index = space->index[i];
 		if (strcmp(index_name, index->def->name) == 0)
 			return index;
@@ -391,8 +393,8 @@ access_check_space(struct space *space, user_access_t access);
  * Execute a DML request on the given space.
  */
 int
-space_execute_dml(struct space *space, struct txn *txn,
-		  struct request *request, struct tuple **result);
+space_execute_dml(struct space *space, struct txn *txn, struct request *request,
+		  struct tuple **result);
 
 static inline int
 space_ephemeral_replace(struct space *space, const char *tuple,
@@ -466,8 +468,8 @@ space_swap_index(struct space *old_space, struct space *new_space,
 		 uint32_t old_index_id, uint32_t new_index_id)
 {
 	assert(old_space->vtab == new_space->vtab);
-	return new_space->vtab->swap_index(old_space, new_space,
-					   old_index_id, new_index_id);
+	return new_space->vtab->swap_index(old_space, new_space, old_index_id,
+					   new_index_id);
 }
 
 static inline int
@@ -484,11 +486,17 @@ space_invalidate(struct space *space)
 }
 
 static inline bool
-space_is_memtx(struct space *space) { return space->engine->id == 0; }
+space_is_memtx(struct space *space)
+{
+	return space->engine->id == 0;
+}
 
 /** Return true if space is run under vinyl engine. */
 static inline bool
-space_is_vinyl(struct space *space) { return strcmp(space->engine->name, "vinyl") == 0; }
+space_is_vinyl(struct space *space)
+{
+	return strcmp(space->engine->name, "vinyl") == 0;
+}
 
 struct field_def;
 /**
@@ -566,20 +574,33 @@ space_pop_constraint_id(struct space *space, const char *name);
 /*
  * Virtual method stubs.
  */
-size_t generic_space_bsize(struct space *);
-int generic_space_ephemeral_replace(struct space *, const char *, const char *);
-int generic_space_ephemeral_delete(struct space *, const char *);
-int generic_space_ephemeral_rowid_next(struct space *, uint64_t *);
-void generic_init_system_space(struct space *);
-void generic_init_ephemeral_space(struct space *);
-int generic_space_check_index_def(struct space *, struct index_def *);
-int generic_space_add_primary_key(struct space *space);
-void generic_space_drop_primary_key(struct space *space);
-int generic_space_check_format(struct space *, struct tuple_format *);
-int generic_space_build_index(struct space *, struct index *,
-			      struct tuple_format *, bool);
-int generic_space_prepare_alter(struct space *, struct space *);
-void generic_space_invalidate(struct space *);
+size_t
+generic_space_bsize(struct space *);
+int
+generic_space_ephemeral_replace(struct space *, const char *, const char *);
+int
+generic_space_ephemeral_delete(struct space *, const char *);
+int
+generic_space_ephemeral_rowid_next(struct space *, uint64_t *);
+void
+generic_init_system_space(struct space *);
+void
+generic_init_ephemeral_space(struct space *);
+int
+generic_space_check_index_def(struct space *, struct index_def *);
+int
+generic_space_add_primary_key(struct space *space);
+void
+generic_space_drop_primary_key(struct space *space);
+int
+generic_space_check_format(struct space *, struct tuple_format *);
+int
+generic_space_build_index(struct space *, struct index *, struct tuple_format *,
+			  bool);
+int
+generic_space_prepare_alter(struct space *, struct space *);
+void
+generic_space_invalidate(struct space *);
 
 #if defined(__cplusplus)
 } /* extern "C" */
@@ -629,9 +650,9 @@ index_find_unique_xc(struct space *space, uint32_t index_id)
 static inline struct index *
 index_find_system_xc(struct space *space, uint32_t index_id)
 {
-	if (! space_is_memtx(space)) {
-		tnt_raise(ClientError, ER_UNSUPPORTED,
-			  space->engine->name, "system data");
+	if (!space_is_memtx(space)) {
+		tnt_raise(ClientError, ER_UNSUPPORTED, space->engine->name,
+			  "system data");
 	}
 	return index_find_xc(space, index_id);
 }

@@ -38,9 +38,7 @@
 /* Tuple and key hasher */
 namespace {
 
-enum {
-	HASH_SEED = 13U
-};
+enum { HASH_SEED = 13U };
 
 template <int TYPE>
 static inline uint32_t
@@ -57,7 +55,7 @@ field_hash(uint32_t *ph, uint32_t *pcarry, const char **field)
 	const char *f = *field;
 	uint32_t size;
 	mp_next(field);
-	size = *field - f;  /* calculate the size of field */
+	size = *field - f; /* calculate the size of field */
 	assert(size < INT32_MAX);
 	PMurHash32_Process(ph, pcarry, f, size);
 	return size;
@@ -81,30 +79,28 @@ field_hash<FIELD_TYPE_STRING>(uint32_t *ph, uint32_t *pcarry,
 	return size;
 }
 
-template <int TYPE, int ...MORE_TYPES> struct KeyFieldHash {};
+template <int TYPE, int... MORE_TYPES> struct KeyFieldHash {};
 
-template <int TYPE, int TYPE2, int ...MORE_TYPES>
+template <int TYPE, int TYPE2, int... MORE_TYPES>
 struct KeyFieldHash<TYPE, TYPE2, MORE_TYPES...> {
-	static void hash(uint32_t *ph, uint32_t *pcarry,
-			 const char **pfield, uint32_t *ptotal_size)
+	static void hash(uint32_t *ph, uint32_t *pcarry, const char **pfield,
+			 uint32_t *ptotal_size)
 	{
 		*ptotal_size += field_hash<TYPE>(ph, pcarry, pfield);
-		KeyFieldHash<TYPE2, MORE_TYPES...>::
-			hash(ph, pcarry, pfield, ptotal_size);
+		KeyFieldHash<TYPE2, MORE_TYPES...>::hash(ph, pcarry, pfield,
+							 ptotal_size);
 	}
 };
 
-template <int TYPE>
-struct KeyFieldHash<TYPE> {
-	static void hash(uint32_t *ph, uint32_t *pcarry,
-			 const char **pfield, uint32_t *ptotal_size)
+template <int TYPE> struct KeyFieldHash<TYPE> {
+	static void hash(uint32_t *ph, uint32_t *pcarry, const char **pfield,
+			 uint32_t *ptotal_size)
 	{
 		*ptotal_size += field_hash<TYPE>(ph, pcarry, pfield);
 	}
 };
 
-template <int TYPE, int ...MORE_TYPES>
-struct KeyHash {
+template <int TYPE, int... MORE_TYPES> struct KeyHash {
 	static uint32_t hash(const char *key, struct key_def *)
 	{
 		uint32_t h = HASH_SEED;
@@ -116,33 +112,31 @@ struct KeyHash {
 	}
 };
 
-template <>
-struct KeyHash<FIELD_TYPE_UNSIGNED> {
+template <> struct KeyHash<FIELD_TYPE_UNSIGNED> {
 	static uint32_t hash(const char *key, struct key_def *key_def)
 	{
 		uint64_t val = mp_decode_uint(&key);
-		(void) key_def;
+		(void)key_def;
 		if (likely(val <= UINT32_MAX))
 			return val;
-		return ((uint32_t)((val)>>33^(val)^(val)<<11));
+		return ((uint32_t)((val) >> 33 ^ (val) ^ (val) << 11));
 	}
 };
 
-template <int TYPE, int ...MORE_TYPES> struct TupleFieldHash { };
+template <int TYPE, int... MORE_TYPES> struct TupleFieldHash {};
 
-template <int TYPE, int TYPE2, int ...MORE_TYPES>
+template <int TYPE, int TYPE2, int... MORE_TYPES>
 struct TupleFieldHash<TYPE, TYPE2, MORE_TYPES...> {
 	static void hash(const char **pfield, uint32_t *ph, uint32_t *pcarry,
 			 uint32_t *ptotal_size)
 	{
 		*ptotal_size += field_hash<TYPE>(ph, pcarry, pfield);
-		TupleFieldHash<TYPE2, MORE_TYPES...>::
-			hash(pfield, ph, pcarry, ptotal_size);
+		TupleFieldHash<TYPE2, MORE_TYPES...>::hash(pfield, ph, pcarry,
+							   ptotal_size);
 	}
 };
 
-template <int TYPE>
-struct TupleFieldHash<TYPE> {
+template <int TYPE> struct TupleFieldHash<TYPE> {
 	static void hash(const char **pfield, uint32_t *ph, uint32_t *pcarry,
 			 uint32_t *ptotal_size)
 	{
@@ -150,44 +144,40 @@ struct TupleFieldHash<TYPE> {
 	}
 };
 
-template <int TYPE, int ...MORE_TYPES>
-struct TupleHash
-{
+template <int TYPE, int... MORE_TYPES> struct TupleHash {
 	static uint32_t hash(struct tuple *tuple, struct key_def *key_def)
 	{
 		assert(!key_def->is_multikey);
 		uint32_t h = HASH_SEED;
 		uint32_t carry = 0;
 		uint32_t total_size = 0;
-		const char *field = tuple_field_by_part(tuple,
-						key_def->parts,
-						MULTIKEY_NONE);
-		TupleFieldHash<TYPE, MORE_TYPES...>::
-			hash(&field, &h, &carry, &total_size);
+		const char *field = tuple_field_by_part(tuple, key_def->parts,
+							MULTIKEY_NONE);
+		TupleFieldHash<TYPE, MORE_TYPES...>::hash(&field, &h, &carry,
+							  &total_size);
 		return PMurHash32_Result(h, carry, total_size);
 	}
 };
 
-template <>
-struct TupleHash<FIELD_TYPE_UNSIGNED> {
-	static uint32_t	hash(struct tuple *tuple, struct key_def *key_def)
+template <> struct TupleHash<FIELD_TYPE_UNSIGNED> {
+	static uint32_t hash(struct tuple *tuple, struct key_def *key_def)
 	{
 		assert(!key_def->is_multikey);
-		const char *field = tuple_field_by_part(tuple,
-						key_def->parts,
-						MULTIKEY_NONE);
+		const char *field = tuple_field_by_part(tuple, key_def->parts,
+							MULTIKEY_NONE);
 		uint64_t val = mp_decode_uint(&field);
 		if (likely(val <= UINT32_MAX))
 			return val;
-		return ((uint32_t)((val)>>33^(val)^(val)<<11));
+		return ((uint32_t)((val) >> 33 ^ (val) ^ (val) << 11));
 	}
 };
 
-}; /* namespace { */
+}; // namespace
 
-#define HASHER(...) \
-	{ KeyHash<__VA_ARGS__>::hash, TupleHash<__VA_ARGS__>::hash, \
-		{ __VA_ARGS__, UINT32_MAX } },
+#define HASHER(...)                     \
+	{ KeyHash<__VA_ARGS__>::hash,   \
+	  TupleHash<__VA_ARGS__>::hash, \
+	  { __VA_ARGS__, UINT32_MAX } },
 
 struct hasher_signature {
 	key_hash_t kf;
@@ -199,20 +189,32 @@ struct hasher_signature {
  * field1 type,  field2 type, ...
  */
 static const hasher_signature hash_arr[] = {
-	HASHER(FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_UNSIGNED, FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_UNSIGNED, FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING  , FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_STRING  , FIELD_TYPE_UNSIGNED)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING  , FIELD_TYPE_STRING)
-	HASHER(FIELD_TYPE_STRING  , FIELD_TYPE_STRING  , FIELD_TYPE_STRING)
+	HASHER(FIELD_TYPE_UNSIGNED) HASHER(FIELD_TYPE_STRING) HASHER(
+		FIELD_TYPE_UNSIGNED,
+		FIELD_TYPE_UNSIGNED) HASHER(FIELD_TYPE_STRING,
+					    FIELD_TYPE_UNSIGNED)
+		HASHER(FIELD_TYPE_UNSIGNED, FIELD_TYPE_STRING) HASHER(
+			FIELD_TYPE_STRING,
+			FIELD_TYPE_STRING) HASHER(FIELD_TYPE_UNSIGNED,
+						  FIELD_TYPE_UNSIGNED,
+						  FIELD_TYPE_UNSIGNED)
+			HASHER(FIELD_TYPE_STRING, FIELD_TYPE_UNSIGNED,
+			       FIELD_TYPE_UNSIGNED) HASHER(FIELD_TYPE_UNSIGNED,
+							   FIELD_TYPE_STRING,
+							   FIELD_TYPE_UNSIGNED)
+				HASHER(FIELD_TYPE_STRING, FIELD_TYPE_STRING,
+				       FIELD_TYPE_UNSIGNED) HASHER(FIELD_TYPE_UNSIGNED,
+								   FIELD_TYPE_UNSIGNED,
+								   FIELD_TYPE_STRING)
+					HASHER(FIELD_TYPE_STRING,
+					       FIELD_TYPE_UNSIGNED,
+					       FIELD_TYPE_STRING)
+						HASHER(FIELD_TYPE_UNSIGNED,
+						       FIELD_TYPE_STRING,
+						       FIELD_TYPE_STRING)
+							HASHER(FIELD_TYPE_STRING,
+							       FIELD_TYPE_STRING,
+							       FIELD_TYPE_STRING)
 };
 
 #undef HASHER
@@ -225,7 +227,8 @@ uint32_t
 key_hash_slowpath(const char *key, struct key_def *key_def);
 
 void
-key_def_set_hash_func(struct key_def *key_def) {
+key_def_set_hash_func(struct key_def *key_def)
+{
 	if (key_def->is_nullable || key_def->has_json_paths)
 		goto slowpath;
 	/*
@@ -252,7 +255,8 @@ key_def_set_hash_func(struct key_def *key_def) {
 				break;
 			}
 		}
-		if (i == key_def->part_count && hash_arr[k].p[i] == UINT32_MAX){
+		if (i == key_def->part_count &&
+		    hash_arr[k].p[i] == UINT32_MAX) {
 			key_def->tuple_hash = hash_arr[k].tf;
 			key_def->key_hash = hash_arr[k].kf;
 			return;
@@ -304,8 +308,8 @@ tuple_hash_field(uint32_t *ph1, uint32_t *pcarry, const char **field,
 		 */
 		double iptr;
 		double val = mp_typeof(**field) == MP_FLOAT ?
-			     mp_decode_float(field) :
-			     mp_decode_double(field);
+					   mp_decode_float(field) :
+					   mp_decode_double(field);
 		if (!isfinite(val) || modf(val, &iptr) != 0 ||
 		    val < -exp2(63) || val >= exp2(64)) {
 			size = *field - f;
@@ -323,7 +327,7 @@ tuple_hash_field(uint32_t *ph1, uint32_t *pcarry, const char **field,
 	}
 	default:
 		mp_next(field);
-		size = *field - f;  /* calculate the size of field */
+		size = *field - f; /* calculate the size of field */
 		/*
 		 * (!) All other fields hashed **including** MsgPack format
 		 * identifier (e.g. 0xcc). This was done **intentionally**
@@ -396,12 +400,14 @@ tuple_hash_slowpath(struct tuple *tuple, struct key_def *key_def)
 		if (prev_fieldno + 1 != key_def->parts[part_id].fieldno) {
 			struct key_part *part = &key_def->parts[part_id];
 			if (has_json_paths) {
-				field = tuple_field_raw_by_part(format, tuple_raw,
+				field = tuple_field_raw_by_part(format,
+								tuple_raw,
 								field_map, part,
 								MULTIKEY_NONE);
 			} else {
-				field = tuple_field_raw(format, tuple_raw, field_map,
-						    part->fieldno);
+				field = tuple_field_raw(format, tuple_raw,
+							field_map,
+							part->fieldno);
 			}
 		}
 		if (has_optional_parts && (field == NULL || field >= end)) {

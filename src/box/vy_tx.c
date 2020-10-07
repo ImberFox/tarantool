@@ -103,8 +103,8 @@ vy_tx_manager_new(void)
 {
 	struct vy_tx_manager *xm = calloc(1, sizeof(*xm));
 	if (xm == NULL) {
-		diag_set(OutOfMemory, sizeof(*xm),
-			 "malloc", "struct vy_tx_manager");
+		diag_set(OutOfMemory, sizeof(*xm), "malloc",
+			 "struct vy_tx_manager");
 		return NULL;
 	}
 
@@ -113,7 +113,8 @@ vy_tx_manager_new(void)
 	vy_global_read_view_create((struct vy_read_view *)&xm->global_read_view,
 				   INT64_MAX);
 	xm->p_global_read_view = &xm->global_read_view;
-	vy_global_read_view_create((struct vy_read_view *)&xm->committed_read_view,
+	vy_global_read_view_create((struct vy_read_view *)&xm
+					   ->committed_read_view,
 				   MAX_LSN - 1);
 	xm->p_committed_read_view = &xm->committed_read_view;
 
@@ -171,15 +172,13 @@ vy_tx_manager_read_view(struct vy_tx_manager *xm)
 		if ((xm->last_prepared_tx == NULL && rv->vlsn == xm->lsn) ||
 		    (xm->last_prepared_tx != NULL &&
 		     rv->vlsn == MAX_LSN + xm->last_prepared_tx->psn)) {
-
 			rv->refs++;
-			return  rv;
+			return rv;
 		}
 	}
 	rv = mempool_alloc(&xm->read_view_mempool);
 	if (rv == NULL) {
-		diag_set(OutOfMemory, sizeof(*rv),
-			 "mempool", "read view");
+		diag_set(OutOfMemory, sizeof(*rv), "mempool", "read view");
 		return NULL;
 	}
 	if (xm->last_prepared_tx != NULL) {
@@ -196,7 +195,7 @@ vy_tx_manager_read_view(struct vy_tx_manager *xm)
 
 void
 vy_tx_manager_destroy_read_view(struct vy_tx_manager *xm,
-                                struct vy_read_view *rv)
+				struct vy_read_view *rv)
 {
 	if (rv == xm->p_global_read_view)
 		return;
@@ -268,16 +267,16 @@ vy_read_interval_unacct(struct vy_read_interval *interval)
 }
 
 static struct vy_read_interval *
-vy_read_interval_new(struct vy_tx *tx, struct vy_lsm *lsm,
-		     struct vy_entry left, bool left_belongs,
-		     struct vy_entry right, bool right_belongs)
+vy_read_interval_new(struct vy_tx *tx, struct vy_lsm *lsm, struct vy_entry left,
+		     bool left_belongs, struct vy_entry right,
+		     bool right_belongs)
 {
 	struct vy_tx_manager *xm = tx->xm;
 	struct vy_read_interval *interval;
 	interval = mempool_alloc(&xm->read_interval_mempool);
 	if (interval == NULL) {
-		diag_set(OutOfMemory, sizeof(*interval),
-			 "mempool", "struct vy_read_interval");
+		diag_set(OutOfMemory, sizeof(*interval), "mempool",
+			 "struct vy_read_interval");
 		return NULL;
 	}
 	interval->tx = tx;
@@ -343,8 +342,7 @@ vy_tx_destroy(struct vy_tx *tx)
 	vy_tx_manager_destroy_read_view(tx->xm, tx->read_view);
 
 	struct txv *v, *tmp;
-	stailq_foreach_entry_safe(v, tmp, &tx->log, next_in_log)
-		txv_delete(v);
+	stailq_foreach_entry_safe(v, tmp, &tx->log, next_in_log) txv_delete(v);
 
 	vy_tx_read_set_iter(&tx->read_set, NULL, vy_tx_read_set_free_cb, NULL);
 	rlist_del_entry(tx, in_writers);
@@ -484,8 +482,8 @@ vy_tx_write_prepare(struct txv *v)
  * @retval -1 Memory error.
  */
 static int
-vy_tx_write(struct vy_lsm *lsm, struct vy_mem *mem,
-	    struct vy_entry entry, struct tuple **region_stmt)
+vy_tx_write(struct vy_lsm *lsm, struct vy_mem *mem, struct vy_entry entry,
+	    struct tuple **region_stmt)
 {
 	assert(vy_stmt_is_refable(entry.stmt));
 	assert(*region_stmt == NULL || !vy_stmt_is_refable(*region_stmt));
@@ -511,7 +509,7 @@ vy_tx_write(struct vy_lsm *lsm, struct vy_mem *mem,
 					vy_stmt_type(applied.stmt);
 				assert(applied_type == IPROTO_REPLACE ||
 				       applied_type == IPROTO_INSERT);
-				(void) applied_type;
+				(void)applied_type;
 				int rc = vy_lsm_set(lsm, mem, applied,
 						    region_stmt);
 				tuple_unref(applied.stmt);
@@ -569,8 +567,8 @@ vy_tx_handle_deferred_delete(struct vy_tx *tx, struct txv *v)
 
 	/* Look up the tuple overwritten by this statement. */
 	struct vy_entry overwritten;
-	if (vy_point_lookup_mem(pk, &tx->xm->p_global_read_view,
-				v->entry, &overwritten) != 0)
+	if (vy_point_lookup_mem(pk, &tx->xm->p_global_read_view, v->entry,
+				&overwritten) != 0)
 		return -1;
 
 	if (overwritten.stmt == NULL) {
@@ -596,8 +594,8 @@ vy_tx_handle_deferred_delete(struct vy_tx *tx, struct txv *v)
 	}
 
 	struct tuple *delete_stmt;
-	delete_stmt = vy_stmt_new_surrogate_delete(pk->mem_format,
-						   overwritten.stmt);
+	delete_stmt =
+		vy_stmt_new_surrogate_delete(pk->mem_format, overwritten.stmt);
 	tuple_unref(overwritten.stmt);
 	if (delete_stmt == NULL)
 		return -1;
@@ -641,7 +639,7 @@ vy_tx_handle_deferred_delete(struct vy_tx *tx, struct txv *v)
 				 */
 				assert(vy_stmt_type(stmt) == IPROTO_REPLACE);
 				assert(vy_stmt_type(other->entry.stmt) ==
-								IPROTO_REPLACE);
+				       IPROTO_REPLACE);
 				other->is_nop = true;
 				continue;
 			}
@@ -704,7 +702,8 @@ vy_tx_prepare(struct vy_tx *tx)
 	/* repsert - REPLACE/UPSERT */
 	struct tuple *delete = NULL, *repsert = NULL;
 	MAYBE_UNUSED uint32_t current_space_id = 0;
-	stailq_foreach_entry(v, &tx->log, next_in_log) {
+	stailq_foreach_entry(v, &tx->log, next_in_log)
+	{
 		struct vy_lsm *lsm = v->lsm;
 		if (lsm->index_id == 0) {
 			/* The beginning of the new txn_stmt is met. */
@@ -755,8 +754,9 @@ vy_tx_prepare(struct vy_tx *tx)
 			 */
 			uint8_t flags = vy_stmt_flags(v->entry.stmt);
 			if (flags & VY_STMT_DEFERRED_DELETE) {
-				vy_stmt_set_flags(v->entry.stmt, flags &
-						  ~VY_STMT_DEFERRED_DELETE);
+				vy_stmt_set_flags(
+					v->entry.stmt,
+					flags & ~VY_STMT_DEFERRED_DELETE);
 			}
 		}
 
@@ -780,8 +780,8 @@ vy_tx_prepare(struct vy_tx *tx)
 
 		/* In secondary indexes only REPLACE/DELETE can be written. */
 		vy_stmt_set_lsn(v->entry.stmt, MAX_LSN + tx->psn);
-		struct tuple **region_stmt =
-			(type == IPROTO_DELETE) ? &delete : &repsert;
+		struct tuple **region_stmt = (type == IPROTO_DELETE) ? &delete :
+									     &repsert;
 		if (vy_tx_write(lsm, v->mem, v->entry, region_stmt) != 0)
 			return -1;
 		v->region_stmt = *region_stmt;
@@ -809,7 +809,8 @@ vy_tx_commit(struct vy_tx *tx, int64_t lsn)
 
 	/* Fix LSNs of the records and commit changes. */
 	struct txv *v;
-	stailq_foreach_entry(v, &tx->log, next_in_log) {
+	stailq_foreach_entry(v, &tx->log, next_in_log)
+	{
 		if (v->region_stmt != NULL) {
 			struct vy_entry entry;
 			entry.stmt = v->region_stmt;
@@ -858,7 +859,8 @@ vy_tx_rollback_after_prepare(struct vy_tx *tx)
 		xm->last_prepared_tx = NULL;
 
 	struct txv *v;
-	stailq_foreach_entry(v, &tx->log, next_in_log) {
+	stailq_foreach_entry(v, &tx->log, next_in_log)
+	{
 		if (v->region_stmt != NULL) {
 			struct vy_entry entry;
 			entry.stmt = v->region_stmt;
@@ -908,8 +910,7 @@ vy_tx_begin_statement(struct vy_tx *tx, struct space *space, void **savepoint)
 void
 vy_tx_rollback_statement(struct vy_tx *tx, void *svp)
 {
-	if (tx->state == VINYL_TX_ABORT ||
-	    tx->state == VINYL_TX_COMMIT)
+	if (tx->state == VINYL_TX_ABORT || tx->state == VINYL_TX_COMMIT)
 		return;
 
 	assert(tx->state == VINYL_TX_READY);
@@ -919,7 +920,8 @@ vy_tx_rollback_statement(struct vy_tx *tx, void *svp)
 	/* Rollback statements in LIFO order. */
 	stailq_reverse(&tail);
 	struct txv *v, *tmp;
-	stailq_foreach_entry_safe(v, tmp, &tail, next_in_log) {
+	stailq_foreach_entry_safe(v, tmp, &tail, next_in_log)
+	{
 		write_set_remove(&tx->write_set, v);
 		if (v->overwritten != NULL) {
 			/* Restore overwritten statement. */
@@ -935,9 +937,8 @@ vy_tx_rollback_statement(struct vy_tx *tx, void *svp)
 }
 
 int
-vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm,
-	    struct vy_entry left, bool left_belongs,
-	    struct vy_entry right, bool right_belongs)
+vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm, struct vy_entry left,
+	    bool left_belongs, struct vy_entry right, bool right_belongs)
 {
 	if (vy_tx_is_in_read_view(tx)) {
 		/* No point in tracking reads. */
@@ -945,8 +946,8 @@ vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm,
 	}
 
 	struct vy_read_interval *new_interval;
-	new_interval = vy_read_interval_new(tx, lsm, left, left_belongs,
-					    right, right_belongs);
+	new_interval = vy_read_interval_new(tx, lsm, left, left_belongs, right,
+					    right_belongs);
 	if (new_interval == NULL)
 		return -1;
 
@@ -1006,7 +1007,8 @@ vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm,
 		}
 		struct vy_read_interval *next_interval;
 		stailq_foreach_entry_safe(interval, next_interval, &merge,
-					  in_merge) {
+					  in_merge)
+		{
 			vy_tx_read_set_remove(&tx->read_set, interval);
 			vy_lsm_read_set_remove(&lsm->read_set, interval);
 			vy_read_interval_delete(interval);
@@ -1059,14 +1061,12 @@ vy_tx_set_entry(struct vy_tx *tx, struct vy_lsm *lsm, struct vy_entry entry)
 	if (old != NULL && vy_stmt_type(entry.stmt) == IPROTO_UPSERT) {
 		assert(lsm->index_id == 0);
 		uint8_t old_type = vy_stmt_type(old->entry.stmt);
-		assert(old_type == IPROTO_UPSERT ||
-		       old_type == IPROTO_INSERT ||
-		       old_type == IPROTO_REPLACE ||
-		       old_type == IPROTO_DELETE);
-		(void) old_type;
+		assert(old_type == IPROTO_UPSERT || old_type == IPROTO_INSERT ||
+		       old_type == IPROTO_REPLACE || old_type == IPROTO_DELETE);
+		(void)old_type;
 
-		applied = vy_entry_apply_upsert(entry, old->entry,
-						lsm->cmp_def, true);
+		applied = vy_entry_apply_upsert(entry, old->entry, lsm->cmp_def,
+						true);
 		lsm->stat.upsert.applied++;
 		if (applied.stmt == NULL)
 			return -1;
@@ -1096,8 +1096,8 @@ vy_tx_set_entry(struct vy_tx *tx, struct vy_lsm *lsm, struct vy_entry entry)
 		 */
 		if (vy_stmt_flags(old->entry.stmt) & VY_STMT_DEFERRED_DELETE) {
 			uint8_t flags = vy_stmt_flags(entry.stmt);
-			vy_stmt_set_flags(entry.stmt, flags |
-					  VY_STMT_DEFERRED_DELETE);
+			vy_stmt_set_flags(entry.stmt,
+					  flags | VY_STMT_DEFERRED_DELETE);
 		}
 	}
 
@@ -1179,9 +1179,9 @@ vy_tx_manager_abort_writers_for_ro(struct vy_tx_manager *xm)
 
 void
 vy_txw_iterator_open(struct vy_txw_iterator *itr,
-		     struct vy_txw_iterator_stat *stat,
-		     struct vy_tx *tx, struct vy_lsm *lsm,
-		     enum iterator_type iterator_type, struct vy_entry key)
+		     struct vy_txw_iterator_stat *stat, struct vy_tx *tx,
+		     struct vy_lsm *lsm, enum iterator_type iterator_type,
+		     struct vy_entry key)
 {
 	itr->stat = stat;
 	itr->tx = tx;
@@ -1210,7 +1210,8 @@ vy_txw_iterator_seek(struct vy_txw_iterator *itr, struct vy_entry last)
 	if (last.stmt != NULL) {
 		key = last;
 		iterator_type = iterator_direction(iterator_type) > 0 ?
-				ITER_GT : ITER_LT;
+					      ITER_GT :
+					      ITER_LT;
 	}
 
 	struct vy_lsm *lsm = itr->lsm;
@@ -1230,9 +1231,11 @@ vy_txw_iterator_seek(struct vy_txw_iterator *itr, struct vy_entry last)
 				struct txv *next;
 				if (iterator_type == ITER_LE ||
 				    iterator_type == ITER_GT)
-					next = write_set_next(&itr->tx->write_set, txv);
+					next = write_set_next(
+						&itr->tx->write_set, txv);
 				else
-					next = write_set_prev(&itr->tx->write_set, txv);
+					next = write_set_prev(
+						&itr->tx->write_set, txv);
 				if (next == NULL || next->lsm != lsm)
 					break;
 				if (vy_entry_compare(key, next->entry,
@@ -1260,8 +1263,7 @@ vy_txw_iterator_seek(struct vy_txw_iterator *itr, struct vy_entry last)
 }
 
 NODISCARD int
-vy_txw_iterator_next(struct vy_txw_iterator *itr,
-		     struct vy_history *history)
+vy_txw_iterator_next(struct vy_txw_iterator *itr, struct vy_history *history)
 {
 	vy_history_cleanup(history);
 	if (!itr->search_started) {
@@ -1273,9 +1275,11 @@ vy_txw_iterator_next(struct vy_txw_iterator *itr,
 	if (itr->curr_txv == NULL)
 		return 0;
 	if (itr->iterator_type == ITER_LE || itr->iterator_type == ITER_LT)
-		itr->curr_txv = write_set_prev(&itr->tx->write_set, itr->curr_txv);
+		itr->curr_txv =
+			write_set_prev(&itr->tx->write_set, itr->curr_txv);
 	else
-		itr->curr_txv = write_set_next(&itr->tx->write_set, itr->curr_txv);
+		itr->curr_txv =
+			write_set_next(&itr->tx->write_set, itr->curr_txv);
 	if (itr->curr_txv != NULL && itr->curr_txv->lsm != itr->lsm)
 		itr->curr_txv = NULL;
 	if (itr->curr_txv != NULL && itr->iterator_type == ITER_EQ &&
@@ -1305,8 +1309,9 @@ vy_txw_iterator_skip(struct vy_txw_iterator *itr, struct vy_entry last,
 	if (itr->search_started &&
 	    (itr->curr_txv == NULL || last.stmt == NULL ||
 	     iterator_direction(itr->iterator_type) *
-	     vy_entry_compare(itr->curr_txv->entry, last,
-			      itr->lsm->cmp_def) > 0))
+			     vy_entry_compare(itr->curr_txv->entry, last,
+					      itr->lsm->cmp_def) >
+		     0))
 		return 0;
 
 	vy_history_cleanup(history);

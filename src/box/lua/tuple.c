@@ -31,9 +31,9 @@
 #include "box/lua/tuple.h"
 #include "box/xrow_update.h"
 
-#include "lua/utils.h" /* luaT_error() */
+#include "lua/utils.h"	 /* luaT_error() */
 #include "lua/msgpack.h" /* luamp_encode_XXX() */
-#include "diag.h" /* diag_set() */
+#include "diag.h"	 /* diag_set() */
 #include <small/ibuf.h>
 #include <small/region.h>
 #include <fiber.h>
@@ -73,9 +73,10 @@ box_tuple_t *
 luaT_checktuple(struct lua_State *L, int idx)
 {
 	struct tuple *tuple = luaT_istuple(L, idx);
-	if (tuple == NULL)  {
-		luaL_error(L, "Invalid argument #%d (box.tuple expected, got %s)",
-		   idx, lua_typename(L, lua_type(L, idx)));
+	if (tuple == NULL) {
+		luaL_error(L,
+			   "Invalid argument #%d (box.tuple expected, got %s)",
+			   idx, lua_typename(L, lua_type(L, idx)));
 	}
 
 	return tuple;
@@ -95,7 +96,7 @@ luaT_istuple(struct lua_State *L, int narg)
 	if (ctypeid != CTID_STRUCT_TUPLE_REF)
 		return NULL;
 
-	return *(struct tuple **) data;
+	return *(struct tuple **)data;
 }
 
 struct tuple *
@@ -110,8 +111,8 @@ luaT_tuple_new(struct lua_State *L, int idx, box_tuple_format_t *format)
 	struct ibuf *buf = tarantool_lua_ibuf;
 	ibuf_reset(buf);
 	struct mpstream stream;
-	mpstream_init(&stream, buf, ibuf_reserve_cb, ibuf_alloc_cb,
-		      luamp_error, L);
+	mpstream_init(&stream, buf, ibuf_reserve_cb, ibuf_alloc_cb, luamp_error,
+		      L);
 	if (idx == 0) {
 		/*
 		 * Create the tuple from lua stack
@@ -127,8 +128,8 @@ luaT_tuple_new(struct lua_State *L, int idx, box_tuple_format_t *format)
 		luamp_encode_tuple(L, &tuple_serializer, &stream, idx);
 	}
 	mpstream_flush(&stream);
-	struct tuple *tuple = box_tuple_new(format, buf->buf,
-					    buf->buf + ibuf_used(buf));
+	struct tuple *tuple =
+		box_tuple_new(format, buf->buf, buf->buf + ibuf_used(buf));
 	if (tuple == NULL)
 		return NULL;
 	ibuf_reinit(tarantool_lua_ibuf);
@@ -148,8 +149,7 @@ lbox_tuple_new(lua_State *L)
 	 * box.tuple.new(1, 2, 3) (idx == 0), or the new one:
 	 * box.tuple.new({1, 2, 3}) (idx == 1).
 	 */
-	int idx = argc == 1 && (lua_istable(L, 1) ||
-		luaT_istuple(L, 1));
+	int idx = argc == 1 && (lua_istable(L, 1) || luaT_istuple(L, 1));
 	box_tuple_format_t *fmt = box_tuple_format_default();
 	struct tuple *tuple = luaT_tuple_new(L, idx, fmt);
 	if (tuple == NULL)
@@ -170,8 +170,7 @@ lbox_tuple_gc(struct lua_State *L)
 static int
 lbox_tuple_slice_wrapper(struct lua_State *L)
 {
-	box_tuple_iterator_t *it = (box_tuple_iterator_t *)
-		lua_topointer(L, 1);
+	box_tuple_iterator_t *it = (box_tuple_iterator_t *)lua_topointer(L, 1);
 	uint32_t start = lua_tonumber(L, 2);
 	uint32_t end = lua_tonumber(L, 3);
 	assert(end >= start);
@@ -221,13 +220,15 @@ lbox_tuple_slice(struct lua_State *L)
 		} else if (offset < 0 && -offset < field_count) {
 			end = offset + field_count;
 		} else {
-			return luaL_error(L, "tuple.slice(): end > field count");
+			return luaL_error(L,
+					  "tuple.slice(): end > field count");
 		}
 	} else {
 		end = field_count;
 	}
 	if (end <= start)
-		return luaL_error(L, "tuple.slice(): start must be less than end");
+		return luaL_error(L,
+				  "tuple.slice(): start must be less than end");
 
 	box_tuple_iterator_t *it = box_tuple_iterator(tuple);
 	lua_pushcfunction(L, lbox_tuple_slice_wrapper);
@@ -365,7 +366,8 @@ lbox_tuple_transform(struct lua_State *L)
 	int argc = lua_gettop(L);
 	if (argc < 3)
 		luaL_error(L, "tuple.transform(): bad arguments");
-	lua_Integer offset = lua_tointeger(L, 2);  /* Can be negative and can be > INT_MAX */
+	lua_Integer offset =
+		lua_tointeger(L, 2); /* Can be negative and can be > INT_MAX */
 	lua_Integer len = lua_tointeger(L, 3);
 
 	lua_Integer field_count = box_tuple_field_count(tuple);
@@ -374,7 +376,8 @@ lbox_tuple_transform(struct lua_State *L)
 		luaL_error(L, "tuple.transform(): offset is out of bound");
 	} else if (offset < 0) {
 		if (-offset > field_count)
-			luaL_error(L, "tuple.transform(): offset is out of bound");
+			luaL_error(L,
+				   "tuple.transform(): offset is out of bound");
 		offset += field_count + 1;
 	} else if (offset > field_count) {
 		offset = field_count + 1;
@@ -403,8 +406,8 @@ lbox_tuple_transform(struct lua_State *L)
 	struct ibuf *buf = tarantool_lua_ibuf;
 	ibuf_reset(buf);
 	struct mpstream stream;
-	mpstream_init(&stream, buf, ibuf_reserve_cb, ibuf_alloc_cb,
-		      luamp_error, L);
+	mpstream_init(&stream, buf, ibuf_reserve_cb, ibuf_alloc_cb, luamp_error,
+		      L);
 
 	/*
 	 * Prepare UPDATE expression
@@ -417,7 +420,7 @@ lbox_tuple_transform(struct lua_State *L)
 		mpstream_encode_uint(&stream, len);
 	}
 
-	for (int i = argc ; i > 3; i--) {
+	for (int i = argc; i > 3; i--) {
 		mpstream_encode_array(&stream, 3);
 		mpstream_encode_str(&stream, "!");
 		mpstream_encode_uint(&stream, offset);
@@ -438,13 +441,13 @@ lbox_tuple_transform(struct lua_State *L)
 	 * to use the default one with no restrictions on field
 	 * count or types.
 	 */
-	const char *new_data =
-		xrow_update_execute(buf->buf, buf->buf + ibuf_used(buf),
-				    old_data, old_data + bsize, format,
-				    &new_size, 1, NULL);
+	const char *new_data = xrow_update_execute(buf->buf,
+						   buf->buf + ibuf_used(buf),
+						   old_data, old_data + bsize,
+						   format, &new_size, 1, NULL);
 	if (new_data != NULL)
-		new_tuple = tuple_new(box_tuple_format_default(),
-				      new_data, new_data + new_size);
+		new_tuple = tuple_new(box_tuple_format_default(), new_data,
+				      new_data + new_size);
 	region_truncate(region, used);
 
 	if (new_tuple == NULL)
@@ -480,8 +483,8 @@ lbox_tuple_field_by_path(struct lua_State *L)
 		return 0;
 	field = tuple_field_raw_by_full_path(tuple_format(tuple),
 					     tuple_data(tuple),
-					     tuple_field_map(tuple),
-					     path, (uint32_t)len,
+					     tuple_field_map(tuple), path,
+					     (uint32_t)len,
 					     lua_hashstring(L, 2));
 	if (field == NULL)
 		return 0;
@@ -508,8 +511,8 @@ void
 luaT_pushtuple(struct lua_State *L, box_tuple_t *tuple)
 {
 	assert(CTID_STRUCT_TUPLE_REF != 0);
-	struct tuple **ptr = (struct tuple **)
-		luaL_pushcdata(L, CTID_STRUCT_TUPLE_REF);
+	struct tuple **ptr =
+		(struct tuple **)luaL_pushcdata(L, CTID_STRUCT_TUPLE_REF);
 	*ptr = tuple;
 	/* The order is important - first reference tuple, next set gc */
 	box_tuple_ref(tuple);
@@ -518,23 +521,19 @@ luaT_pushtuple(struct lua_State *L, box_tuple_t *tuple)
 }
 
 static const struct luaL_Reg lbox_tuple_meta[] = {
-	{"__gc", lbox_tuple_gc},
-	{"tostring", lbox_tuple_to_string},
-	{"slice", lbox_tuple_slice},
-	{"transform", lbox_tuple_transform},
-	{"tuple_to_map", lbox_tuple_to_map},
-	{"tuple_field_by_path", lbox_tuple_field_by_path},
-	{NULL, NULL}
+	{ "__gc", lbox_tuple_gc },
+	{ "tostring", lbox_tuple_to_string },
+	{ "slice", lbox_tuple_slice },
+	{ "transform", lbox_tuple_transform },
+	{ "tuple_to_map", lbox_tuple_to_map },
+	{ "tuple_field_by_path", lbox_tuple_field_by_path },
+	{ NULL, NULL }
 };
 
-static const struct luaL_Reg lbox_tuplelib[] = {
-	{"new", lbox_tuple_new},
-	{NULL, NULL}
-};
+static const struct luaL_Reg lbox_tuplelib[] = { { "new", lbox_tuple_new },
+						 { NULL, NULL } };
 
-static const struct luaL_Reg lbox_tuple_iterator_meta[] = {
-	{NULL, NULL}
-};
+static const struct luaL_Reg lbox_tuple_iterator_meta[] = { { NULL, NULL } };
 
 /* }}} */
 
@@ -548,8 +547,8 @@ tuple_serializer_update_options(void)
 static int
 on_msgpack_serializer_update(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	(void) event;
+	(void)trigger;
+	(void)event;
 	tuple_serializer_update_options();
 	return 0;
 }
@@ -563,8 +562,7 @@ box_lua_tuple_init(struct lua_State *L)
 	luaL_register(L, NULL, lbox_tuple_meta);
 	lua_setfield(L, -2, "tuple");
 	lua_pop(L, 1); /* box.internal */
-	luaL_register_type(L, tuple_iteratorlib_name,
-			   lbox_tuple_iterator_meta);
+	luaL_register_type(L, tuple_iteratorlib_name, lbox_tuple_iterator_meta);
 	luaL_register_module(L, tuplelib_name, lbox_tuplelib);
 	lua_pop(L, 1);
 
@@ -577,7 +575,7 @@ box_lua_tuple_init(struct lua_State *L)
 	/* Get CTypeID for `struct tuple' */
 	int rc = luaL_cdef(L, "struct tuple;");
 	assert(rc == 0);
-	(void) rc;
+	(void)rc;
 	CTID_STRUCT_TUPLE_REF = luaL_ctypeid(L, "struct tuple &");
 	assert(CTID_STRUCT_TUPLE_REF != 0);
 }

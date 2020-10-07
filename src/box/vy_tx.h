@@ -128,7 +128,8 @@ write_set_key_cmp(struct write_set_key *a, struct txv *b);
 
 typedef rb_tree(struct txv) write_set_t;
 rb_gen_ext_key(MAYBE_UNUSED static inline, write_set_, write_set_t, struct txv,
-		in_set, write_set_cmp, struct write_set_key *, write_set_key_cmp);
+	       in_set, write_set_cmp, struct write_set_key *,
+	       write_set_key_cmp);
 
 static inline struct txv *
 write_set_search_key(write_set_t *tree, struct vy_lsm *lsm,
@@ -296,7 +297,7 @@ vy_tx_manager_read_view(struct vy_tx_manager *xm);
 /** Dereference and possibly destroy a read view. */
 void
 vy_tx_manager_destroy_read_view(struct vy_tx_manager *xm,
-                                struct vy_read_view *rv);
+				struct vy_read_view *rv);
 
 /**
  * Abort all rw transactions that affect the given space
@@ -309,7 +310,7 @@ vy_tx_manager_destroy_read_view(struct vy_tx_manager *xm,
  */
 void
 vy_tx_manager_abort_writers_for_ddl(struct vy_tx_manager *xm,
-                                    struct space *space, bool *need_wal_sync);
+				    struct space *space, bool *need_wal_sync);
 
 /**
  * Abort all local rw transactions that haven't reached WAL yet.
@@ -386,9 +387,8 @@ vy_tx_rollback_statement(struct vy_tx *tx, void *svp);
  * @retval -1 Memory error.
  */
 int
-vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm,
-	    struct vy_entry left, bool left_belongs,
-	    struct vy_entry right, bool right_belongs);
+vy_tx_track(struct vy_tx *tx, struct vy_lsm *lsm, struct vy_entry left,
+	    bool left_belongs, struct vy_entry right, bool right_belongs);
 
 /**
  * Remember a point read in the conflict manager index.
@@ -453,9 +453,9 @@ struct vy_txw_iterator {
  */
 void
 vy_txw_iterator_open(struct vy_txw_iterator *itr,
-		     struct vy_txw_iterator_stat *stat,
-		     struct vy_tx *tx, struct vy_lsm *lsm,
-		     enum iterator_type iterator_type, struct vy_entry key);
+		     struct vy_txw_iterator_stat *stat, struct vy_tx *tx,
+		     struct vy_lsm *lsm, enum iterator_type iterator_type,
+		     struct vy_entry key);
 
 /**
  * Advance a txw iterator to the next key.
@@ -463,8 +463,7 @@ vy_txw_iterator_open(struct vy_txw_iterator *itr,
  * Returns 0 on success, -1 on memory allocation error.
  */
 NODISCARD int
-vy_txw_iterator_next(struct vy_txw_iterator *itr,
-		     struct vy_history *history);
+vy_txw_iterator_next(struct vy_txw_iterator *itr, struct vy_history *history);
 
 /**
  * Advance a txw iterator to the key following @last.

@@ -107,8 +107,7 @@ vy_rate_limit_refill(struct vy_rate_limit *rl, double time)
 	rl->value = MIN((ssize_t)value, SSIZE_MAX);
 }
 
-typedef void
-(*vy_quota_exceeded_f)(struct vy_quota *quota);
+typedef void (*vy_quota_exceeded_f)(struct vy_quota *quota);
 
 /**
  * Apart from memory usage accounting and limiting, vy_quota is
@@ -311,8 +310,8 @@ vy_quota_release(struct vy_quota *q, size_t size);
  * account while estimating the size of a memory allocation.
  */
 int
-vy_quota_use(struct vy_quota *q, enum vy_quota_consumer_type type,
-	     size_t size, double timeout);
+vy_quota_use(struct vy_quota *q, enum vy_quota_consumer_type type, size_t size,
+	     double timeout);
 
 /**
  * Adjust quota after allocating memory.

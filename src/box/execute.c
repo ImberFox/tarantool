@@ -104,7 +104,7 @@ static void
 port_sql_destroy(struct port *base)
 {
 	port_c_vtab.destroy(base);
-	struct port_sql *port_sql = (struct port_sql *) base;
+	struct port_sql *port_sql = (struct port_sql *)base;
 	if (port_sql->do_finalize)
 		sql_stmt_finalize(((struct port_sql *)base)->stmt);
 }
@@ -125,7 +125,7 @@ port_sql_create(struct port *port, struct sql_stmt *stmt,
 {
 	port_c_create(port);
 	port->vtab = &port_sql_vtab;
-	struct port_sql *port_sql = (struct port_sql *) port;
+	struct port_sql *port_sql = (struct port_sql *)port;
 	port_sql->stmt = stmt;
 	port_sql->serialization_format = format;
 	port_sql->do_finalize = do_finalize;
@@ -142,8 +142,7 @@ port_sql_create(struct port *port, struct sql_stmt *stmt,
  * @retval -1 Out of memory when resizing the output buffer.
  */
 static inline int
-sql_column_to_messagepack(struct sql_stmt *stmt, int i,
-			  struct region *region)
+sql_column_to_messagepack(struct sql_stmt *stmt, int i, struct region *region)
 {
 	size_t size;
 	enum mp_type type = sql_column_type(stmt, i);
@@ -151,7 +150,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_INT: {
 		int64_t n = sql_column_int64(stmt, i);
 		size = mp_sizeof_int(n);
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		mp_encode_int(pos, n);
@@ -160,7 +159,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_UINT: {
 		uint64_t n = sql_column_uint64(stmt, i);
 		size = mp_sizeof_uint(n);
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		mp_encode_uint(pos, n);
@@ -169,7 +168,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_DOUBLE: {
 		double d = sql_column_double(stmt, i);
 		size = mp_sizeof_double(d);
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		mp_encode_double(pos, d);
@@ -178,7 +177,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_STR: {
 		uint32_t len = sql_column_bytes(stmt, i);
 		size = mp_sizeof_str(len);
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		const char *s;
@@ -190,8 +189,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_MAP:
 	case MP_ARRAY: {
 		uint32_t len = sql_column_bytes(stmt, i);
-		const char *s =
-			(const char *)sql_column_blob(stmt, i);
+		const char *s = (const char *)sql_column_blob(stmt, i);
 		if (sql_column_subtype(stmt, i) == SQL_SUBTYPE_MSGPACK) {
 			size = len;
 			char *pos = (char *)region_alloc(region, size);
@@ -210,7 +208,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	case MP_BOOL: {
 		bool b = sql_column_boolean(stmt, i);
 		size = mp_sizeof_bool(b);
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		mp_encode_bool(pos, b);
@@ -218,7 +216,7 @@ sql_column_to_messagepack(struct sql_stmt *stmt, int i,
 	}
 	case MP_NIL: {
 		size = mp_sizeof_nil();
-		char *pos = (char *) region_alloc(region, size);
+		char *pos = (char *)region_alloc(region, size);
 		if (pos == NULL)
 			goto oom;
 		mp_encode_nil(pos);
@@ -245,13 +243,13 @@ oom:
  * @retval -1 Memory error.
  */
 static inline int
-sql_row_to_port(struct sql_stmt *stmt, int column_count,
-		struct region *region, struct port *port)
+sql_row_to_port(struct sql_stmt *stmt, int column_count, struct region *region,
+		struct port *port)
 {
 	assert(column_count > 0);
 	size_t size = mp_sizeof_array(column_count);
 	size_t svp = region_used(region);
-	char *pos = (char *) region_alloc(region, size);
+	char *pos = (char *)region_alloc(region, size);
 	if (pos == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "SQL row");
 		return -1;
@@ -263,7 +261,7 @@ sql_row_to_port(struct sql_stmt *stmt, int column_count,
 			goto error;
 	}
 	size = region_used(region) - svp;
-	pos = (char *) region_join(region, size);
+	pos = (char *)region_join(region, size);
 	if (pos == NULL) {
 		diag_set(OutOfMemory, size, "region_join", "pos");
 		goto error;
@@ -305,7 +303,7 @@ metadata_map_sizeof(const char *name, const char *type, const char *coll,
 		members_count++;
 		map_size += mp_sizeof_uint(IPROTO_FIELD_SPAN);
 		map_size += span != NULL ? mp_sizeof_str(strlen(span)) :
-			    mp_sizeof_nil();
+						 mp_sizeof_nil();
 	}
 	map_size += mp_sizeof_uint(IPROTO_FIELD_NAME);
 	map_size += mp_sizeof_uint(IPROTO_FIELD_TYPE);
@@ -340,7 +338,7 @@ metadata_map_encode(char *buf, const char *name, const char *type,
 		buf = mp_encode_uint(buf, IPROTO_FIELD_IS_AUTOINCREMENT);
 		buf = mp_encode_bool(buf, true);
 	}
-	if (! is_full)
+	if (!is_full)
 		return;
 	/*
 	 * Span is an original expression that forms
@@ -370,9 +368,9 @@ static inline int
 sql_get_metadata(struct sql_stmt *stmt, struct obuf *out, int column_count)
 {
 	assert(column_count > 0);
-	int size = mp_sizeof_uint(IPROTO_METADATA) +
-		   mp_sizeof_array(column_count);
-	char *pos = (char *) obuf_alloc(out, size);
+	int size =
+		mp_sizeof_uint(IPROTO_METADATA) + mp_sizeof_array(column_count);
+	char *pos = (char *)obuf_alloc(out, size);
 	if (pos == NULL) {
 		diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 		return -1;
@@ -395,7 +393,7 @@ sql_get_metadata(struct sql_stmt *stmt, struct obuf *out, int column_count)
 		assert(type != NULL);
 		size = metadata_map_sizeof(name, type, coll, span, nullable,
 					   is_autoincrement);
-		char *pos = (char *) obuf_alloc(out, size);
+		char *pos = (char *)obuf_alloc(out, size);
 		if (pos == NULL) {
 			diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 			return -1;
@@ -412,7 +410,7 @@ sql_get_params_metadata(struct sql_stmt *stmt, struct obuf *out)
 	int bind_count = sql_bind_parameter_count(stmt);
 	int size = mp_sizeof_uint(IPROTO_BIND_METADATA) +
 		   mp_sizeof_array(bind_count);
-	char *pos = (char *) obuf_alloc(out, size);
+	char *pos = (char *)obuf_alloc(out, size);
 	if (pos == NULL) {
 		diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 		return -1;
@@ -429,7 +427,7 @@ sql_get_params_metadata(struct sql_stmt *stmt, struct obuf *out)
 		const char *type = "ANY";
 		size += mp_sizeof_str(strlen(name));
 		size += mp_sizeof_str(strlen(type));
-		char *pos = (char *) obuf_alloc(out, size);
+		char *pos = (char *)obuf_alloc(out, size);
 		if (pos == NULL) {
 			diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 			return -1;
@@ -448,12 +446,10 @@ sql_get_prepare_common_keys(struct sql_stmt *stmt, struct obuf *out, int keys)
 {
 	const char *sql_str = sql_stmt_query_str(stmt);
 	uint32_t stmt_id = sql_stmt_calculate_id(sql_str, strlen(sql_str));
-	int size = mp_sizeof_map(keys) +
-		   mp_sizeof_uint(IPROTO_STMT_ID) +
-		   mp_sizeof_uint(stmt_id) +
-		   mp_sizeof_uint(IPROTO_BIND_COUNT) +
+	int size = mp_sizeof_map(keys) + mp_sizeof_uint(IPROTO_STMT_ID) +
+		   mp_sizeof_uint(stmt_id) + mp_sizeof_uint(IPROTO_BIND_COUNT) +
 		   mp_sizeof_uint(sql_bind_parameter_count(stmt));
-	char *pos = (char *) obuf_alloc(out, size);
+	char *pos = (char *)obuf_alloc(out, size);
 	if (pos == NULL) {
 		diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 		return -1;
@@ -479,7 +475,7 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 	case DQL_EXECUTE: {
 		int keys = 2;
 		int size = mp_sizeof_map(keys);
-		char *pos = (char *) obuf_alloc(out, size);
+		char *pos = (char *)obuf_alloc(out, size);
 		if (pos == NULL) {
 			diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 			return -1;
@@ -488,7 +484,7 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 		if (sql_get_metadata(stmt, out, sql_column_count(stmt)) != 0)
 			return -1;
 		size = mp_sizeof_uint(IPROTO_DATA);
-		pos = (char *) obuf_alloc(out, size);
+		pos = (char *)obuf_alloc(out, size);
 		if (pos == NULL) {
 			diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 			return -1;
@@ -507,7 +503,7 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 		int size = mp_sizeof_map(keys) +
 			   mp_sizeof_uint(IPROTO_SQL_INFO) +
 			   mp_sizeof_map(map_size);
-		char *pos = (char *) obuf_alloc(out, size);
+		char *pos = (char *)obuf_alloc(out, size);
 		if (pos == NULL) {
 			diag_set(OutOfMemory, size, "obuf_alloc", "pos");
 			return -1;
@@ -521,10 +517,11 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 		       mp_sizeof_uint(changes);
 		if (!stailq_empty(autoinc_id_list)) {
 			struct autoinc_id_entry *id_entry;
-			stailq_foreach_entry(id_entry, autoinc_id_list, link) {
+			stailq_foreach_entry(id_entry, autoinc_id_list, link)
+			{
 				size += id_entry->id >= 0 ?
-					mp_sizeof_uint(id_entry->id) :
-					mp_sizeof_int(id_entry->id);
+						      mp_sizeof_uint(id_entry->id) :
+						      mp_sizeof_int(id_entry->id);
 				id_count++;
 			}
 			size += mp_sizeof_uint(SQL_INFO_AUTOINCREMENT_IDS) +
@@ -541,10 +538,12 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 			buf = mp_encode_uint(buf, SQL_INFO_AUTOINCREMENT_IDS);
 			buf = mp_encode_array(buf, id_count);
 			struct autoinc_id_entry *id_entry;
-			stailq_foreach_entry(id_entry, autoinc_id_list, link) {
+			stailq_foreach_entry(id_entry, autoinc_id_list, link)
+			{
 				buf = id_entry->id >= 0 ?
-				      mp_encode_uint(buf, id_entry->id) :
-				      mp_encode_int(buf, id_entry->id);
+						    mp_encode_uint(buf,
+							     id_entry->id) :
+						    mp_encode_int(buf, id_entry->id);
 			}
 		}
 		break;
@@ -569,7 +568,7 @@ port_sql_dump_msgpack(struct port *port, struct obuf *out)
 		 */
 		int keys = 3;
 		return sql_get_prepare_common_keys(stmt, out, keys);
-		}
+	}
 	default: {
 		unreachable();
 	}
@@ -592,8 +591,8 @@ sql_reprepare(struct sql_stmt **stmt)
 {
 	const char *sql_str = sql_stmt_query_str(*stmt);
 	struct sql_stmt *new_stmt;
-	if (sql_stmt_compile(sql_str, strlen(sql_str), NULL,
-			     &new_stmt, NULL) != 0)
+	if (sql_stmt_compile(sql_str, strlen(sql_str), NULL, &new_stmt, NULL) !=
+	    0)
 		return -1;
 	if (sql_stmt_cache_update(*stmt, new_stmt) != 0)
 		return -1;
@@ -630,8 +629,8 @@ sql_prepare(const char *sql, int len, struct port *port)
 	/* Add id to the list of available statements in session. */
 	if (!session_check_stmt_id(current_session(), stmt_id))
 		session_add_stmt_id(current_session(), stmt_id);
-	enum sql_serialization_format format = sql_column_count(stmt) > 0 ?
-					   DQL_PREPARE : DML_PREPARE;
+	enum sql_serialization_format format =
+		sql_column_count(stmt) > 0 ? DQL_PREPARE : DML_PREPARE;
 	port_sql_create(port, stmt, format, false);
 
 	return 0;
@@ -677,8 +676,8 @@ sql_execute(struct sql_stmt *stmt, struct port *port, struct region *region)
 	if (column_count > 0) {
 		/* Either ROW or DONE or ERROR. */
 		while ((rc = sql_step(stmt)) == SQL_ROW) {
-			if (sql_row_to_port(stmt, column_count, region,
-					    port) != 0)
+			if (sql_row_to_port(stmt, column_count, region, port) !=
+			    0)
 				return -1;
 		}
 		assert(rc == SQL_DONE || rc != 0);
@@ -697,7 +696,6 @@ sql_execute_prepared(uint32_t stmt_id, const struct sql_bind *bind,
 		     uint32_t bind_count, struct port *port,
 		     struct region *region)
 {
-
 	if (!session_check_stmt_id(current_session(), stmt_id)) {
 		diag_set(ClientError, ER_WRONG_QUERY_ID, stmt_id);
 		return -1;
@@ -720,8 +718,8 @@ sql_execute_prepared(uint32_t stmt_id, const struct sql_bind *bind,
 	sql_unbind(stmt);
 	if (sql_bind(stmt, bind, bind_count) != 0)
 		return -1;
-	enum sql_serialization_format format = sql_column_count(stmt) > 0 ?
-					       DQL_EXECUTE : DML_EXECUTE;
+	enum sql_serialization_format format =
+		sql_column_count(stmt) > 0 ? DQL_EXECUTE : DML_EXECUTE;
 	port_sql_create(port, stmt, format, false);
 	if (sql_execute(stmt, port, region) != 0) {
 		port_destroy(port);
@@ -742,8 +740,8 @@ sql_prepare_and_execute(const char *sql, int len, const struct sql_bind *bind,
 	if (sql_stmt_compile(sql, len, NULL, &stmt, NULL) != 0)
 		return -1;
 	assert(stmt != NULL);
-	enum sql_serialization_format format = sql_column_count(stmt) > 0 ?
-					   DQL_EXECUTE : DML_EXECUTE;
+	enum sql_serialization_format format =
+		sql_column_count(stmt) > 0 ? DQL_EXECUTE : DML_EXECUTE;
 	port_sql_create(port, stmt, format, true);
 	if (sql_bind(stmt, bind, bind_count) == 0 &&
 	    sql_execute(stmt, port, region) == 0)

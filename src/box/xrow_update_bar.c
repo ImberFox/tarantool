@@ -66,8 +66,7 @@ xrow_update_bar_finish(struct xrow_update_field *field)
  */
 static inline int
 xrow_update_bar_locate(struct xrow_update_op *op,
-		       struct xrow_update_field *field,
-		       int *key_len_or_index)
+		       struct xrow_update_field *field, int *key_len_or_index)
 {
 	/*
 	 * Bar update is not flat by definition. It always has a
@@ -88,7 +87,6 @@ xrow_update_bar_locate(struct xrow_update_op *op,
 	struct json_token token;
 	while ((rc = json_lexer_next_token(&op->lexer, &token)) == 0 &&
 	       token.type != JSON_TOKEN_END) {
-
 		switch (token.type) {
 		case JSON_TOKEN_NUM:
 			field->bar.parent = pos;
@@ -186,11 +184,11 @@ xrow_update_bar_locate_opt(struct xrow_update_op *op,
 	if (token.type == JSON_TOKEN_NUM) {
 		const char *tmp = field->bar.parent;
 		if (mp_typeof(*tmp) != MP_ARRAY) {
-			return xrow_update_err(op, "can not access by index a "\
-					       "non-array field");
+			return xrow_update_err(op, "can not access by index a "
+						   "non-array field");
 		}
 		uint32_t size = mp_decode_array(&tmp);
-		if ((uint32_t) token.num > size)
+		if ((uint32_t)token.num > size)
 			return xrow_update_err_no_such_field(op);
 		/*
 		 * The updated point is in an array, its position
@@ -199,7 +197,7 @@ xrow_update_bar_locate_opt(struct xrow_update_op *op,
 		 * to append a new array element. The following
 		 * code tries to find the array's end.
 		 */
-		assert((uint32_t) token.num == size);
+		assert((uint32_t)token.num == size);
 		if (field->bar.parent == field->data) {
 			/*
 			 * Optimization for the case when the path
@@ -220,8 +218,8 @@ xrow_update_bar_locate_opt(struct xrow_update_op *op,
 		field->bar.new_key = token.str;
 		field->bar.new_key_len = token.len;
 		if (mp_typeof(*field->bar.parent) != MP_MAP) {
-			return xrow_update_err(op, "can not access by key a "\
-					       "non-map field");
+			return xrow_update_err(op, "can not access by key a "
+						   "non-map field");
 		}
 	}
 	return 0;
@@ -306,19 +304,18 @@ xrow_update_op_do_nop_delete(struct xrow_update_op *op,
 	return xrow_update_bar_finish(field);
 }
 
-#define DO_NOP_OP_GENERIC(op_type)						\
-int										\
-xrow_update_op_do_nop_##op_type(struct xrow_update_op *op,			\
-				struct xrow_update_field *field)		\
-{										\
-	assert(field->type == XUPDATE_NOP);					\
-	int key_len_or_index;							\
-	if (xrow_update_bar_locate(op, field, &key_len_or_index) != 0)		\
-		return -1;							\
-	if (xrow_update_op_do_##op_type(op, field->bar.point) != 0)		\
-		return -1;							\
-	return xrow_update_bar_finish(field);					\
-}
+#define DO_NOP_OP_GENERIC(op_type)                                             \
+	int xrow_update_op_do_nop_##op_type(struct xrow_update_op *op,         \
+					    struct xrow_update_field *field)   \
+	{                                                                      \
+		assert(field->type == XUPDATE_NOP);                            \
+		int key_len_or_index;                                          \
+		if (xrow_update_bar_locate(op, field, &key_len_or_index) != 0) \
+			return -1;                                             \
+		if (xrow_update_op_do_##op_type(op, field->bar.point) != 0)    \
+			return -1;                                             \
+		return xrow_update_bar_finish(field);                          \
+	}
 
 DO_NOP_OP_GENERIC(arith)
 
@@ -328,17 +325,16 @@ DO_NOP_OP_GENERIC(splice)
 
 #undef DO_NOP_OP_GENERIC
 
-#define DO_BAR_OP_GENERIC(op_type)						\
-int										\
-xrow_update_op_do_bar_##op_type(struct xrow_update_op *op,			\
-				struct xrow_update_field *field)		\
-{										\
-	assert(field->type == XUPDATE_BAR);					\
-	field = xrow_update_route_branch(field, op);				\
-	if (field == NULL)							\
-		return -1;							\
-	return xrow_update_op_do_field_##op_type(op, field);			\
-}
+#define DO_BAR_OP_GENERIC(op_type)                                           \
+	int xrow_update_op_do_bar_##op_type(struct xrow_update_op *op,       \
+					    struct xrow_update_field *field) \
+	{                                                                    \
+		assert(field->type == XUPDATE_BAR);                          \
+		field = xrow_update_route_branch(field, op);                 \
+		if (field == NULL)                                           \
+			return -1;                                           \
+		return xrow_update_op_do_field_##op_type(op, field);         \
+	}
 
 DO_BAR_OP_GENERIC(insert)
 
@@ -358,7 +354,7 @@ uint32_t
 xrow_update_bar_sizeof(struct xrow_update_field *field)
 {
 	assert(field->type == XUPDATE_BAR);
-	switch(field->bar.op->opcode) {
+	switch (field->bar.op->opcode) {
 	case '!': {
 		const char *parent = field->bar.parent;
 		uint32_t size = field->size + field->bar.op->new_field_len;
@@ -401,10 +397,10 @@ xrow_update_bar_store(struct xrow_update_field *field,
 		      struct json_token *this_node, char *out, char *out_end)
 {
 	assert(field->type == XUPDATE_BAR);
-	(void) out_end;
+	(void)out_end;
 	struct xrow_update_op *op = field->bar.op;
 	char *out_saved = out;
-	switch(op->opcode) {
+	switch (op->opcode) {
 	case '!': {
 		const char *pos = field->bar.parent;
 		uint32_t before_parent = pos - field->data;
@@ -460,9 +456,10 @@ xrow_update_bar_store(struct xrow_update_field *field,
 	}
 	default: {
 		if (this_node != NULL) {
-			this_node = json_tree_lookup_path(
-				format_tree, this_node, field->bar.path,
-				field->bar.path_len, 0);
+			this_node =
+				json_tree_lookup_path(format_tree, this_node,
+						      field->bar.path,
+						      field->bar.path_len, 0);
 		}
 		uint32_t before_point = field->bar.point - field->data;
 		const char *field_end = field->data + field->size;

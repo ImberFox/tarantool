@@ -46,8 +46,8 @@ struct trigger;
 
 /** Supported languages of ck constraint. */
 enum ck_constraint_language {
-  CK_CONSTRAINT_LANGUAGE_SQL,
-  ck_constraint_language_MAX,
+	CK_CONSTRAINT_LANGUAGE_SQL,
+	ck_constraint_language_MAX,
 };
 
 /** The supported languages strings.  */

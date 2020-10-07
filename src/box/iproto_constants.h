@@ -94,7 +94,7 @@ enum iproto_key {
 
 	/* Also request keys. See the comment above. */
 	IPROTO_EXPR = 0x27, /* EVAL */
-	IPROTO_OPS = 0x28, /* UPSERT but not UPDATE ops, because of legacy */
+	IPROTO_OPS = 0x28,  /* UPSERT but not UPDATE ops, because of legacy */
 	IPROTO_BALLOT = 0x29,
 	IPROTO_TUPLE_META = 0x2a,
 	IPROTO_OPTIONS = 0x2b,
@@ -152,26 +152,28 @@ enum iproto_ballot_key {
 	IPROTO_BALLOT_IS_ANON = 0x05,
 };
 
-#define bit(c) (1ULL<<IPROTO_##c)
+#define bit(c) (1ULL << IPROTO_##c)
 
-#define IPROTO_HEAD_BMAP (bit(REQUEST_TYPE) | bit(SYNC) | bit(REPLICA_ID) |\
-			  bit(LSN) | bit(SCHEMA_VERSION))
-#define IPROTO_DML_BODY_BMAP (bit(SPACE_ID) | bit(INDEX_ID) | bit(LIMIT) |\
-			      bit(OFFSET) | bit(ITERATOR) | bit(INDEX_BASE) |\
-			      bit(KEY) | bit(TUPLE) | bit(OPS) | bit(TUPLE_META))
+#define IPROTO_HEAD_BMAP                                              \
+	(bit(REQUEST_TYPE) | bit(SYNC) | bit(REPLICA_ID) | bit(LSN) | \
+	 bit(SCHEMA_VERSION))
+#define IPROTO_DML_BODY_BMAP                                                  \
+	(bit(SPACE_ID) | bit(INDEX_ID) | bit(LIMIT) | bit(OFFSET) |           \
+	 bit(ITERATOR) | bit(INDEX_BASE) | bit(KEY) | bit(TUPLE) | bit(OPS) | \
+	 bit(TUPLE_META))
 
 static inline bool
 xrow_header_has_key(const char *pos, const char *end)
 {
-	unsigned char key = pos < end ? *pos : (unsigned char) IPROTO_KEY_MAX;
-	return key < IPROTO_KEY_MAX && IPROTO_HEAD_BMAP & (1ULL<<key);
+	unsigned char key = pos < end ? *pos : (unsigned char)IPROTO_KEY_MAX;
+	return key < IPROTO_KEY_MAX && IPROTO_HEAD_BMAP & (1ULL << key);
 }
 
 static inline bool
 iproto_dml_body_has_key(const char *pos, const char *end)
 {
-	unsigned char key = pos < end ? *pos : (unsigned char) IPROTO_KEY_MAX;
-	return key < IPROTO_KEY_MAX && IPROTO_DML_BODY_BMAP & (1ULL<<key);
+	unsigned char key = pos < end ? *pos : (unsigned char)IPROTO_KEY_MAX;
+	return key < IPROTO_KEY_MAX && IPROTO_DML_BODY_BMAP & (1ULL << key);
 }
 
 #undef bit
@@ -319,7 +321,7 @@ static inline bool
 iproto_type_is_dml(uint32_t type)
 {
 	return (type >= IPROTO_SELECT && type <= IPROTO_DELETE) ||
-		type == IPROTO_UPSERT || type == IPROTO_NOP;
+	       type == IPROTO_UPSERT || type == IPROTO_NOP;
 }
 
 /**

@@ -147,7 +147,8 @@ box_update_ro_summary(void);
  * Iterate over all spaces and save them to the
  * snapshot file.
  */
-int box_checkpoint(void);
+int
+box_checkpoint(void);
 
 typedef int (*box_backup_cb)(const char *path, void *arg);
 
@@ -174,7 +175,8 @@ box_backup_stop(void);
 /**
  * Spit out some basic module status (master/slave, etc.
  */
-const char *box_status(void);
+const char *
+box_status(void);
 
 /**
  * Reset box statistics.
@@ -228,36 +230,66 @@ box_process_vote(struct ballot *ballot);
 void
 box_check_config(void);
 
-void box_listen(void);
-void box_set_replication(void);
-void box_set_log_level(void);
-void box_set_log_format(void);
-void box_set_io_collect_interval(void);
-void box_set_snap_io_rate_limit(void);
-void box_set_too_long_threshold(void);
-void box_set_readahead(void);
-void box_set_checkpoint_count(void);
-void box_set_checkpoint_interval(void);
-void box_set_checkpoint_wal_threshold(void);
-void box_set_memtx_memory(void);
-void box_set_memtx_max_tuple_size(void);
-void box_set_vinyl_memory(void);
-void box_set_vinyl_max_tuple_size(void);
-void box_set_vinyl_cache(void);
-void box_set_vinyl_timeout(void);
-int box_set_election_is_enabled(void);
-int box_set_election_is_candidate(void);
-int box_set_election_timeout(void);
-void box_set_replication_timeout(void);
-void box_set_replication_connect_timeout(void);
-void box_set_replication_connect_quorum(void);
-void box_set_replication_sync_lag(void);
-int box_set_replication_synchro_quorum(void);
-int box_set_replication_synchro_timeout(void);
-void box_set_replication_sync_timeout(void);
-void box_set_replication_skip_conflict(void);
-void box_set_replication_anon(void);
-void box_set_net_msg_max(void);
+void
+box_listen(void);
+void
+box_set_replication(void);
+void
+box_set_log_level(void);
+void
+box_set_log_format(void);
+void
+box_set_io_collect_interval(void);
+void
+box_set_snap_io_rate_limit(void);
+void
+box_set_too_long_threshold(void);
+void
+box_set_readahead(void);
+void
+box_set_checkpoint_count(void);
+void
+box_set_checkpoint_interval(void);
+void
+box_set_checkpoint_wal_threshold(void);
+void
+box_set_memtx_memory(void);
+void
+box_set_memtx_max_tuple_size(void);
+void
+box_set_vinyl_memory(void);
+void
+box_set_vinyl_max_tuple_size(void);
+void
+box_set_vinyl_cache(void);
+void
+box_set_vinyl_timeout(void);
+int
+box_set_election_is_enabled(void);
+int
+box_set_election_is_candidate(void);
+int
+box_set_election_timeout(void);
+void
+box_set_replication_timeout(void);
+void
+box_set_replication_connect_timeout(void);
+void
+box_set_replication_connect_quorum(void);
+void
+box_set_replication_sync_lag(void);
+int
+box_set_replication_synchro_quorum(void);
+int
+box_set_replication_synchro_timeout(void);
+void
+box_set_replication_sync_timeout(void);
+void
+box_set_replication_skip_conflict(void);
+void
+box_set_replication_anon(void);
+void
+box_set_net_msg_max(void);
 
 int
 box_set_prepared_stmt_cache_size(void);
@@ -267,13 +299,13 @@ extern "C" {
 
 typedef struct tuple box_tuple_t;
 
-void box_clear_synchro_queue(void);
+void
+box_clear_synchro_queue(void);
 
 /* box_select is private and used only by FFI */
 API_EXPORT int
-box_select(uint32_t space_id, uint32_t index_id,
-	   int iterator, uint32_t offset, uint32_t limit,
-	   const char *key, const char *key_end,
+box_select(uint32_t space_id, uint32_t index_id, int iterator, uint32_t offset,
+	   uint32_t limit, const char *key, const char *key_end,
 	   struct port *port);
 
 /** \cond public */

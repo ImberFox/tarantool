@@ -48,20 +48,18 @@ struct vy_stmt_stream;
 /**
  * Start streaming
  */
-typedef NODISCARD int
-(*vy_stream_start_f)(struct vy_stmt_stream *virt_stream);
+typedef NODISCARD int (*vy_stream_start_f)(struct vy_stmt_stream *virt_stream);
 
 /**
  * Get next tuple from a stream.
  */
-typedef NODISCARD int
-(*vy_stream_next_f)(struct vy_stmt_stream *virt_stream, struct vy_entry *ret);
+typedef NODISCARD int (*vy_stream_next_f)(struct vy_stmt_stream *virt_stream,
+					  struct vy_entry *ret);
 
 /**
  * Close the stream.
  */
-typedef void
-(*vy_stream_close_f)(struct vy_stmt_stream *virt_stream);
+typedef void (*vy_stream_close_f)(struct vy_stmt_stream *virt_stream);
 
 /**
  * The interface description for streams over run and mem.

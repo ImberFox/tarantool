@@ -41,7 +41,7 @@ sql_bind_name(const struct sql_bind *bind)
 	if (bind->name)
 		return tt_sprintf("'%.*s'", bind->name_len, bind->name);
 	else
-		return tt_sprintf("%d", (int) bind->pos);
+		return tt_sprintf("%d", (int)bind->pos);
 }
 
 int
@@ -132,14 +132,14 @@ sql_bind_list_decode(const char *data, struct sql_bind **out_bind)
 		return 0;
 	if (bind_count > SQL_BIND_PARAMETER_MAX) {
 		diag_set(ClientError, ER_SQL_BIND_PARAMETER_MAX,
-			 (int) bind_count);
+			 (int)bind_count);
 		return -1;
 	}
 	struct region *region = &fiber()->gc;
 	uint32_t used = region_used(region);
 	size_t size;
-	struct sql_bind *bind = region_alloc_array(region, typeof(bind[0]),
-						   bind_count, &size);
+	struct sql_bind *bind =
+		region_alloc_array(region, typeof(bind[0]), bind_count, &size);
 	if (bind == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_array", "bind");
 		return -1;
@@ -155,8 +155,7 @@ sql_bind_list_decode(const char *data, struct sql_bind **out_bind)
 }
 
 int
-sql_bind_column(struct sql_stmt *stmt, const struct sql_bind *p,
-		uint32_t pos)
+sql_bind_column(struct sql_stmt *stmt, const struct sql_bind *p, uint32_t pos)
 {
 	if (p->name != NULL) {
 		pos = sql_bind_parameter_lindex(stmt, p->name, p->name_len);
@@ -189,7 +188,7 @@ sql_bind_column(struct sql_stmt *stmt, const struct sql_bind *p,
 	case MP_NIL:
 		return sql_bind_null(stmt, pos);
 	case MP_BIN:
-		return sql_bind_blob64(stmt, pos, (const void *) p->s, p->bytes,
+		return sql_bind_blob64(stmt, pos, (const void *)p->s, p->bytes,
 				       SQL_STATIC);
 	default:
 		unreachable();

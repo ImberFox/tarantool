@@ -71,8 +71,8 @@ struct vy_cache_node {
  * Internal comparator (1) for BPS tree.
  */
 static inline int
-vy_cache_tree_cmp(struct vy_cache_node *a,
-		  struct vy_cache_node *b, struct key_def *cmp_def)
+vy_cache_tree_cmp(struct vy_cache_node *a, struct vy_cache_node *b,
+		  struct key_def *cmp_def)
 {
 	return vy_entry_compare(a->entry, b->entry, cmp_def);
 }
@@ -201,9 +201,8 @@ vy_cache_destroy(struct vy_cache *cache);
  *  +1 - forward, -1 - backward.
  */
 void
-vy_cache_add(struct vy_cache *cache, struct vy_entry curr,
-	     struct vy_entry prev, struct vy_entry key,
-	     enum iterator_type order);
+vy_cache_add(struct vy_cache *cache, struct vy_entry curr, struct vy_entry prev,
+	     struct vy_entry key, enum iterator_type order);
 
 /**
  * Find value in cache.
@@ -222,7 +221,6 @@ vy_cache_get(struct vy_cache *cache, struct vy_entry key);
 void
 vy_cache_on_write(struct vy_cache *cache, struct vy_entry entry,
 		  struct vy_entry *deleted);
-
 
 /**
  * Cache iterator

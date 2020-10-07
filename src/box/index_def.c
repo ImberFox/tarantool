@@ -60,7 +60,8 @@ const struct opt_def index_opts_reg[] = {
 		     distance, NULL),
 	OPT_DEF("range_size", OPT_INT64, struct index_opts, range_size),
 	OPT_DEF("page_size", OPT_INT64, struct index_opts, page_size),
-	OPT_DEF("run_count_per_level", OPT_INT64, struct index_opts, run_count_per_level),
+	OPT_DEF("run_count_per_level", OPT_INT64, struct index_opts,
+		run_count_per_level),
 	OPT_DEF("run_size_ratio", OPT_FLOAT, struct index_opts, run_size_ratio),
 	OPT_DEF("bloom_fpr", OPT_FLOAT, struct index_opts, bloom_fpr),
 	OPT_DEF("lsn", OPT_INT64, struct index_opts, lsn),
@@ -72,14 +73,15 @@ const struct opt_def index_opts_reg[] = {
 struct index_def *
 index_def_new(uint32_t space_id, uint32_t iid, const char *name,
 	      uint32_t name_len, enum index_type type,
-	      const struct index_opts *opts,
-	      struct key_def *key_def, struct key_def *pk_def)
+	      const struct index_opts *opts, struct key_def *key_def,
+	      struct key_def *pk_def)
 {
 	assert(name_len <= BOX_NAME_MAX);
 	/* Use calloc to make index_def_delete() safe at all times. */
-	struct index_def *def = (struct index_def *) calloc(1, sizeof(*def));
+	struct index_def *def = (struct index_def *)calloc(1, sizeof(*def));
 	if (def == NULL) {
-		diag_set(OutOfMemory, sizeof(*def), "malloc", "struct index_def");
+		diag_set(OutOfMemory, sizeof(*def), "malloc",
+			 "struct index_def");
 		return NULL;
 	}
 	def->name = strndup(name, name_len);
@@ -95,7 +97,7 @@ index_def_new(uint32_t space_id, uint32_t iid, const char *name,
 	def->key_def = key_def_dup(key_def);
 	if (iid != 0) {
 		def->cmp_def = key_def_merge(key_def, pk_def);
-		if (! opts->is_unique) {
+		if (!opts->is_unique) {
 			def->cmp_def->unique_part_count =
 				def->cmp_def->part_count;
 		} else {
@@ -121,7 +123,7 @@ index_def_new(uint32_t space_id, uint32_t iid, const char *name,
 struct index_def *
 index_def_dup(const struct index_def *def)
 {
-	struct index_def *dup = (struct index_def *) malloc(sizeof(*dup));
+	struct index_def *dup = (struct index_def *)malloc(sizeof(*dup));
 	if (dup == NULL) {
 		diag_set(OutOfMemory, sizeof(*dup), "malloc",
 			 "struct index_def");
@@ -180,7 +182,7 @@ index_stat_dup(const struct index_stat *src)
 {
 	size_t size = index_stat_sizeof(src->samples, src->sample_count,
 					src->sample_field_count);
-	struct index_stat *dup = (struct index_stat *) malloc(size);
+	struct index_stat *dup = (struct index_stat *)malloc(size);
 	if (dup == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "index stat");
 		return NULL;
@@ -188,21 +190,21 @@ index_stat_dup(const struct index_stat *src)
 	memcpy(dup, src, size);
 	uint32_t array_size = src->sample_field_count * sizeof(uint32_t);
 	uint32_t stat1_offset = sizeof(struct index_stat);
-	char *pos = (char *) dup + stat1_offset;
-	dup->tuple_stat1 = (uint32_t *) pos;
+	char *pos = (char *)dup + stat1_offset;
+	dup->tuple_stat1 = (uint32_t *)pos;
 	pos += array_size + sizeof(uint32_t);
-	dup->tuple_log_est = (log_est_t *) pos;
+	dup->tuple_log_est = (log_est_t *)pos;
 	pos += array_size + sizeof(uint32_t);
-	dup->avg_eq = (uint32_t *) pos;
+	dup->avg_eq = (uint32_t *)pos;
 	pos += array_size;
-	dup->samples = (struct index_sample *) pos;
+	dup->samples = (struct index_sample *)pos;
 	pos += src->sample_count * sizeof(struct index_sample);
 	for (uint32_t i = 0; i < src->sample_count; ++i) {
-		dup->samples[i].eq = (uint32_t *) pos;
+		dup->samples[i].eq = (uint32_t *)pos;
 		pos += array_size;
-		dup->samples[i].lt = (uint32_t *) pos;
+		dup->samples[i].lt = (uint32_t *)pos;
 		pos += array_size;
-		dup->samples[i].dlt = (uint32_t *) pos;
+		dup->samples[i].dlt = (uint32_t *)pos;
 		pos += array_size;
 		dup->samples[i].sample_key = pos;
 		pos += dup->samples[i].key_size;
@@ -240,7 +242,7 @@ index_def_cmp(const struct index_def *key1, const struct index_def *key2)
 	if (strcmp(key1->name, key2->name))
 		return strcmp(key1->name, key2->name);
 	if (key1->type != key2->type)
-		return (int) key1->type < (int) key2->type ? -1 : 1;
+		return (int)key1->type < (int)key2->type ? -1 : 1;
 	if (index_opts_cmp(&key1->opts, &key2->opts))
 		return index_opts_cmp(&key1->opts, &key2->opts);
 
@@ -256,9 +258,9 @@ index_def_to_key_def(struct rlist *index_defs, int *size)
 	rlist_foreach_entry(index_def, index_defs, link)
 		key_count++;
 	size_t bsize;
-	struct key_def **keys =
-		region_alloc_array(&fiber()->gc, typeof(keys[0]), key_count,
-				   &bsize);
+	struct key_def **keys = region_alloc_array(&fiber()->gc,
+						   typeof(keys[0]), key_count,
+						   &bsize);
 	if (keys == NULL) {
 		diag_set(OutOfMemory, bsize, "region_alloc_array", "keys");
 		return NULL;
@@ -301,12 +303,13 @@ index_def_is_valid(struct index_def *index_def, const char *space_name)
 	}
 	if (index_def->iid == 0 && index_def->key_def->for_func_index) {
 		diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
-			space_name, "primary key can not use a function");
+			 space_name, "primary key can not use a function");
 		return false;
 	}
 	for (uint32_t i = 0; i < index_def->key_def->part_count; i++) {
 		assert(index_def->key_def->parts[i].type < field_type_MAX);
-		if (index_def->key_def->parts[i].fieldno > BOX_INDEX_FIELD_MAX) {
+		if (index_def->key_def->parts[i].fieldno >
+		    BOX_INDEX_FIELD_MAX) {
 			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
 				 space_name, "field no is too big");
 			return false;

@@ -73,8 +73,8 @@ access_check_space(struct space *space, user_access_t access)
 	    /* Check for missing USAGE access, ignore owner rights. */
 	    (space_access & PRIV_U ||
 	     /* Check for missing specific access, respect owner rights. */
-	    (space->def->uid != cr->uid &&
-	     space_access & ~space->access[cr->auth_token].effective))) {
+	     (space->def->uid != cr->uid &&
+	      space_access & ~space->access[cr->auth_token].effective))) {
 		/*
 		 * Report access violation. Throw "no such user"
 		 * error if there is no user with this id.
@@ -84,13 +84,11 @@ access_check_space(struct space *space, user_access_t access)
 		struct user *user = user_find(cr->uid);
 		if (user != NULL) {
 			if (!(cr->universal_access & PRIV_U)) {
-				diag_set(AccessDeniedError,
-					 priv_name(PRIV_U),
+				diag_set(AccessDeniedError, priv_name(PRIV_U),
 					 schema_object_name(SC_UNIVERSE), "",
 					 user->def->name);
 			} else {
-				diag_set(AccessDeniedError,
-					 priv_name(access),
+				diag_set(AccessDeniedError, priv_name(access),
 					 schema_object_name(SC_SPACE),
 					 space->def->name, user->def->name);
 			}
@@ -120,8 +118,8 @@ space_create(struct space *space, struct engine *engine,
 {
 	if (!rlist_empty(key_list)) {
 		/* Primary key must go first. */
-		struct index_def *pk = rlist_first_entry(key_list,
-					struct index_def, link);
+		struct index_def *pk =
+			rlist_first_entry(key_list, struct index_def, link);
 		assert(pk->iid == 0);
 		(void)pk;
 	}
@@ -152,11 +150,14 @@ space_create(struct space *space, struct engine *engine,
 		goto fail;
 
 	/* Create indexes and fill the index map. */
-	space->index_map = (struct index **)
-		calloc(index_count + index_id_max + 1, sizeof(struct index *));
+	space->index_map =
+		(struct index **)calloc(index_count + index_id_max + 1,
+					sizeof(struct index *));
 	if (space->index_map == NULL) {
-		diag_set(OutOfMemory, (index_count + index_id_max + 1) *
-			 sizeof(struct index *), "malloc", "index_map");
+		diag_set(OutOfMemory,
+			 (index_count + index_id_max + 1) *
+				 sizeof(struct index *),
+			 "malloc", "index_map");
 		goto fail;
 	}
 	space->index = space->index_map + index_id_max + 1;
@@ -195,8 +196,9 @@ space_create(struct space *space, struct engine *engine,
 			continue;
 		for (int j = 0; j < (int)space->index_count; j++) {
 			struct index *other = space->index[j];
-			if (i != j && bit_test(space->check_unique_constraint_map,
-					       other->def->iid) &&
+			if (i != j &&
+			    bit_test(space->check_unique_constraint_map,
+				     other->def->iid) &&
 			    key_def_contains(index->def->key_def,
 					     other->def->key_def)) {
 				bit_clear(space->check_unique_constraint_map,
@@ -412,9 +414,9 @@ after_old_tuple_lookup:;
 		old_data_end = old_data + old_size;
 		new_data = xrow_update_execute(request->tuple,
 					       request->tuple_end, old_data,
-					       old_data_end,
-					       space->format, &new_size,
-					       request->index_base, NULL);
+					       old_data_end, space->format,
+					       &new_size, request->index_base,
+					       NULL);
 		if (new_data == NULL)
 			return -1;
 		new_data_end = new_data + new_size;
@@ -456,8 +458,8 @@ after_old_tuple_lookup:;
 
 	struct tuple *new_tuple = NULL;
 	if (new_data != NULL) {
-		new_tuple = tuple_new(tuple_format_runtime,
-				      new_data, new_data_end);
+		new_tuple =
+			tuple_new(tuple_format_runtime, new_data, new_data_end);
 		if (new_tuple == NULL)
 			return -1;
 		tuple_ref(new_tuple);
@@ -511,12 +513,12 @@ after_old_tuple_lookup:;
 	 * We don't allow to change the value of the primary key
 	 * in the same statement.
 	 */
-	if (pk != NULL && request_changed &&
-	    old_tuple != NULL && new_tuple != NULL &&
+	if (pk != NULL && request_changed && old_tuple != NULL &&
+	    new_tuple != NULL &&
 	    tuple_compare(old_tuple, HINT_NONE, new_tuple, HINT_NONE,
 			  pk->def->key_def) != 0) {
-		diag_set(ClientError, ER_CANT_UPDATE_PRIMARY_KEY,
-			 pk->def->name, space->def->name);
+		diag_set(ClientError, ER_CANT_UPDATE_PRIMARY_KEY, pk->def->name,
+			 space->def->name);
 		rc = -1;
 		goto out;
 	}
@@ -526,8 +528,8 @@ after_old_tuple_lookup:;
 	 * Fix the request to conform.
 	 */
 	if (request_changed)
-		rc = request_create_from_tuple(request, space,
-					       old_tuple, new_tuple);
+		rc = request_create_from_tuple(request, space, old_tuple,
+					       new_tuple);
 out:
 	if (new_tuple != NULL)
 		tuple_unref(new_tuple);
@@ -535,8 +537,8 @@ out:
 }
 
 int
-space_execute_dml(struct space *space, struct txn *txn,
-		  struct request *request, struct tuple **result)
+space_execute_dml(struct space *space, struct txn *txn, struct request *request,
+		  struct tuple **result)
 {
 	if (unlikely(space->sequence != NULL) &&
 	    (request->type == IPROTO_INSERT ||
@@ -565,13 +567,13 @@ space_execute_dml(struct space *space, struct txn *txn,
 	switch (request->type) {
 	case IPROTO_INSERT:
 	case IPROTO_REPLACE:
-		if (space->vtab->execute_replace(space, txn,
-						 request, result) != 0)
+		if (space->vtab->execute_replace(space, txn, request, result) !=
+		    0)
 			return -1;
 		break;
 	case IPROTO_UPDATE:
-		if (space->vtab->execute_update(space, txn,
-						request, result) != 0)
+		if (space->vtab->execute_update(space, txn, request, result) !=
+		    0)
 			return -1;
 		if (*result != NULL && request->index_id != 0) {
 			/*
@@ -583,8 +585,8 @@ space_execute_dml(struct space *space, struct txn *txn,
 		}
 		break;
 	case IPROTO_DELETE:
-		if (space->vtab->execute_delete(space, txn,
-						request, result) != 0)
+		if (space->vtab->execute_delete(space, txn, request, result) !=
+		    0)
 			return -1;
 		if (*result != NULL && request->index_id != 0)
 			request_rebind_to_primary_key(request, space, *result);
@@ -606,14 +608,14 @@ space_add_ck_constraint(struct space *space, struct ck_constraint *ck)
 	rlist_add_entry(&space->ck_constraint, ck, link);
 	if (space->ck_constraint_trigger == NULL) {
 		struct trigger *ck_trigger =
-			(struct trigger *) malloc(sizeof(*ck_trigger));
+			(struct trigger *)malloc(sizeof(*ck_trigger));
 		if (ck_trigger == NULL) {
 			diag_set(OutOfMemory, sizeof(*ck_trigger), "malloc",
 				 "ck_trigger");
 			return -1;
 		}
 		trigger_create(ck_trigger, ck_constraint_on_replace_trigger,
-			       NULL, (trigger_f0) free);
+			       NULL, (trigger_f0)free);
 		trigger_add(&space->on_replace, ck_trigger);
 		space->ck_constraint_trigger = ck_trigger;
 	}
@@ -640,7 +642,7 @@ space_find_constraint_id(struct space *space, const char *name)
 	mh_int_t pos = mh_strnptr_find_inp(ids, name, len);
 	if (pos == mh_end(ids))
 		return NULL;
-	return (struct constraint_id *) mh_strnptr_node(ids, pos)->val;
+	return (struct constraint_id *)mh_strnptr_node(ids, pos)->val;
 }
 
 int
@@ -650,7 +652,7 @@ space_add_constraint_id(struct space *space, struct constraint_id *id)
 	struct mh_strnptr_t *ids = space->constraint_ids;
 	uint32_t len = strlen(id->name);
 	uint32_t hash = mh_strn_hash(id->name, len);
-	const struct mh_strnptr_node_t name_node = {id->name, len, hash, id};
+	const struct mh_strnptr_node_t name_node = { id->name, len, hash, id };
 	if (mh_strnptr_put(ids, &name_node, NULL, NULL) == mh_end(ids)) {
 		diag_set(OutOfMemory, sizeof(name_node), "malloc", "node");
 		return -1;
@@ -665,8 +667,8 @@ space_pop_constraint_id(struct space *space, const char *name)
 	uint32_t len = strlen(name);
 	mh_int_t pos = mh_strnptr_find_inp(ids, name, len);
 	assert(pos != mh_end(ids));
-	struct constraint_id *id = (struct constraint_id *)
-		mh_strnptr_node(ids, pos)->val;
+	struct constraint_id *id =
+		(struct constraint_id *)mh_strnptr_node(ids, pos)->val;
 	mh_strnptr_del(ids, pos, NULL);
 	return id;
 }

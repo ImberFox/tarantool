@@ -91,8 +91,8 @@ memtx_space_update_bsize(struct space *space, struct tuple *old_tuple,
  */
 int
 memtx_space_replace_no_keys(struct space *space, struct tuple *old_tuple,
-			    struct tuple *new_tuple,
-			    enum dup_replace_mode mode, struct tuple **result)
+			    struct tuple *new_tuple, enum dup_replace_mode mode,
+			    struct tuple **result)
 {
 	(void)old_tuple;
 	(void)new_tuple;
@@ -100,7 +100,7 @@ memtx_space_replace_no_keys(struct space *space, struct tuple *old_tuple,
 	(void)result;
 	struct index *index = index_find(space, 0);
 	assert(index == NULL); /* not reached. */
-	(void) index;
+	(void)index;
 	return -1;
 }
 
@@ -144,8 +144,8 @@ memtx_space_replace_primary_key(struct space *space, struct tuple *old_tuple,
 				enum dup_replace_mode mode,
 				struct tuple **result)
 {
-	if (index_replace(space->index[0], old_tuple,
-			  new_tuple, mode, &old_tuple) != 0)
+	if (index_replace(space->index[0], old_tuple, new_tuple, mode,
+			  &old_tuple) != 0)
 		return -1;
 	memtx_space_update_bsize(space, old_tuple, new_tuple);
 	if (new_tuple != NULL)
@@ -241,17 +241,18 @@ memtx_space_replace_primary_key(struct space *space, struct tuple *old_tuple,
 int
 memtx_space_replace_all_keys(struct space *space, struct tuple *old_tuple,
 			     struct tuple *new_tuple,
-			     enum dup_replace_mode mode,
-			     struct tuple **result)
+			     enum dup_replace_mode mode, struct tuple **result)
 {
 	struct memtx_engine *memtx = (struct memtx_engine *)space->engine;
 	/*
 	 * Ensure we have enough slack memory to guarantee
 	 * successful statement-level rollback.
 	 */
-	if (memtx_index_extent_reserve(memtx, new_tuple != NULL ?
-				       RESERVE_EXTENTS_BEFORE_REPLACE :
-				       RESERVE_EXTENTS_BEFORE_DELETE) != 0)
+	if (memtx_index_extent_reserve(memtx,
+				       new_tuple != NULL ?
+						     RESERVE_EXTENTS_BEFORE_REPLACE :
+						     RESERVE_EXTENTS_BEFORE_DELETE) !=
+	    0)
 		return -1;
 
 	uint32_t i = 0;
@@ -264,11 +265,12 @@ memtx_space_replace_all_keys(struct space *space, struct tuple *old_tuple,
 
 	if (memtx_tx_manager_use_mvcc_engine) {
 		struct txn *txn = in_txn();
-		struct txn_stmt *stmt =
-			txn == NULL ? NULL : txn_current_stmt(txn);
+		struct txn_stmt *stmt = txn == NULL ? NULL :
+							    txn_current_stmt(txn);
 		if (stmt != NULL) {
-			return memtx_tx_history_add_stmt(stmt, old_tuple, new_tuple,
-						    mode, result);
+			return memtx_tx_history_add_stmt(stmt, old_tuple,
+							 new_tuple, mode,
+							 result);
 		} else {
 			/** Ephemeral space */
 			assert(space->def->id == 0);
@@ -287,8 +289,8 @@ memtx_space_replace_all_keys(struct space *space, struct tuple *old_tuple,
 	for (i++; i < space->index_count; i++) {
 		struct tuple *unused;
 		struct index *index = space->index[i];
-		if (index_replace(index, old_tuple, new_tuple,
-				  DUP_INSERT, &unused) != 0)
+		if (index_replace(index, old_tuple, new_tuple, DUP_INSERT,
+				  &unused) != 0)
 			goto rollback;
 	}
 
@@ -303,8 +305,8 @@ rollback:
 		struct tuple *unused;
 		struct index *index = space->index[i - 1];
 		/* Rollback must not fail. */
-		if (index_replace(index, new_tuple, old_tuple,
-				  DUP_INSERT, &unused) != 0) {
+		if (index_replace(index, new_tuple, old_tuple, DUP_INSERT,
+				  &unused) != 0) {
 			diag_log();
 			unreachable();
 			panic("failed to rollback change");
@@ -335,8 +337,8 @@ memtx_space_execute_replace(struct space *space, struct txn *txn,
 	if (mode == DUP_INSERT)
 		stmt->does_require_old_tuple = true;
 
-	if (memtx_space->replace(space, NULL, stmt->new_tuple,
-				 mode, &stmt->old_tuple) != 0)
+	if (memtx_space->replace(space, NULL, stmt->new_tuple, mode,
+				 &stmt->old_tuple) != 0)
 		return -1;
 	stmt->engine_savepoint = stmt;
 	/** The new tuple is referenced by the primary key. */
@@ -369,8 +371,8 @@ memtx_space_execute_delete(struct space *space, struct txn *txn,
 	stmt->does_require_old_tuple = true;
 
 	if (old_tuple != NULL &&
-	    memtx_space->replace(space, old_tuple, NULL,
-				 DUP_REPLACE_OR_INSERT, &stmt->old_tuple) != 0)
+	    memtx_space->replace(space, old_tuple, NULL, DUP_REPLACE_OR_INSERT,
+				 &stmt->old_tuple) != 0)
 		return -1;
 	stmt->engine_savepoint = stmt;
 	*result = stmt->old_tuple;
@@ -411,16 +413,16 @@ memtx_space_execute_update(struct space *space, struct txn *txn,
 	if (new_data == NULL)
 		return -1;
 
-	stmt->new_tuple = memtx_tuple_new(format, new_data,
-					  new_data + new_size);
+	stmt->new_tuple =
+		memtx_tuple_new(format, new_data, new_data + new_size);
 	if (stmt->new_tuple == NULL)
 		return -1;
 	tuple_ref(stmt->new_tuple);
 
 	stmt->does_require_old_tuple = true;
 
-	if (memtx_space->replace(space, old_tuple, stmt->new_tuple,
-				 DUP_REPLACE, &stmt->old_tuple) != 0)
+	if (memtx_space->replace(space, old_tuple, stmt->new_tuple, DUP_REPLACE,
+				 &stmt->old_tuple) != 0)
 		return -1;
 	stmt->engine_savepoint = stmt;
 	*result = stmt->new_tuple;
@@ -446,10 +448,9 @@ memtx_space_execute_upsert(struct space *space, struct txn *txn,
 
 	uint32_t part_count = index->def->key_def->part_count;
 	/* Extract the primary key from tuple. */
-	const char *key = tuple_extract_key_raw(request->tuple,
-						request->tuple_end,
-						index->def->key_def,
-						MULTIKEY_NONE, NULL);
+	const char *key =
+		tuple_extract_key_raw(request->tuple, request->tuple_end,
+				      index->def->key_def, MULTIKEY_NONE, NULL);
 	if (key == NULL)
 		return -1;
 	/* Cut array header */
@@ -499,15 +500,14 @@ memtx_space_execute_upsert(struct space *space, struct txn *txn,
 		uint64_t column_mask = COLUMN_MASK_FULL;
 		const char *new_data =
 			xrow_upsert_execute(request->ops, request->ops_end,
-					    old_data, old_data + bsize,
-					    format, &new_size,
-					    request->index_base, false,
-					    &column_mask);
+					    old_data, old_data + bsize, format,
+					    &new_size, request->index_base,
+					    false, &column_mask);
 		if (new_data == NULL)
 			return -1;
 
-		stmt->new_tuple = memtx_tuple_new(format, new_data,
-						  new_data + new_size);
+		stmt->new_tuple =
+			memtx_tuple_new(format, new_data, new_data + new_size);
 		if (stmt->new_tuple == NULL)
 			return -1;
 		tuple_ref(stmt->new_tuple);
@@ -555,16 +555,16 @@ memtx_space_execute_upsert(struct space *space, struct txn *txn,
  */
 static int
 memtx_space_ephemeral_replace(struct space *space, const char *tuple,
-				      const char *tuple_end)
+			      const char *tuple_end)
 {
 	struct memtx_space *memtx_space = (struct memtx_space *)space;
-	struct tuple *new_tuple = memtx_tuple_new(space->format, tuple,
-						  tuple_end);
+	struct tuple *new_tuple =
+		memtx_tuple_new(space->format, tuple, tuple_end);
 	if (new_tuple == NULL)
 		return -1;
 	struct tuple *old_tuple;
-	if (memtx_space->replace(space, NULL, new_tuple,
-				 DUP_REPLACE_OR_INSERT, &old_tuple) != 0) {
+	if (memtx_space->replace(space, NULL, new_tuple, DUP_REPLACE_OR_INSERT,
+				 &old_tuple) != 0) {
 		memtx_tuple_delete(space->format, new_tuple);
 		return -1;
 	}
@@ -598,8 +598,8 @@ memtx_space_ephemeral_delete(struct space *space, const char *key)
 	if (index_get(primary_index, key, part_count, &old_tuple) != 0)
 		return -1;
 	if (old_tuple != NULL &&
-	    memtx_space->replace(space, old_tuple, NULL,
-				 DUP_REPLACE, &old_tuple) != 0)
+	    memtx_space->replace(space, old_tuple, NULL, DUP_REPLACE,
+				 &old_tuple) != 0)
 		return -1;
 	tuple_unref(old_tuple);
 	return 0;
@@ -638,21 +638,21 @@ memtx_space_check_index_def(struct space *space, struct index_def *index_def)
 	}
 	switch (index_def->type) {
 	case HASH:
-		if (! index_def->opts.is_unique) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+		if (!index_def->opts.is_unique) {
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "HASH index must be unique");
 			return -1;
 		}
 		if (key_def->is_multikey) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "HASH index cannot be multikey");
 			return -1;
 		}
 		if (key_def->for_func_index) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "HASH index can not use a function");
 			return -1;
 		}
@@ -662,32 +662,32 @@ memtx_space_check_index_def(struct space *space, struct index_def *index_def)
 		break;
 	case RTREE:
 		if (key_def->part_count != 1) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "RTREE index key can not be multipart");
 			return -1;
 		}
 		if (index_def->opts.is_unique) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "RTREE index can not be unique");
 			return -1;
 		}
 		if (key_def->parts[0].type != FIELD_TYPE_ARRAY) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "RTREE index field type must be ARRAY");
 			return -1;
 		}
 		if (key_def->is_multikey) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "RTREE index cannot be multikey");
 			return -1;
 		}
 		if (key_def->for_func_index) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "RTREE index can not use a function");
 			return -1;
 		}
@@ -695,41 +695,40 @@ memtx_space_check_index_def(struct space *space, struct index_def *index_def)
 		return 0;
 	case BITSET:
 		if (key_def->part_count != 1) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "BITSET index key can not be multipart");
 			return -1;
 		}
 		if (index_def->opts.is_unique) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
-				 "BITSET can not be unique");
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space), "BITSET can not be unique");
 			return -1;
 		}
 		if (key_def->parts[0].type != FIELD_TYPE_UNSIGNED &&
 		    key_def->parts[0].type != FIELD_TYPE_STRING) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "BITSET index field type must be NUM or STR");
 			return -1;
 		}
 		if (key_def->is_multikey) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "BITSET index cannot be multikey");
 			return -1;
 		}
 		if (key_def->for_func_index) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 "BITSET index can not use a function");
 			return -1;
 		}
 		/* no furter checks of parts needed */
 		return 0;
 	default:
-		diag_set(ClientError, ER_INDEX_TYPE,
-			 index_def->name, space_name(space));
+		diag_set(ClientError, ER_INDEX_TYPE, index_def->name,
+			 space_name(space));
 		return -1;
 	}
 	/* Only HASH and TREE indexes checks parts there */
@@ -738,8 +737,8 @@ memtx_space_check_index_def(struct space *space, struct index_def *index_def)
 		struct key_part *part = &key_def->parts[i];
 		if (part->type <= FIELD_TYPE_ANY ||
 		    part->type >= FIELD_TYPE_ARRAY) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 tt_sprintf("field type '%s' is not supported",
 					    field_type_strs[part->type]));
 			return -1;
@@ -987,7 +986,7 @@ memtx_build_on_replace(struct trigger *trigger, void *event)
 	struct txn_stmt *stmt = txn_current_stmt(txn);
 
 	struct tuple *cmp_tuple = stmt->new_tuple != NULL ? stmt->new_tuple :
-							    stmt->old_tuple;
+								  stmt->old_tuple;
 	/*
 	 * Only update the already built part of an index. All the other
 	 * tuples will be inserted when build continues.
@@ -1004,9 +1003,9 @@ memtx_build_on_replace(struct trigger *trigger, void *event)
 	}
 
 	struct tuple *delete = NULL;
-	enum dup_replace_mode mode =
-		state->index->def->opts.is_unique ? DUP_INSERT :
-						    DUP_REPLACE_OR_INSERT;
+	enum dup_replace_mode mode = state->index->def->opts.is_unique ?
+						   DUP_INSERT :
+						   DUP_REPLACE_OR_INSERT;
 	state->rc = index_replace(state->index, stmt->old_tuple,
 				  stmt->new_tuple, mode, &delete);
 	if (state->rc != 0) {
@@ -1098,12 +1097,12 @@ memtx_space_build_index(struct space *src_space, struct index *new_index,
 		 * @todo: better message if there is a duplicate.
 		 */
 		struct tuple *old_tuple;
-		rc = index_replace(new_index, NULL, tuple,
-				   DUP_INSERT, &old_tuple);
+		rc = index_replace(new_index, NULL, tuple, DUP_INSERT,
+				   &old_tuple);
 		if (rc != 0)
 			break;
 		assert(old_tuple == NULL); /* Guaranteed by DUP_INSERT. */
-		(void) old_tuple;
+		(void)old_tuple;
 		/*
 		 * All tuples stored in a memtx space must be
 		 * referenced by the primary index.
@@ -1187,13 +1186,13 @@ static const struct space_vtab memtx_space_vtab = {
 };
 
 struct space *
-memtx_space_new(struct memtx_engine *memtx,
-		struct space_def *def, struct rlist *key_list)
+memtx_space_new(struct memtx_engine *memtx, struct space_def *def,
+		struct rlist *key_list)
 {
 	struct memtx_space *memtx_space = malloc(sizeof(*memtx_space));
 	if (memtx_space == NULL) {
-		diag_set(OutOfMemory, sizeof(*memtx_space),
-			 "malloc", "struct memtx_space");
+		diag_set(OutOfMemory, sizeof(*memtx_space), "malloc",
+			 "struct memtx_space");
 		return NULL;
 	}
 
@@ -1205,10 +1204,11 @@ memtx_space_new(struct memtx_engine *memtx,
 		return NULL;
 	}
 	struct tuple_format *format =
-		tuple_format_new(&memtx_tuple_format_vtab, memtx, keys, key_count,
-				 def->fields, def->field_count,
+		tuple_format_new(&memtx_tuple_format_vtab, memtx, keys,
+				 key_count, def->fields, def->field_count,
 				 def->exact_field_count, def->dict,
-				 def->opts.is_temporary, def->opts.is_ephemeral);
+				 def->opts.is_temporary,
+				 def->opts.is_ephemeral);
 	if (format == NULL) {
 		free(memtx_space);
 		return NULL;

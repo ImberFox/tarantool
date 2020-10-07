@@ -64,10 +64,10 @@ tuple_extract_key_sequential_raw(const char *data, const char *data_end,
 	assert(field_end - field_start <= data_end - data);
 	bsize += field_end - field_start;
 
-	char *key = (char *) region_alloc(&fiber()->gc, bsize);
+	char *key = (char *)region_alloc(&fiber()->gc, bsize);
 	if (key == NULL) {
 		diag_set(OutOfMemory, bsize, "region",
-			"tuple_extract_key_raw_sequential");
+			 "tuple_extract_key_raw_sequential");
 		return NULL;
 	}
 	char *key_buf = mp_encode_array(key, key_def->part_count);
@@ -156,8 +156,8 @@ tuple_extract_key_slowpath(struct tuple *tuple, struct key_def *key_def,
 			 * minimize tuple_field_raw() calls.
 			 */
 			for (; i < part_count - 1; i++) {
-				if (!key_def_parts_are_sequential
-						<has_json_paths>(key_def, i)) {
+				if (!key_def_parts_are_sequential<
+					    has_json_paths>(key_def, i)) {
 					/*
 					 * End of sequential part.
 					 */
@@ -176,7 +176,7 @@ tuple_extract_key_slowpath(struct tuple *tuple, struct key_def *key_def,
 		bsize += end - field;
 	}
 
-	char *key = (char *) region_alloc(&fiber()->gc, bsize);
+	char *key = (char *)region_alloc(&fiber()->gc, bsize);
 	if (key == NULL) {
 		diag_set(OutOfMemory, bsize, "region", "tuple_extract_key");
 		return NULL;
@@ -208,8 +208,8 @@ tuple_extract_key_slowpath(struct tuple *tuple, struct key_def *key_def,
 			 * minimize tuple_field_raw() calls.
 			 */
 			for (; i < part_count - 1; i++) {
-				if (!key_def_parts_are_sequential
-						<has_json_paths>(key_def, i)) {
+				if (!key_def_parts_are_sequential<
+					    has_json_paths>(key_def, i)) {
 					/*
 					 * End of sequential part.
 					 */
@@ -255,7 +255,7 @@ tuple_extract_key_slowpath_raw(const char *data, const char *data_end,
 	assert(!key_def->for_func_index);
 	assert(mp_sizeof_nil() == 1);
 	/* allocate buffer with maximal possible size */
-	char *key = (char *) region_alloc(&fiber()->gc, data_end - data);
+	char *key = (char *)region_alloc(&fiber()->gc, data_end - data);
 	if (key == NULL) {
 		diag_set(OutOfMemory, data_end - data, "region",
 			 "tuple_extract_key_raw");
@@ -268,7 +268,7 @@ tuple_extract_key_slowpath_raw(const char *data, const char *data_end,
 	 * A tuple can not be empty - at least a pk always exists.
 	 */
 	assert(field_count > 0);
-	(void) field_count;
+	(void)field_count;
 	const char *field0_end = field0;
 	mp_next(&field0_end);
 	const char *field = field0;
@@ -278,8 +278,8 @@ tuple_extract_key_slowpath_raw(const char *data, const char *data_end,
 		uint32_t fieldno = key_def->parts[i].fieldno;
 		uint32_t null_count = 0;
 		for (; i < key_def->part_count - 1; i++) {
-			if (!key_def_parts_are_sequential
-					<has_json_paths>(key_def, i))
+			if (!key_def_parts_are_sequential<has_json_paths>(
+				    key_def, i))
 				break;
 		}
 		const struct key_part *part = &key_def->parts[i];
@@ -363,7 +363,7 @@ tuple_extract_key_slowpath_raw(const char *data, const char *data_end,
 /**
  * Initialize tuple_extract_key() and tuple_extract_key_raw()
  */
-template<bool contains_sequential_parts, bool has_optional_parts>
+template <bool contains_sequential_parts, bool has_optional_parts>
 static void
 key_def_set_extract_func_plain(struct key_def *def)
 {
@@ -372,43 +372,50 @@ key_def_set_extract_func_plain(struct key_def *def)
 	assert(!def->for_func_index);
 	if (key_def_is_sequential(def)) {
 		assert(contains_sequential_parts || def->part_count == 1);
-		def->tuple_extract_key = tuple_extract_key_sequential
-					<has_optional_parts>;
-		def->tuple_extract_key_raw = tuple_extract_key_sequential_raw
-					<has_optional_parts>;
+		def->tuple_extract_key =
+			tuple_extract_key_sequential<has_optional_parts>;
+		def->tuple_extract_key_raw =
+			tuple_extract_key_sequential_raw<has_optional_parts>;
 	} else {
-		def->tuple_extract_key = tuple_extract_key_slowpath
-					<contains_sequential_parts,
-					 has_optional_parts, false, false>;
-		def->tuple_extract_key_raw = tuple_extract_key_slowpath_raw
-					<has_optional_parts, false>;
+		def->tuple_extract_key =
+			tuple_extract_key_slowpath<contains_sequential_parts,
+						   has_optional_parts, false,
+						   false>;
+		def->tuple_extract_key_raw =
+			tuple_extract_key_slowpath_raw<has_optional_parts,
+						       false>;
 	}
 }
 
-template<bool contains_sequential_parts, bool has_optional_parts>
+template <bool contains_sequential_parts, bool has_optional_parts>
 static void
 key_def_set_extract_func_json(struct key_def *def)
 {
 	assert(def->has_json_paths);
 	assert(!def->for_func_index);
 	if (def->is_multikey) {
-		def->tuple_extract_key = tuple_extract_key_slowpath
-					<contains_sequential_parts,
-					 has_optional_parts, true, true>;
+		def->tuple_extract_key =
+			tuple_extract_key_slowpath<contains_sequential_parts,
+						   has_optional_parts, true,
+						   true>;
 	} else {
-		def->tuple_extract_key = tuple_extract_key_slowpath
-					<contains_sequential_parts,
-					 has_optional_parts, true, false>;
+		def->tuple_extract_key =
+			tuple_extract_key_slowpath<contains_sequential_parts,
+						   has_optional_parts, true,
+						   false>;
 	}
-	def->tuple_extract_key_raw = tuple_extract_key_slowpath_raw
-					<has_optional_parts, true>;
+	def->tuple_extract_key_raw =
+		tuple_extract_key_slowpath_raw<has_optional_parts, true>;
 }
 
 static char *
 tuple_extract_key_stub(struct tuple *tuple, struct key_def *key_def,
-			     int multikey_idx, uint32_t *key_size)
+		       int multikey_idx, uint32_t *key_size)
 {
-	(void)tuple; (void)key_def; (void)multikey_idx; (void)key_size;
+	(void)tuple;
+	(void)key_def;
+	(void)multikey_idx;
+	(void)key_size;
 	unreachable();
 	return NULL;
 }
@@ -418,8 +425,11 @@ tuple_extract_key_raw_stub(const char *data, const char *data_end,
 			   struct key_def *key_def, int multikey_idx,
 			   uint32_t *key_size)
 {
-	(void)data; (void)data_end;
-	(void)key_def; (void)multikey_idx; (void)key_size;
+	(void)data;
+	(void)data_end;
+	(void)key_def;
+	(void)multikey_idx;
+	(void)key_size;
 	unreachable();
 	return NULL;
 }
@@ -482,8 +492,8 @@ tuple_validate_key_parts(struct key_def *key_def, struct tuple *tuple)
 	assert(!key_def->is_multikey);
 	for (uint32_t idx = 0; idx < key_def->part_count; idx++) {
 		struct key_part *part = &key_def->parts[idx];
-		const char *field = tuple_field_by_part(tuple, part,
-							MULTIKEY_NONE);
+		const char *field =
+			tuple_field_by_part(tuple, part, MULTIKEY_NONE);
 		if (field == NULL) {
 			if (key_part_is_nullable(part))
 				continue;

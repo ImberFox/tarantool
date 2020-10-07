@@ -83,8 +83,7 @@ xrow_update_map_create_item(struct xrow_update_field *field,
 	item->key_len = key_len;
 	item->field.type = type;
 	item->field.data = data;
-	item->field.size = data_size,
-	item->tail_size = tail_size;
+	item->field.size = data_size, item->tail_size = tail_size;
 	/*
 	 * Each time a new item it created it is stored in the
 	 * head of update map item list. It helps in case the
@@ -123,8 +122,8 @@ xrow_update_map_extract_opt_item(struct xrow_update_field *field,
 		if (xrow_update_op_next_token(op) != 0)
 			return -1;
 		if (op->token_type != JSON_TOKEN_STR) {
-			return xrow_update_err(op, "can't update a map by not "\
-					       "a string key");
+			return xrow_update_err(op, "can't update a map by not "
+						   "a string key");
 		}
 	}
 	struct stailq *items = &field->map.items;
@@ -136,7 +135,8 @@ xrow_update_map_extract_opt_item(struct xrow_update_field *field,
 	 * passing this key, so it should be here for all except
 	 * first updates.
 	 */
-	stailq_foreach_entry(i, items, in_items) {
+	stailq_foreach_entry(i, items, in_items)
+	{
 		if (i->key != NULL && i->key_len == op->key_len &&
 		    memcmp(i->key, op->key, i->key_len) == 0) {
 			*res = i;
@@ -149,12 +149,13 @@ xrow_update_map_extract_opt_item(struct xrow_update_field *field,
 	 */
 	uint32_t key_len, i_tail_size;
 	const char *pos, *key, *end, *tmp, *begin;
-	stailq_foreach_entry(i, items, in_items) {
+	stailq_foreach_entry(i, items, in_items)
+	{
 		begin = i->field.data + i->field.size;
 		pos = begin;
 		end = begin + i->tail_size;
 		i_tail_size = 0;
-		while(pos < end) {
+		while (pos < end) {
 			if (mp_typeof(*pos) != MP_STR) {
 				mp_next(&pos);
 				mp_next(&pos);
@@ -309,28 +310,28 @@ xrow_update_op_do_map_delete(struct xrow_update_op *op,
 	return 0;
 }
 
-#define DO_SCALAR_OP_GENERIC(op_type)						\
-int										\
-xrow_update_op_do_map_##op_type(struct xrow_update_op *op,			\
-				struct xrow_update_field *field)		\
-{										\
-	assert(field->type == XUPDATE_MAP);					\
-	struct xrow_update_map_item *item =					\
-		xrow_update_map_extract_item(field, op);			\
-	if (item == NULL)							\
-		return -1;							\
-	if (!xrow_update_op_is_term(op)) {					\
-		op->is_token_consumed = true;					\
-		return xrow_update_op_do_field_##op_type(op, &item->field);	\
-	}									\
-	if (item->field.type != XUPDATE_NOP)					\
-		return xrow_update_err_double(op);				\
-	if (xrow_update_op_do_##op_type(op, item->field.data) != 0)		\
-		return -1;							\
-	item->field.type = XUPDATE_SCALAR;					\
-	item->field.scalar.op = op;						\
-	return 0;								\
-}
+#define DO_SCALAR_OP_GENERIC(op_type)                                           \
+	int xrow_update_op_do_map_##op_type(struct xrow_update_op *op,          \
+					    struct xrow_update_field *field)    \
+	{                                                                       \
+		assert(field->type == XUPDATE_MAP);                             \
+		struct xrow_update_map_item *item =                             \
+			xrow_update_map_extract_item(field, op);                \
+		if (item == NULL)                                               \
+			return -1;                                              \
+		if (!xrow_update_op_is_term(op)) {                              \
+			op->is_token_consumed = true;                           \
+			return xrow_update_op_do_field_##op_type(op,            \
+								 &item->field); \
+		}                                                               \
+		if (item->field.type != XUPDATE_NOP)                            \
+			return xrow_update_err_double(op);                      \
+		if (xrow_update_op_do_##op_type(op, item->field.data) != 0)     \
+			return -1;                                              \
+		item->field.type = XUPDATE_SCALAR;                              \
+		item->field.scalar.op = op;                                     \
+		return 0;                                                       \
+	}
 
 DO_SCALAR_OP_GENERIC(arith)
 
@@ -418,7 +419,8 @@ xrow_update_map_sizeof(struct xrow_update_field *field)
 	assert(field->type == XUPDATE_MAP);
 	uint32_t res = mp_sizeof_map(field->map.size);
 	struct xrow_update_map_item *i;
-	stailq_foreach_entry(i, &field->map.items, in_items) {
+	stailq_foreach_entry(i, &field->map.items, in_items)
+	{
 		res += i->tail_size;
 		if (i->key != NULL) {
 			res += mp_sizeof_str(i->key_len) +
@@ -442,7 +444,8 @@ xrow_update_map_store(struct xrow_update_field *field,
 	 * others. The first cycle doesn't save unchanged tails.
 	 */
 	if (this_node == NULL) {
-		stailq_foreach_entry(i, &field->map.items, in_items) {
+		stailq_foreach_entry(i, &field->map.items, in_items)
+		{
 			if (i->key != NULL) {
 				out = mp_encode_str(out, i->key, i->key_len);
 				out += xrow_update_field_store(&i->field, NULL,
@@ -454,13 +457,13 @@ xrow_update_map_store(struct xrow_update_field *field,
 		struct json_token token;
 		token.type = JSON_TOKEN_STR;
 		struct json_token *next_node;
-		stailq_foreach_entry(i, &field->map.items, in_items) {
+		stailq_foreach_entry(i, &field->map.items, in_items)
+		{
 			if (i->key != NULL) {
 				token.str = i->key;
 				token.len = i->key_len;
 				next_node = json_tree_lookup(format_tree,
-							     this_node,
-							     &token);
+							     this_node, &token);
 				out = mp_encode_str(out, i->key, i->key_len);
 				out += xrow_update_field_store(&i->field,
 							       format_tree,
@@ -469,7 +472,8 @@ xrow_update_map_store(struct xrow_update_field *field,
 			}
 		}
 	}
-	stailq_foreach_entry(i, &field->map.items, in_items) {
+	stailq_foreach_entry(i, &field->map.items, in_items)
+	{
 		memcpy(out, i->field.data + i->field.size, i->tail_size);
 		out += i->tail_size;
 	}

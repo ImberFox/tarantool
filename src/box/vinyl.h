@@ -42,8 +42,8 @@ struct info_handler;
 struct engine;
 
 struct engine *
-vinyl_engine_new(const char *dir, size_t memory,
-		 int read_threads, int write_threads, bool force_recovery);
+vinyl_engine_new(const char *dir, size_t memory, int read_threads,
+		 int write_threads, bool force_recovery);
 
 /**
  * Vinyl engine statistics (box.stat.vinyl()).
@@ -94,12 +94,12 @@ vinyl_engine_set_snap_io_rate_limit(struct engine *engine, double limit);
 #include "diag.h"
 
 static inline struct engine *
-vinyl_engine_new_xc(const char *dir, size_t memory,
-		    int read_threads, int write_threads, bool force_recovery)
+vinyl_engine_new_xc(const char *dir, size_t memory, int read_threads,
+		    int write_threads, bool force_recovery)
 {
 	struct engine *vinyl;
-	vinyl = vinyl_engine_new(dir, memory, read_threads,
-				 write_threads, force_recovery);
+	vinyl = vinyl_engine_new(dir, memory, read_threads, write_threads,
+				 force_recovery);
 	if (vinyl == NULL)
 		diag_raise();
 	return vinyl;

@@ -67,8 +67,8 @@ struct vy_read_view;
  */
 int
 vy_point_lookup(struct vy_lsm *lsm, struct vy_tx *tx,
-		const struct vy_read_view **rv,
-		struct vy_entry key, struct vy_entry *ret);
+		const struct vy_read_view **rv, struct vy_entry key,
+		struct vy_entry *ret);
 
 /**
  * Look up a tuple by key in memory.

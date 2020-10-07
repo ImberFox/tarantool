@@ -47,4 +47,5 @@ const char *iterator_type_strs[] = {
 };
 
 static_assert(sizeof(iterator_type_strs) / sizeof(const char *) ==
-	iterator_type_MAX, "iterator_type_str constants");
+		      iterator_type_MAX,
+	      "iterator_type_str constants");

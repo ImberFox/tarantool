@@ -68,7 +68,7 @@ authenticate(const char *user_name, uint32_t len, const char *salt,
 	if (part_count < 2) {
 		/* Expected at least: authentication mechanism and data. */
 		tnt_raise(ClientError, ER_INVALID_MSGPACK,
-			   "authentication request body");
+			  "authentication request body");
 	}
 	mp_next(&tuple); /* Skip authentication mechanism. */
 	if (mp_typeof(*tuple) == MP_STR) {
@@ -81,12 +81,12 @@ authenticate(const char *user_name, uint32_t len, const char *salt,
 		scramble = mp_decode_bin(&tuple, &scramble_len);
 	} else {
 		tnt_raise(ClientError, ER_INVALID_MSGPACK,
-			   "authentication scramble");
+			  "authentication scramble");
 	}
 	if (scramble_len != SCRAMBLE_SIZE) {
 		/* Authentication mechanism, data. */
 		tnt_raise(ClientError, ER_INVALID_MSGPACK,
-			   "invalid scramble size");
+			  "invalid scramble size");
 	}
 
 	if (scramble_check(scramble, salt, user->def->hash2)) {
@@ -97,7 +97,7 @@ authenticate(const char *user_name, uint32_t len, const char *salt,
 	}
 ok:
 	/* check and run auth triggers on success */
-	if (! rlist_empty(&session_on_auth) &&
+	if (!rlist_empty(&session_on_auth) &&
 	    session_run_on_auth_triggers(&auth_res) != 0)
 		diag_raise();
 	credentials_reset(&session->credentials, user);

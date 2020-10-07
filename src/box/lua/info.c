@@ -60,7 +60,8 @@ lbox_pushvclock(struct lua_State *L, const struct vclock *vclock)
 	lua_createtable(L, 0, vclock_size(vclock));
 	struct vclock_iterator it;
 	vclock_iterator_init(&it, vclock);
-	vclock_foreach(&it, replica) {
+	vclock_foreach(&it, replica)
+	{
 		lua_pushinteger(L, replica.id);
 		luaL_pushuint64(L, replica.lsn);
 		lua_settable(L, -3);
@@ -91,7 +92,8 @@ lbox_pushapplier(lua_State *L, struct applier *applier)
 	char *d = status;
 	const char *s = applier_state_strs[applier->state] + strlen("APPLIER_");
 	assert(strlen(s) < sizeof(status));
-	while ((*(d++) = tolower(*(s++))));
+	while ((*(d++) = tolower(*(s++))))
+		;
 
 	lua_pushstring(L, "status");
 	lua_pushstring(L, status);
@@ -104,11 +106,12 @@ lbox_pushapplier(lua_State *L, struct applier *applier)
 
 		lua_pushstring(L, "idle");
 		lua_pushnumber(L, ev_monotonic_now(loop()) -
-			       applier->last_row_time);
+					  applier->last_row_time);
 		lua_settable(L, -3);
 
 		char name[APPLIER_SOURCE_MAXLEN];
-		int total = uri_format(name, sizeof(name), &applier->uri, false);
+		int total =
+			uri_format(name, sizeof(name), &applier->uri, false);
 		/*
 		 * total can be greater than sizeof(name) if
 		 * name has insufficient length. Terminating
@@ -131,7 +134,7 @@ lbox_pushrelay(lua_State *L, struct relay *relay)
 	lua_newtable(L);
 	lua_pushstring(L, "status");
 
-	switch(relay_get_state(relay)) {
+	switch (relay_get_state(relay)) {
 	case RELAY_FOLLOW:
 		lua_pushstring(L, "follow");
 		lua_settable(L, -3);
@@ -140,11 +143,10 @@ lbox_pushrelay(lua_State *L, struct relay *relay)
 		lua_settable(L, -3);
 		lua_pushstring(L, "idle");
 		lua_pushnumber(L, ev_monotonic_now(loop()) -
-			       relay_last_row_time(relay));
+					  relay_last_row_time(relay));
 		lua_settable(L, -3);
 		break;
-	case RELAY_STOPPED:
-	{
+	case RELAY_STOPPED: {
 		lua_pushstring(L, "stopped");
 		lua_settable(L, -3);
 
@@ -153,7 +155,8 @@ lbox_pushrelay(lua_State *L, struct relay *relay)
 			lbox_push_replication_error_message(L, e, -1);
 		break;
 	}
-	default: unreachable();
+	default:
+		unreachable();
 	}
 }
 
@@ -202,7 +205,8 @@ lbox_info_replication(struct lua_State *L)
 	lua_setfield(L, -2, "__serialize");
 	lua_setmetatable(L, -2);
 
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		/* Applier hasn't received replica id yet */
 		if (replica->id == REPLICA_ID_NIL)
 			continue;
@@ -226,7 +230,8 @@ lbox_info_replication_anon_call(struct lua_State *L)
 	lua_setfield(L, -2, "__serialize");
 	lua_setmetatable(L, -2);
 
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		if (!replica->anon)
 			continue;
 
@@ -450,7 +455,8 @@ lbox_info_gc_call(struct lua_State *L)
 
 	count = 0;
 	struct gc_checkpoint *checkpoint;
-	gc_foreach_checkpoint(checkpoint) {
+	gc_foreach_checkpoint(checkpoint)
+	{
 		lua_createtable(L, 0, 2);
 
 		lua_pushstring(L, "vclock");
@@ -465,7 +471,8 @@ lbox_info_gc_call(struct lua_State *L)
 		lua_newtable(L);
 		int ref_idx = 0;
 		struct gc_checkpoint_ref *ref;
-		gc_foreach_checkpoint_ref(ref, checkpoint) {
+		gc_foreach_checkpoint_ref(ref, checkpoint)
+		{
 			lua_pushstring(L, ref->name);
 			lua_rawseti(L, -2, ++ref_idx);
 		}
@@ -594,38 +601,38 @@ lbox_info_election(struct lua_State *L)
 }
 
 static const struct luaL_Reg lbox_info_dynamic_meta[] = {
-	{"id", lbox_info_id},
-	{"uuid", lbox_info_uuid},
-	{"lsn", lbox_info_lsn},
-	{"signature", lbox_info_signature},
-	{"vclock", lbox_info_vclock},
-	{"ro", lbox_info_ro},
-	{"replication", lbox_info_replication},
-	{"replication_anon", lbox_info_replication_anon},
-	{"status", lbox_info_status},
-	{"uptime", lbox_info_uptime},
-	{"pid", lbox_info_pid},
-	{"cluster", lbox_info_cluster},
-	{"memory", lbox_info_memory},
-	{"gc", lbox_info_gc},
-	{"vinyl", lbox_info_vinyl},
-	{"sql", lbox_info_sql},
-	{"listen", lbox_info_listen},
-	{"election", lbox_info_election},
-	{NULL, NULL}
+	{ "id", lbox_info_id },
+	{ "uuid", lbox_info_uuid },
+	{ "lsn", lbox_info_lsn },
+	{ "signature", lbox_info_signature },
+	{ "vclock", lbox_info_vclock },
+	{ "ro", lbox_info_ro },
+	{ "replication", lbox_info_replication },
+	{ "replication_anon", lbox_info_replication_anon },
+	{ "status", lbox_info_status },
+	{ "uptime", lbox_info_uptime },
+	{ "pid", lbox_info_pid },
+	{ "cluster", lbox_info_cluster },
+	{ "memory", lbox_info_memory },
+	{ "gc", lbox_info_gc },
+	{ "vinyl", lbox_info_vinyl },
+	{ "sql", lbox_info_sql },
+	{ "listen", lbox_info_listen },
+	{ "election", lbox_info_election },
+	{ NULL, NULL }
 };
 
 static const struct luaL_Reg lbox_info_dynamic_meta_v16[] = {
-	{"server", lbox_info_server},
-	{NULL, NULL}
+	{ "server", lbox_info_server },
+	{ NULL, NULL }
 };
 
 /** Evaluate box.info.* function value and push it on the stack. */
 static int
 lbox_info_index(struct lua_State *L)
 {
-	lua_pushvalue(L, -1);			/* dup key */
-	lua_gettable(L, lua_upvalueindex(1));   /* table[key] */
+	lua_pushvalue(L, -1);		      /* dup key */
+	lua_gettable(L, lua_upvalueindex(1)); /* table[key] */
 
 	if (!lua_isfunction(L, -1)) {
 		/* No such key. Leave nil is on the stack. */
@@ -683,13 +690,11 @@ lbox_info_call(struct lua_State *L)
 void
 box_lua_info_init(struct lua_State *L)
 {
-	static const struct luaL_Reg infolib [] = {
-		{NULL, NULL}
-	};
+	static const struct luaL_Reg infolib[] = { { NULL, NULL } };
 
 	luaL_register_module(L, "box.info", infolib);
 
-	lua_newtable(L);		/* metatable for info */
+	lua_newtable(L); /* metatable for info */
 
 	lua_pushstring(L, "__index");
 

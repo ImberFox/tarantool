@@ -69,9 +69,7 @@
 /**
  * MP_ERROR keys
  */
-enum {
-	MP_ERROR_STACK = 0x00
-};
+enum { MP_ERROR_STACK = 0x00 };
 
 /**
  * Keys of individual error in the stack.
@@ -98,13 +96,8 @@ enum {
 };
 
 static const char *const mp_error_field_to_json_key[MP_ERROR_MAX] = {
-	"\"type\": ",
-	"\"file\": ",
-	"\"line\": ",
-	"\"message\": ",
-	"\"errno\": ",
-	"\"code\": ",
-	"\"fields\": ",
+	"\"type\": ",  "\"file\": ", "\"line\": ",   "\"message\": ",
+	"\"errno\": ", "\"code\": ", "\"fields\": ",
 };
 
 /**
@@ -253,7 +246,7 @@ error_build_xc(struct mp_error *mp_error)
 	struct error *err = NULL;
 	if (mp_error->type == NULL || mp_error->message == NULL ||
 	    mp_error->file == NULL) {
-missing_fields:
+	missing_fields:
 		diag_set(ClientError, ER_INVALID_MSGPACK,
 			 "Missing mandatory error fields");
 		return NULL;
@@ -286,14 +279,14 @@ missing_fields:
 		err = new XlogGapError(mp_error->file, mp_error->line,
 				       mp_error->message);
 	} else if (strcmp(mp_error->type, "SystemError") == 0) {
-		err = new SystemError(mp_error->file, mp_error->line,
-				      "%s", mp_error->message);
+		err = new SystemError(mp_error->file, mp_error->line, "%s",
+				      mp_error->message);
 	} else if (strcmp(mp_error->type, "SocketError") == 0) {
 		err = new SocketError(mp_error->file, mp_error->line, "", "");
 		error_format_msg(err, "%s", mp_error->message);
 	} else if (strcmp(mp_error->type, "OutOfMemory") == 0) {
-		err = new OutOfMemory(mp_error->file, mp_error->line,
-				      0, "", "");
+		err = new OutOfMemory(mp_error->file, mp_error->line, 0, "",
+				      "");
 	} else if (strcmp(mp_error->type, "TimedOut") == 0) {
 		err = new TimedOut(mp_error->file, mp_error->line);
 	} else if (strcmp(mp_error->type, "ChannelIsClosed") == 0) {
@@ -304,17 +297,17 @@ missing_fields:
 		err = new LuajitError(mp_error->file, mp_error->line,
 				      mp_error->message);
 	} else if (strcmp(mp_error->type, "IllegalParams") == 0) {
-		err = new IllegalParams(mp_error->file, mp_error->line,
-					"%s", mp_error->message);
+		err = new IllegalParams(mp_error->file, mp_error->line, "%s",
+					mp_error->message);
 	} else if (strcmp(mp_error->type, "CollationError") == 0) {
-		err = new CollationError(mp_error->file, mp_error->line,
-					 "%s", mp_error->message);
+		err = new CollationError(mp_error->file, mp_error->line, "%s",
+					 mp_error->message);
 	} else if (strcmp(mp_error->type, "SwimError") == 0) {
-		err = new SwimError(mp_error->file, mp_error->line,
-				    "%s", mp_error->message);
+		err = new SwimError(mp_error->file, mp_error->line, "%s",
+				    mp_error->message);
 	} else if (strcmp(mp_error->type, "CryptoError") == 0) {
-		err = new CryptoError(mp_error->file, mp_error->line,
-				      "%s", mp_error->message);
+		err = new CryptoError(mp_error->file, mp_error->line, "%s",
+				      mp_error->message);
 	} else {
 		err = new ClientError(mp_error->file, mp_error->line,
 				      ER_UNKNOWN);
@@ -347,7 +340,8 @@ mp_decode_and_copy_str(const char **data, struct region *region)
 	}
 	uint32_t str_len;
 	const char *str = mp_decode_str(data, &str_len);
-	return region_strdup(region, str, str_len);;
+	return region_strdup(region, str, str_len);
+	;
 }
 
 static inline bool
@@ -415,7 +409,7 @@ mp_decode_error_one(const char **data)
 			goto error;
 
 		uint64_t key = mp_decode_uint(data);
-		switch(key) {
+		switch (key) {
 		case MP_ERROR_TYPE:
 			mp_err.type = mp_decode_and_copy_str(data, region);
 			if (mp_err.type == NULL)
@@ -540,7 +534,7 @@ error_unpack_unsafe(const char **data)
 			return NULL;
 		}
 		uint64_t key = mp_decode_uint(data);
-		switch(key) {
+		switch (key) {
 		case MP_ERROR_STACK: {
 			if (mp_typeof(**data) != MP_ARRAY) {
 				diag_set(ClientError, ER_INVALID_MSGPACK,
@@ -579,7 +573,7 @@ error_unpack_unsafe(const char **data)
 #define MP_ERROR_PRINT_DEFINITION
 #define MP_PRINT_FUNC snprintf
 #define MP_PRINT_SUFFIX snprint
-#define MP_PRINT_2(total, func, ...)						\
+#define MP_PRINT_2(total, func, ...) \
 	SNPRINT(total, func, buf, size, __VA_ARGS__)
 #define MP_PRINT_ARGS_DECL char *buf, int size
 #include __FILE__
@@ -587,12 +581,13 @@ error_unpack_unsafe(const char **data)
 #define MP_ERROR_PRINT_DEFINITION
 #define MP_PRINT_FUNC fprintf
 #define MP_PRINT_SUFFIX fprint
-#define MP_PRINT_2(total, func, ...) do {							\
-	int bytes = func(file, __VA_ARGS__);					\
-	if (bytes < 0)								\
-		return -1;							\
-	total += bytes;								\
-} while (0)
+#define MP_PRINT_2(total, func, ...)                 \
+	do {                                         \
+		int bytes = func(file, __VA_ARGS__); \
+		if (bytes < 0)                       \
+			return -1;                   \
+		total += bytes;                      \
+	} while (0)
 #define MP_PRINT_ARGS_DECL FILE *file
 #include __FILE__
 
@@ -624,16 +619,15 @@ error_unpack_unsafe(const char **data)
  * turn it into a template.
  */
 
-#define MP_CONCAT4_R(a, b, c, d)	a##b##c##d
-#define MP_CONCAT4(a, b, c, d)		MP_CONCAT4_R(a, b, c, d)
-#define MP_PRINT(total, ...)		MP_PRINT_2(total, MP_PRINT_FUNC,	\
-						   __VA_ARGS__)
+#define MP_CONCAT4_R(a, b, c, d) a##b##c##d
+#define MP_CONCAT4(a, b, c, d) MP_CONCAT4_R(a, b, c, d)
+#define MP_PRINT(total, ...) MP_PRINT_2(total, MP_PRINT_FUNC, __VA_ARGS__)
 
-#define mp_func_name(name)	MP_CONCAT4(mp_, MP_PRINT_SUFFIX, _, name)
-#define mp_print_error_one	mp_func_name(error_one)
-#define mp_print_error_stack	mp_func_name(error_stack)
-#define mp_print_error		mp_func_name(error)
-#define mp_print_common		mp_func_name(recursion)
+#define mp_func_name(name) MP_CONCAT4(mp_, MP_PRINT_SUFFIX, _, name)
+#define mp_print_error_one mp_func_name(error_one)
+#define mp_print_error_stack mp_func_name(error_stack)
+#define mp_print_error mp_func_name(error)
+#define mp_print_common mp_func_name(recursion)
 
 static int
 mp_print_error_one(MP_PRINT_ARGS_DECL, const char **data, int depth)
@@ -710,7 +704,7 @@ mp_print_error(MP_PRINT_ARGS_DECL, const char **data, int depth)
 		if (mp_typeof(**data) != MP_UINT)
 			return -1;
 		uint64_t key = mp_decode_uint(data);
-		switch(key) {
+		switch (key) {
 		case MP_ERROR_STACK: {
 			MP_PRINT(total, "\"stack\": ");
 			MP_PRINT_2(total, mp_print_error_stack, data, depth);

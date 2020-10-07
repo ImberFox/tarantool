@@ -62,14 +62,13 @@ user_map_calc_idx(uint8_t auth_token, uint8_t *bit_no)
 	return auth_token / UMAP_INT_BITS;
 }
 
-
 /** Set a bit in the user map - add a user. */
 static inline void
 user_map_set(struct user_map *map, uint8_t auth_token)
 {
 	uint8_t bit_no;
 	int idx = user_map_calc_idx(auth_token, &bit_no);
-	map->m[idx] |= ((umap_int_t) 1) << bit_no;
+	map->m[idx] |= ((umap_int_t)1) << bit_no;
 }
 
 /** Clear a bit in the user map - remove a user. */
@@ -78,7 +77,7 @@ user_map_clear(struct user_map *map, uint8_t auth_token)
 {
 	uint8_t bit_no;
 	int idx = user_map_calc_idx(auth_token, &bit_no);
-	map->m[idx] &= ~(((umap_int_t) 1) << bit_no);
+	map->m[idx] &= ~(((umap_int_t)1) << bit_no);
 }
 
 /* Check if a bit is set in the user map. */
@@ -87,7 +86,7 @@ user_map_is_set(struct user_map *map, uint8_t auth_token)
 {
 	uint8_t bit_no;
 	int idx = user_map_calc_idx(auth_token, &bit_no);
-	return map->m[idx] & (((umap_int_t) 1) << bit_no);
+	return map->m[idx] & (((umap_int_t)1) << bit_no);
 }
 
 /**
@@ -112,16 +111,15 @@ user_map_minus(struct user_map *lhs, struct user_map *rhs)
 }
 
 /** Iterate over users in the set of users. */
-struct user_map_iterator
-{
+struct user_map_iterator {
 	struct bit_iterator it;
 };
 
 static void
 user_map_iterator_init(struct user_map_iterator *it, struct user_map *map)
 {
-	bit_iterator_init(&it->it, map->m,
-			  USER_MAP_SIZE * sizeof(umap_int_t), true);
+	bit_iterator_init(&it->it, map->m, USER_MAP_SIZE * sizeof(umap_int_t),
+			  true);
 }
 
 static struct user *
@@ -216,66 +214,55 @@ access_find(enum schema_object_type object_type, uint32_t object_id)
 {
 	struct access *access = NULL;
 	switch (object_type) {
-	case SC_UNIVERSE:
-	{
+	case SC_UNIVERSE: {
 		access = universe.access;
 		break;
 	}
-	case SC_ENTITY_SPACE:
-	{
+	case SC_ENTITY_SPACE: {
 		access = entity_access.space;
 		break;
 	}
-	case SC_ENTITY_FUNCTION:
-	{
+	case SC_ENTITY_FUNCTION: {
 		access = entity_access.function;
 		break;
 	}
-	case SC_ENTITY_USER:
-	{
+	case SC_ENTITY_USER: {
 		access = entity_access.user;
 		break;
 	}
-	case SC_ENTITY_ROLE:
-	{
+	case SC_ENTITY_ROLE: {
 		access = entity_access.role;
 		break;
 	}
-	case SC_ENTITY_SEQUENCE:
-	{
+	case SC_ENTITY_SEQUENCE: {
 		access = entity_access.sequence;
 		break;
 	}
-	case SC_SPACE:
-	{
+	case SC_SPACE: {
 		struct space *space = space_by_id(object_id);
 		if (space)
 			access = space->access;
 		break;
 	}
-	case SC_FUNCTION:
-	{
+	case SC_FUNCTION: {
 		struct func *func = func_by_id(object_id);
 		if (func)
 			access = func->access;
 		break;
 	}
-	case SC_USER:
-	{
+	case SC_USER: {
 		struct user *user = user_by_id(object_id);
 		if (user)
 			access = user->access;
 		break;
 	}
-	case SC_ROLE:
-	{
+	case SC_ROLE: {
 		struct user *role = user_by_id(object_id);
 		if (role)
 			access = role->access;
 		break;
 	}
-	case SC_SEQUENCE:
-	{
+	case SC_SEQUENCE: {
 		struct sequence *seq = sequence_by_id(object_id);
 		if (seq)
 			access = seq->access;
@@ -286,7 +273,6 @@ access_find(enum schema_object_type object_type, uint32_t object_id)
 	}
 	return access;
 }
-
 
 /**
  * Reset effective access of the user in the
@@ -299,9 +285,9 @@ user_set_effective_access(struct user *user)
 	privset_ifirst(&user->privs, &it);
 	struct priv_def *priv;
 	while ((priv = privset_inext(&it)) != NULL) {
-		struct access *object = access_find(priv->object_type,
-						    priv->object_id);
-		 /* Protect against a concurrent drop. */
+		struct access *object =
+			access_find(priv->object_type, priv->object_id);
+		/* Protect against a concurrent drop. */
 		if (object == NULL)
 			continue;
 		struct access *access = &object[user->auth_token];
@@ -340,7 +326,7 @@ user_reload_privs(struct user *user)
 		/** Primary key - by user id */
 		if (!space_is_memtx(space)) {
 			diag_set(ClientError, ER_UNSUPPORTED,
-			          space->engine->name, "system data");
+				 space->engine->name, "system data");
 			return -1;
 		}
 		struct index *index = index_find(space, 0);
@@ -348,8 +334,8 @@ user_reload_privs(struct user *user)
 			return -1;
 		mp_encode_uint(key, user->def->uid);
 
-		struct iterator *it = index_create_iterator(index, ITER_EQ,
-							       key, 1);
+		struct iterator *it =
+			index_create_iterator(index, ITER_EQ, key, 1);
 		if (it == NULL)
 			return -1;
 		IteratorGuard iter_guard(it);
@@ -365,7 +351,8 @@ user_reload_privs(struct user *user)
 			 * Skip role grants, we're only
 			 * interested in real objects.
 			 */
-			if (priv.object_type != SC_ROLE || !(priv.access & PRIV_X))
+			if (priv.object_type != SC_ROLE ||
+			    !(priv.access & PRIV_X))
 				if (user_grant_priv(user, &priv) != 0)
 					return -1;
 			if (iterator_next(it, &tuple) != 0)
@@ -418,11 +405,11 @@ auth_token_get(void)
 {
 	uint8_t bit_no = 0;
 	while (min_token_idx < USER_MAP_SIZE) {
-                bit_no = __builtin_ffs(tokens[min_token_idx]);
+		bit_no = __builtin_ffs(tokens[min_token_idx]);
 		if (bit_no)
 			break;
 		min_token_idx++;
-        }
+	}
 	if (bit_no == 0 || bit_no > BOX_USER_MAX) {
 		/* A cap on the number of users was reached.
 		 * Check for BOX_USER_MAX to cover case when
@@ -430,12 +417,12 @@ auth_token_get(void)
 		 */
 		tnt_raise(LoggedError, ER_USER_MAX, BOX_USER_MAX);
 	}
-        /*
+	/*
          * find-first-set returns bit index starting from 1,
          * or 0 if no bit is set. Rebase the index to offset 0.
          */
 	bit_no--;
-	tokens[min_token_idx] ^= ((umap_int_t) 1) << bit_no;
+	tokens[min_token_idx] ^= ((umap_int_t)1) << bit_no;
 	int auth_token = min_token_idx * UMAP_INT_BITS + bit_no;
 	assert(auth_token < UINT8_MAX);
 	return auth_token;
@@ -450,7 +437,7 @@ auth_token_put(uint8_t auth_token)
 {
 	uint8_t bit_no;
 	int idx = user_map_calc_idx(auth_token, &bit_no);
-	tokens[idx] |= ((umap_int_t) 1) << bit_no;
+	tokens[idx] |= ((umap_int_t)1) << bit_no;
 	if (idx < min_token_idx)
 		min_token_idx = idx;
 }
@@ -481,8 +468,8 @@ user_cache_delete(uint32_t uid)
 {
 	mh_int_t k = mh_i32ptr_find(user_registry, uid, NULL);
 	if (k != mh_end(user_registry)) {
-		struct user *user = (struct user *)
-			mh_i32ptr_node(user_registry, k)->val;
+		struct user *user =
+			(struct user *)mh_i32ptr_node(user_registry, k)->val;
 		assert(user->auth_token > ADMIN);
 		auth_token_put(user->auth_token);
 		assert(user_map_is_empty(&user->roles));
@@ -505,7 +492,7 @@ user_by_id(uint32_t uid)
 	mh_int_t k = mh_i32ptr_find(user_registry, uid, NULL);
 	if (k == mh_end(user_registry))
 		return NULL;
-	return (struct user *) mh_i32ptr_node(user_registry, k)->val;
+	return (struct user *)mh_i32ptr_node(user_registry, k)->val;
 }
 
 struct user *
@@ -521,7 +508,7 @@ user_find(uint32_t uid)
 struct user *
 user_find_by_token(uint8_t auth_token)
 {
-    return &users[auth_token];
+	return &users[auth_token];
 }
 
 /** Find user by name. */
@@ -537,7 +524,7 @@ user_find_by_name(const char *name, uint32_t len)
 			return user;
 	}
 	diag_set(ClientError, ER_NO_SUCH_USER,
-		 tt_cstr(name, MIN((uint32_t) BOX_INVALID_NAME_MAX, len)));
+		 tt_cstr(name, MIN((uint32_t)BOX_INVALID_NAME_MAX, len)));
 	return NULL;
 }
 
@@ -557,7 +544,7 @@ user_cache_init(void)
 	 */
 	size_t name_len = strlen("guest");
 	size_t sz = user_def_sizeof(name_len);
-	struct user_def *def = (struct user_def *) calloc(1, sz);
+	struct user_def *def = (struct user_def *)calloc(1, sz);
 	if (def == NULL)
 		tnt_raise(OutOfMemory, sz, "malloc", "def");
 	/* Free def in a case of exception. */
@@ -570,11 +557,11 @@ user_cache_init(void)
 	guest_def_guard.is_active = false;
 	/* 0 is the auth token and user id by default. */
 	assert(user->def->uid == GUEST && user->auth_token == GUEST);
-	(void) user;
+	(void)user;
 
 	name_len = strlen("admin");
 	sz = user_def_sizeof(name_len);
-	def = (struct user_def *) calloc(1, sz);
+	def = (struct user_def *)calloc(1, sz);
 	if (def == NULL)
 		tnt_raise(OutOfMemory, sz, "malloc", "def");
 	auto admin_def_guard = make_scoped_guard([=] { free(def); });
@@ -628,7 +615,7 @@ role_check(struct user *grantee, struct user *role)
 	struct user_map transitive_closure = user_map_nil;
 	user_map_set(&transitive_closure, grantee->auth_token);
 	struct user_map current_layer = transitive_closure;
-	while (! user_map_is_empty(&current_layer)) {
+	while (!user_map_is_empty(&current_layer)) {
 		/*
 		 * As long as we're traversing a directed
 		 * acyclic graph, we're bound to end at some
@@ -647,10 +634,9 @@ role_check(struct user *grantee, struct user *role)
 	 * Check if the role is in the list of roles to which the
 	 * grantee is granted.
 	 */
-	if (user_map_is_set(&transitive_closure,
-			    role->auth_token)) {
-		diag_set(ClientError, ER_ROLE_LOOP,
-			  role->def->name, grantee->def->name);
+	if (user_map_is_set(&transitive_closure, role->auth_token)) {
+		diag_set(ClientError, ER_ROLE_LOOP, role->def->name,
+			 grantee->def->name);
 		return -1;
 	}
 	return 0;
@@ -704,7 +690,7 @@ rebuild_effective_grants(struct user *grantee)
 	 * Propagate effective privileges from the nodes
 	 * with no incoming edges to the remaining nodes.
 	 */
-	while (! user_map_is_empty(&current_layer)) {
+	while (!user_map_is_empty(&current_layer)) {
 		struct user_map postponed = user_map_nil;
 		struct user_map next_layer = user_map_nil;
 		user_map_iterator_init(&it, &current_layer);
@@ -736,7 +722,6 @@ rebuild_effective_grants(struct user *grantee)
 	}
 	return 0;
 }
-
 
 /**
  * Update verges in the graph of dependencies.

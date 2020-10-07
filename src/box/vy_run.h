@@ -380,8 +380,8 @@ vy_run_unref(struct vy_run *run)
  * @return - 0 on sucess, -1 on fail
  */
 int
-vy_run_recover(struct vy_run *run, const char *dir,
-	       uint32_t space_id, uint32_t iid, struct key_def *cmp_def);
+vy_run_recover(struct vy_run *run, const char *dir, uint32_t space_id,
+	       uint32_t iid, struct key_def *cmp_def);
 
 /**
  * Rebuild run index
@@ -396,10 +396,9 @@ vy_run_recover(struct vy_run *run, const char *dir,
  * @return - 0 on sucess, -1 on fail
  */
 int
-vy_run_rebuild_index(struct vy_run *run, const char *dir,
-		     uint32_t space_id, uint32_t iid,
-		     struct key_def *cmp_def, struct key_def *key_def,
-		     struct tuple_format *format,
+vy_run_rebuild_index(struct vy_run *run, const char *dir, uint32_t space_id,
+		     uint32_t iid, struct key_def *cmp_def,
+		     struct key_def *key_def, struct tuple_format *format,
 		     const struct index_opts *opts);
 
 enum vy_file_type {
@@ -413,29 +412,28 @@ enum vy_file_type {
 extern const char *vy_file_suffix[];
 
 static inline int
-vy_lsm_snprint_path(char *buf, int size, const char *dir,
-		    uint32_t space_id, uint32_t iid)
+vy_lsm_snprint_path(char *buf, int size, const char *dir, uint32_t space_id,
+		    uint32_t iid)
 {
-	return snprintf(buf, size, "%s/%u/%u",
-			dir, (unsigned)space_id, (unsigned)iid);
+	return snprintf(buf, size, "%s/%u/%u", dir, (unsigned)space_id,
+			(unsigned)iid);
 }
 
 static inline int
 vy_run_snprint_filename(char *buf, int size, int64_t run_id,
 			enum vy_file_type type)
 {
-	return snprintf(buf, size, "%020lld.%s",
-			(long long)run_id, vy_file_suffix[type]);
+	return snprintf(buf, size, "%020lld.%s", (long long)run_id,
+			vy_file_suffix[type]);
 }
 
 static inline int
-vy_run_snprint_path(char *buf, int size, const char *dir,
-		    uint32_t space_id, uint32_t iid,
-		    int64_t run_id, enum vy_file_type type)
+vy_run_snprint_path(char *buf, int size, const char *dir, uint32_t space_id,
+		    uint32_t iid, int64_t run_id, enum vy_file_type type)
 {
 	int total = 0;
-	SNPRINT(total, vy_lsm_snprint_path, buf, size,
-		dir, (unsigned)space_id, (unsigned)iid);
+	SNPRINT(total, vy_lsm_snprint_path, buf, size, dir, (unsigned)space_id,
+		(unsigned)iid);
 	SNPRINT(total, snprintf, buf, size, "/");
 	SNPRINT(total, vy_run_snprint_filename, buf, size, run_id, type);
 	return total;
@@ -447,8 +445,8 @@ vy_run_snprint_path(char *buf, int size, const char *dir,
  * failed.
  */
 int
-vy_run_remove_files(const char *dir, uint32_t space_id,
-		    uint32_t iid, int64_t run_id);
+vy_run_remove_files(const char *dir, uint32_t space_id, uint32_t iid,
+		    int64_t run_id);
 
 /**
  * Allocate a new run slice.
@@ -518,11 +516,10 @@ vy_slice_cut(struct vy_slice *slice, int64_t id, struct vy_entry begin,
  */
 void
 vy_run_iterator_open(struct vy_run_iterator *itr,
-		     struct vy_run_iterator_stat *stat,
-		     struct vy_slice *slice, enum iterator_type iterator_type,
-		     struct vy_entry key, const struct vy_read_view **rv,
-		     struct key_def *cmp_def, struct key_def *key_def,
-		     struct tuple_format *format);
+		     struct vy_run_iterator_stat *stat, struct vy_slice *slice,
+		     enum iterator_type iterator_type, struct vy_entry key,
+		     const struct vy_read_view **rv, struct key_def *cmp_def,
+		     struct key_def *key_def, struct tuple_format *format);
 
 /**
  * Advance a run iterator to the next key.
@@ -530,8 +527,7 @@ vy_run_iterator_open(struct vy_run_iterator *itr,
  * Returns 0 on success, -1 on memory allocation or IO error.
  */
 NODISCARD int
-vy_run_iterator_next(struct vy_run_iterator *itr,
-		     struct vy_history *history);
+vy_run_iterator_next(struct vy_run_iterator *itr, struct vy_history *history);
 
 /**
  * Advance a run iterator to the key following @last.

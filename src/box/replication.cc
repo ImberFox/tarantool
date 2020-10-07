@@ -47,13 +47,13 @@ uint32_t instance_id = REPLICA_ID_NIL;
 struct tt_uuid INSTANCE_UUID;
 struct tt_uuid REPLICASET_UUID;
 
-double replication_timeout = 1.0; /* seconds */
+double replication_timeout = 1.0;	   /* seconds */
 double replication_connect_timeout = 30.0; /* seconds */
 int replication_connect_quorum = REPLICATION_CONNECT_QUORUM_ALL;
 double replication_sync_lag = 10.0; /* seconds */
 int replication_synchro_quorum = 1;
 double replication_synchro_timeout = 5.0; /* seconds */
-double replication_sync_timeout = 300.0; /* seconds */
+double replication_sync_timeout = 300.0;  /* seconds */
 bool replication_skip_conflict = false;
 bool replication_anon = false;
 
@@ -65,11 +65,11 @@ replica_compare_by_uuid(const struct replica *a, const struct replica *b)
 	return tt_uuid_compare(&a->uuid, &b->uuid);
 }
 
-rb_gen(MAYBE_UNUSED static, replica_hash_, replica_hash_t,
-       struct replica, in_hash, replica_compare_by_uuid);
+rb_gen(MAYBE_UNUSED static, replica_hash_, replica_hash_t, struct replica,
+       in_hash, replica_compare_by_uuid);
 
-#define replica_hash_foreach_safe(hash, item, next) \
-	for (item = replica_hash_first(hash); \
+#define replica_hash_foreach_safe(hash, item, next)                         \
+	for (item = replica_hash_first(hash);                               \
 	     item != NULL && ((next = replica_hash_next(hash, item)) || 1); \
 	     item = next)
 
@@ -109,8 +109,7 @@ replication_free(void)
 	 * cbus upon shutdown, which could lead to segfaults.
 	 * So cancel them.
 	 */
-	replicaset_foreach(replica)
-		relay_cancel(replica->relay);
+	replicaset_foreach(replica) relay_cancel(replica->relay);
 
 	diag_destroy(&replicaset.applier.diag);
 }
@@ -120,12 +119,11 @@ replica_check_id(uint32_t replica_id)
 {
 	if (replica_id == REPLICA_ID_NIL) {
 		diag_set(ClientError, ER_REPLICA_ID_IS_RESERVED,
-			  (unsigned) replica_id);
+			 (unsigned)replica_id);
 		return -1;
 	}
 	if (replica_id >= VCLOCK_MAX) {
-		diag_set(ClientError, ER_REPLICA_MAX,
-			  (unsigned) replica_id);
+		diag_set(ClientError, ER_REPLICA_MAX, (unsigned)replica_id);
 		return -1;
 	}
 	/*
@@ -140,7 +138,7 @@ replica_check_id(uint32_t replica_id)
 	 */
 	if (!replicaset.is_joining && replica_id == instance_id) {
 		diag_set(ClientError, ER_LOCAL_INSTANCE_ID_IS_READ_ONLY,
-			  (unsigned) replica_id);
+			 (unsigned)replica_id);
 		return -1;
 	}
 	return 0;
@@ -161,8 +159,8 @@ replica_on_applier_state_f(struct trigger *trigger, void *event);
 static struct replica *
 replica_new(void)
 {
-	struct replica *replica = (struct replica *)
-			malloc(sizeof(struct replica));
+	struct replica *replica =
+		(struct replica *)malloc(sizeof(struct replica));
 	if (replica == NULL) {
 		tnt_raise(OutOfMemory, sizeof(*replica), "malloc",
 			  "struct replica");
@@ -178,8 +176,8 @@ replica_new(void)
 	replica->applier = NULL;
 	replica->gc = NULL;
 	rlist_create(&replica->in_anon);
-	trigger_create(&replica->on_applier_state,
-		       replica_on_applier_state_f, NULL, NULL);
+	trigger_create(&replica->on_applier_state, replica_on_applier_state_f,
+		       NULL, NULL);
 	replica->applier_sync_state = APPLIER_DISCONNECTED;
 	latch_create(&replica->order_latch);
 	return replica;
@@ -248,8 +246,8 @@ replica_set_id(struct replica *replica, uint32_t replica_id)
 	}
 	replicaset.replica_by_id[replica_id] = replica;
 	++replicaset.registered_count;
-	say_info("assigned id %d to replica %s",
-		 replica->id, tt_uuid_str(&replica->uuid));
+	say_info("assigned id %d to replica %s", replica->id,
+		 tt_uuid_str(&replica->uuid));
 	replica->anon = false;
 }
 
@@ -306,8 +304,7 @@ replica_set_applier(struct replica *replica, struct applier *applier)
 {
 	assert(replica->applier == NULL);
 	replica->applier = applier;
-	trigger_add(&replica->applier->on_state,
-		    &replica->on_applier_state);
+	trigger_add(&replica->applier->on_state, &replica->on_applier_state);
 }
 
 void
@@ -449,8 +446,8 @@ static int
 replica_on_applier_state_f(struct trigger *trigger, void *event)
 {
 	(void)event;
-	struct replica *replica = container_of(trigger,
-			struct replica, on_applier_state);
+	struct replica *replica =
+		container_of(trigger, struct replica, on_applier_state);
 	switch (replica->applier->state) {
 	case APPLIER_INITIAL_JOIN:
 		replicaset.is_joining = true;
@@ -508,8 +505,9 @@ replicaset_update(struct applier **appliers, int count)
 	struct replica *replica, *next;
 	struct applier *applier;
 
-	auto uniq_guard = make_scoped_guard([&]{
-		replica_hash_foreach_safe(&uniq, replica, next) {
+	auto uniq_guard = make_scoped_guard([&] {
+		replica_hash_foreach_safe(&uniq, replica, next)
+		{
 			replica_hash_remove(&uniq, replica);
 			replica_clear_applier(replica);
 			replica_delete(replica);
@@ -555,8 +553,8 @@ replicaset_update(struct applier **appliers, int count)
 
 	/* Prune old appliers */
 	while (!rlist_empty(&replicaset.anon)) {
-		replica = rlist_first_entry(&replicaset.anon,
-					    typeof(*replica), in_anon);
+		replica = rlist_first_entry(&replicaset.anon, typeof(*replica),
+					    in_anon);
 		applier = replica->applier;
 		replica_clear_applier(replica);
 		rlist_del_entry(replica, in_anon);
@@ -564,7 +562,8 @@ replicaset_update(struct applier **appliers, int count)
 		applier_stop(applier);
 		applier_delete(applier);
 	}
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		if (replica->applier == NULL)
 			continue;
 		applier = replica->applier;
@@ -580,11 +579,12 @@ replicaset_update(struct applier **appliers, int count)
 	replicaset.applier.loading = 0;
 	replicaset.applier.synced = 0;
 
-	replica_hash_foreach_safe(&uniq, replica, next) {
+	replica_hash_foreach_safe(&uniq, replica, next)
+	{
 		replica_hash_remove(&uniq, replica);
 
-		struct replica *orig = replica_hash_search(&replicaset.hash,
-							   replica);
+		struct replica *orig =
+			replica_hash_search(&replicaset.hash, replica);
 		if (orig != NULL) {
 			/* Use existing struct replica */
 			replica_set_applier(orig, replica->applier);
@@ -603,7 +603,8 @@ replicaset_update(struct applier **appliers, int count)
 	rlist_swap(&replicaset.anon, &anon_replicas);
 
 	assert(replica_hash_first(&uniq) == NULL);
-	replica_hash_foreach_safe(&replicaset.hash, replica, next) {
+	replica_hash_foreach_safe(&replicaset.hash, replica, next)
+	{
 		if (replica_is_orphan(replica)) {
 			replica_hash_remove(&replicaset.hash, replica);
 			replicaset.anon_count -= replica->anon;
@@ -633,8 +634,8 @@ struct applier_on_connect {
 static int
 applier_on_connect_f(struct trigger *trigger, void *event)
 {
-	struct applier_on_connect *on_connect = container_of(trigger,
-					struct applier_on_connect, base);
+	struct applier_on_connect *on_connect =
+		container_of(trigger, struct applier_on_connect, base);
 	struct replicaset_connect_state *state = on_connect->state;
 	struct applier *applier = (struct applier *)event;
 
@@ -655,8 +656,7 @@ applier_on_connect_f(struct trigger *trigger, void *event)
 }
 
 void
-replicaset_connect(struct applier **appliers, int count,
-		   bool connect_quorum)
+replicaset_connect(struct applier **appliers, int count, bool connect_quorum)
 {
 	if (count == 0) {
 		/* Cleanup the replica set. */
@@ -707,7 +707,8 @@ replicaset_connect(struct applier **appliers, int count,
 		struct applier *applier = appliers[i];
 		struct applier_on_connect *trigger = &triggers[i];
 		/* Register a trigger to wake us up when peer is connected */
-		trigger_create(&trigger->base, applier_on_connect_f, NULL, NULL);
+		trigger_create(&trigger->base, applier_on_connect_f, NULL,
+			       NULL);
 		trigger->state = &state;
 		trigger_add(&applier->on_state, &trigger->base);
 		/* Start background connection */
@@ -782,19 +783,20 @@ bool
 replicaset_needs_rejoin(struct replica **master)
 {
 	struct replica *leader = NULL;
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		struct applier *applier = replica->applier;
 		/*
 		 * Skip the local instance, we shouldn't perform a
 		 * check against our own gc vclock.
 		 */
-		if (applier == NULL || tt_uuid_is_equal(&replica->uuid,
-							&INSTANCE_UUID))
+		if (applier == NULL ||
+		    tt_uuid_is_equal(&replica->uuid, &INSTANCE_UUID))
 			continue;
 
 		const struct ballot *ballot = &applier->ballot;
-		if (vclock_compare(&ballot->gc_vclock,
-				   &replicaset.vclock) <= 0) {
+		if (vclock_compare(&ballot->gc_vclock, &replicaset.vclock) <=
+		    0) {
 			/*
 			 * There's at least one master that still stores
 			 * WALs needed by this instance. Proceed to local
@@ -804,11 +806,14 @@ replicaset_needs_rejoin(struct replica **master)
 		}
 
 		const char *uuid_str = tt_uuid_str(&replica->uuid);
-		const char *addr_str = sio_strfaddr(&applier->addr,
-						applier->addr_len);
-		const char *local_vclock_str = vclock_to_string(&replicaset.vclock);
-		const char *remote_vclock_str = vclock_to_string(&ballot->vclock);
-		const char *gc_vclock_str = vclock_to_string(&ballot->gc_vclock);
+		const char *addr_str =
+			sio_strfaddr(&applier->addr, applier->addr_len);
+		const char *local_vclock_str =
+			vclock_to_string(&replicaset.vclock);
+		const char *remote_vclock_str =
+			vclock_to_string(&ballot->vclock);
+		const char *gc_vclock_str =
+			vclock_to_string(&ballot->gc_vclock);
 
 		say_info("can't follow %s at %s: required %s available %s",
 			 uuid_str, addr_str, local_vclock_str, gc_vclock_str);
@@ -829,7 +834,7 @@ replicaset_needs_rejoin(struct replica **master)
 		/* Prefer a master with the max vclock. */
 		if (leader == NULL ||
 		    vclock_sum(&ballot->vclock) >
-		    vclock_sum(&leader->applier->ballot.vclock))
+			    vclock_sum(&leader->applier->ballot.vclock))
 			leader = replica;
 	}
 	if (leader == NULL)
@@ -843,7 +848,8 @@ void
 replicaset_follow(void)
 {
 	struct replica *replica;
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		/* Resume connected appliers. */
 		if (replica->applier != NULL)
 			applier_resume(replica->applier);
@@ -877,8 +883,8 @@ replicaset_sync(void)
 	 */
 	double deadline = ev_monotonic_now(loop()) + replication_sync_timeout;
 	while (replicaset.applier.synced < quorum &&
-	       replicaset.applier.connected +
-	       replicaset.applier.loading >= quorum) {
+	       replicaset.applier.connected + replicaset.applier.loading >=
+		       quorum) {
 		if (fiber_cond_wait_deadline(&replicaset.applier.cond,
 					     deadline) != 0)
 			break;
@@ -957,7 +963,8 @@ static struct replica *
 replicaset_round(bool skip_ro)
 {
 	struct replica *leader = NULL;
-	replicaset_foreach(replica) {
+	replicaset_foreach(replica)
+	{
 		struct applier *applier = replica->applier;
 		if (applier == NULL)
 			continue;
@@ -978,7 +985,8 @@ replicaset_round(bool skip_ro)
 		 * Try to find a replica which has already left
 		 * orphan mode.
 		 */
-		if (applier->ballot.is_loading && ! leader->applier->ballot.is_loading)
+		if (applier->ballot.is_loading &&
+		    !leader->applier->ballot.is_loading)
 			continue;
 		/*
 		 * Choose the replica with the most advanced
@@ -986,12 +994,13 @@ replicaset_round(bool skip_ro)
 		 * with the same vclock, prefer the one with
 		 * the lowest uuid.
 		 */
-		int cmp = vclock_compare_ignore0(&applier->ballot.vclock,
-						 &leader->applier->ballot.vclock);
+		int cmp =
+			vclock_compare_ignore0(&applier->ballot.vclock,
+					       &leader->applier->ballot.vclock);
 		if (cmp < 0)
 			continue;
-		if (cmp == 0 && tt_uuid_compare(&replica->uuid,
-						&leader->uuid) > 0)
+		if (cmp == 0 &&
+		    tt_uuid_compare(&replica->uuid, &leader->uuid) > 0)
 			continue;
 		leader = replica;
 	}

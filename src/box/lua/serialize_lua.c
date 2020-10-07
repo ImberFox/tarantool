@@ -45,36 +45,36 @@
 #include "serialize_lua.h"
 
 #if 0
-# define SERIALIZER_TRACE
+#define SERIALIZER_TRACE
 #endif
 
 /* Serializer for Lua output mode */
 static struct luaL_serializer *serializer_lua;
 
 enum {
-	NODE_NONE_BIT		= 0,
-	NODE_ROOT_BIT		= 1,
-	NODE_RAW_BIT		= 2,
-	NODE_LVALUE_BIT		= 3,
-	NODE_RVALUE_BIT		= 4,
-	NODE_MAP_KEY_BIT	= 5,
-	NODE_MAP_VALUE_BIT	= 6,
-	NODE_EMBRACE_BIT	= 7,
-	NODE_QUOTE_BIT		= 8,
+	NODE_NONE_BIT = 0,
+	NODE_ROOT_BIT = 1,
+	NODE_RAW_BIT = 2,
+	NODE_LVALUE_BIT = 3,
+	NODE_RVALUE_BIT = 4,
+	NODE_MAP_KEY_BIT = 5,
+	NODE_MAP_VALUE_BIT = 6,
+	NODE_EMBRACE_BIT = 7,
+	NODE_QUOTE_BIT = 8,
 
 	NODE_MAX
 };
 
 enum {
-	NODE_NONE		= (1u << NODE_NONE_BIT),
-	NODE_ROOT		= (1u << NODE_ROOT_BIT),
-	NODE_RAW		= (1u << NODE_RAW_BIT),
-	NODE_LVALUE		= (1u << NODE_LVALUE_BIT),
-	NODE_RVALUE		= (1u << NODE_RVALUE_BIT),
-	NODE_MAP_KEY		= (1u << NODE_MAP_KEY_BIT),
-	NODE_MAP_VALUE		= (1u << NODE_MAP_VALUE_BIT),
-	NODE_EMBRACE		= (1u << NODE_EMBRACE_BIT),
-	NODE_QUOTE		= (1u << NODE_QUOTE_BIT),
+	NODE_NONE = (1u << NODE_NONE_BIT),
+	NODE_ROOT = (1u << NODE_ROOT_BIT),
+	NODE_RAW = (1u << NODE_RAW_BIT),
+	NODE_LVALUE = (1u << NODE_LVALUE_BIT),
+	NODE_RVALUE = (1u << NODE_RVALUE_BIT),
+	NODE_MAP_KEY = (1u << NODE_MAP_KEY_BIT),
+	NODE_MAP_VALUE = (1u << NODE_MAP_VALUE_BIT),
+	NODE_EMBRACE = (1u << NODE_EMBRACE_BIT),
+	NODE_QUOTE = (1u << NODE_QUOTE_BIT),
 };
 
 struct node {
@@ -136,18 +136,13 @@ struct lua_dumper {
 
 #ifdef SERIALIZER_TRACE
 
-#define __gen_mp_name(__v) [__v] = # __v
+#define __gen_mp_name(__v) [__v] = #__v
 static const char *mp_type_names[] = {
-	__gen_mp_name(MP_NIL),
-	__gen_mp_name(MP_UINT),
-	__gen_mp_name(MP_INT),
-	__gen_mp_name(MP_STR),
-	__gen_mp_name(MP_BIN),
-	__gen_mp_name(MP_ARRAY),
-	__gen_mp_name(MP_MAP),
-	__gen_mp_name(MP_BOOL),
-	__gen_mp_name(MP_FLOAT),
-	__gen_mp_name(MP_DOUBLE),
+	__gen_mp_name(MP_NIL),	 __gen_mp_name(MP_UINT),
+	__gen_mp_name(MP_INT),	 __gen_mp_name(MP_STR),
+	__gen_mp_name(MP_BIN),	 __gen_mp_name(MP_ARRAY),
+	__gen_mp_name(MP_MAP),	 __gen_mp_name(MP_BOOL),
+	__gen_mp_name(MP_FLOAT), __gen_mp_name(MP_DOUBLE),
 	__gen_mp_name(MP_EXT),
 };
 
@@ -158,16 +153,12 @@ static const char *mp_ext_type_names[] = {
 };
 #undef __gen_mp_name
 
-#define __gen_nd_name(__v) [__v ##_BIT] = # __v
+#define __gen_nd_name(__v) [__v##_BIT] = #__v
 static const char *nd_type_names[] = {
-	__gen_nd_name(NODE_NONE),
-	__gen_nd_name(NODE_ROOT),
-	__gen_nd_name(NODE_RAW),
-	__gen_nd_name(NODE_LVALUE),
-	__gen_nd_name(NODE_RVALUE),
-	__gen_nd_name(NODE_MAP_KEY),
-	__gen_nd_name(NODE_MAP_VALUE),
-	__gen_nd_name(NODE_EMBRACE),
+	__gen_nd_name(NODE_NONE),      __gen_nd_name(NODE_ROOT),
+	__gen_nd_name(NODE_RAW),       __gen_nd_name(NODE_LVALUE),
+	__gen_nd_name(NODE_RVALUE),    __gen_nd_name(NODE_MAP_KEY),
+	__gen_nd_name(NODE_MAP_VALUE), __gen_nd_name(NODE_EMBRACE),
 	__gen_nd_name(NODE_QUOTE),
 };
 #undef __gen_nd_name
@@ -204,8 +195,8 @@ static void
 trace_node(struct lua_dumper *d)
 {
 	int ltype = lua_type(d->L, -1);
-	say_info("serializer-trace: node    : lua type %d -> %s",
-		 ltype, lua_typename(d->L, ltype));
+	say_info("serializer-trace: node    : lua type %d -> %s", ltype,
+		 lua_typename(d->L, ltype));
 
 	if (d->err != 0)
 		return;
@@ -223,8 +214,8 @@ trace_node(struct lua_dumper *d)
 			snprintf(mp_type, sizeof(mp_type), "%s/%s",
 				 mp_type_names[field.type],
 				 field.ext_type < max_ext ?
-				 mp_ext_type_names[field.ext_type] :
-				 "UNKNOWN");
+					       mp_ext_type_names[field.ext_type] :
+					       "UNKNOWN");
 		} else {
 			type_str = (char *)mp_type_names[field.type];
 		}
@@ -235,8 +226,8 @@ trace_node(struct lua_dumper *d)
 	memset(&field, 0, sizeof(field));
 
 	luaL_checkfield(d->L, d->cfg, top, &field);
-	say_info("serializer-trace: node    :\tfield type %s (%d)",
-		 type_str, field.type);
+	say_info("serializer-trace: node    :\tfield type %s (%d)", type_str,
+		 field.type);
 }
 
 static char *
@@ -245,8 +236,8 @@ trace_string(const char *src, size_t len)
 	static char buf[128];
 	size_t pos = 0;
 
-	if (len > sizeof(buf)-1)
-		len = sizeof(buf)-1;
+	if (len > sizeof(buf) - 1)
+		len = sizeof(buf) - 1;
 
 	while (pos < len) {
 		if (src[pos] == '\n') {
@@ -262,31 +253,27 @@ trace_string(const char *src, size_t len)
 }
 
 static void
-trace_emit(struct lua_dumper *d, int nd_mask, int indent,
-	   const char *str, size_t len)
+trace_emit(struct lua_dumper *d, int nd_mask, int indent, const char *str,
+	   size_t len)
 {
 	if (d->suffix_len) {
 		say_info("serializer-trace: emit-sfx: \"%s\"",
-			 trace_string(d->suffix_buf,
-				      d->suffix_len));
+			 trace_string(d->suffix_buf, d->suffix_len));
 	}
 
-	static_assert(NODE_MAX < sizeof(int) * 8,
-		      "NODE_MAX is too big");
+	static_assert(NODE_MAX < sizeof(int) * 8, "NODE_MAX is too big");
 
 	char *names = trace_nd_mask_str(nd_mask);
 
 	say_info("serializer-trace: emit    : type %s (0x%x) "
 		 "indent %d val \"%s\" len %zu",
-		 names, nd_mask, indent,
-		 trace_string(str, len), len);
+		 names, nd_mask, indent, trace_string(str, len), len);
 }
 
 static void
 trace_anchor(const char *s, bool alias)
 {
-	say_info("serializer-trace: anchor  : alias %d name %s",
-		 alias, s);
+	say_info("serializer-trace: anchor  : alias %d name %s", alias, s);
 }
 
 #else /* SERIALIZER_TRACE */
@@ -298,8 +285,8 @@ trace_node(struct lua_dumper *d)
 }
 
 static void
-trace_emit(struct lua_dumper *d, int nd_mask, int indent,
-	   const char *str, size_t len)
+trace_emit(struct lua_dumper *d, int nd_mask, int indent, const char *str,
+	   size_t len)
 {
 	(void)d;
 	(void)nd_mask;
@@ -318,20 +305,18 @@ trace_anchor(const char *s, bool alias)
 #endif /* SERIALIZER_TRACE */
 
 static const char *lua_keywords[] = {
-	"and", "break", "do", "else",
-	"elseif", "end", "false", "for",
-	"function", "if", "in", "local",
-	"nil", "not", "or", "repeat",
-	"return", "then", "true", "until",
-	"while", "and",
+	"and",	 "break", "do",	      "else",	"elseif", "end",
+	"false", "for",	  "function", "if",	"in",	  "local",
+	"nil",	 "not",	  "or",	      "repeat", "return", "then",
+	"true",	 "until", "while",    "and",
 };
 
 static int
 dump_node(struct lua_dumper *d, struct node *nd, int indent);
 
 static int
-emit_node(struct lua_dumper *d, struct node *nd, int indent,
-	  const char *str, size_t len);
+emit_node(struct lua_dumper *d, struct node *nd, int indent, const char *str,
+	  size_t len);
 
 /**
  * Generate anchor numbers for self references.
@@ -405,12 +390,11 @@ suffix_flush(struct lua_dumper *d)
 static int
 gen_indent(struct lua_dumper *d, int indent)
 {
-	static_assert(sizeof(d->indent_buf) > 0,
-		      "indent buffer is too small");
+	static_assert(sizeof(d->indent_buf) > 0, "indent buffer is too small");
 
 	if (indent > 0 && d->opts->block_mode && !d->noindent) {
-		snprintf(d->indent_buf, sizeof(d->indent_buf),
-			 "%*s", indent, "");
+		snprintf(d->indent_buf, sizeof(d->indent_buf), "%*s", indent,
+			 "");
 		size_t len = strlen(d->indent_buf);
 		d->indent_buf[len] = '\0';
 		return len;
@@ -425,12 +409,12 @@ emit_hex_char(struct lua_dumper *d, unsigned char c)
 	luaL_addchar(&d->luabuf, '\\');
 	luaL_addchar(&d->luabuf, 'x');
 
-#define __emit_hex(v)						\
-	do {							\
-		if (v <= 9)				\
-			luaL_addchar(&d->luabuf, '0' + v);	\
-		else						\
-			luaL_addchar(&d->luabuf, v - 10 + 'a');	\
+#define __emit_hex(v)                                           \
+	do {                                                    \
+		if (v <= 9)                                     \
+			luaL_addchar(&d->luabuf, '0' + v);      \
+		else                                            \
+			luaL_addchar(&d->luabuf, v - 10 + 'a'); \
 	} while (0)
 
 	__emit_hex((c >> 4));
@@ -477,9 +461,8 @@ emit_string(struct lua_dumper *d, const char *str, size_t len)
 			luaL_addchar(&d->luabuf, '\\');
 			luaL_addchar(&d->luabuf, 't');
 		} else if (str[i] == '\xef') {
-			if (i < len-1 && i < len-2 &&
-			    str[i+1] == '\xbb' &&
-			    str[i+2] == '\xbf') {
+			if (i < len - 1 && i < len - 2 &&
+			    str[i + 1] == '\xbb' && str[i + 2] == '\xbf') {
 				emit_hex_char(d, 0xef);
 				emit_hex_char(d, 0xbb);
 				emit_hex_char(d, 0xbf);
@@ -498,8 +481,8 @@ emit_string(struct lua_dumper *d, const char *str, size_t len)
  * Emit value into output buffer.
  */
 static void
-emit_value(struct lua_dumper *d, struct node *nd,
-	   int indent, const char *str, size_t len)
+emit_value(struct lua_dumper *d, struct node *nd, int indent, const char *str,
+	   size_t len)
 {
 	trace_emit(d, nd->mask, indent, str, len);
 
@@ -511,8 +494,7 @@ emit_value(struct lua_dumper *d, struct node *nd,
 	 */
 	suffix_flush(d);
 
-	luaL_addlstring(&d->luabuf, d->indent_buf,
-			gen_indent(d, indent));
+	luaL_addlstring(&d->luabuf, d->indent_buf, gen_indent(d, indent));
 
 	if (nd->mask & NODE_EMBRACE)
 		luaL_addlstring(&d->luabuf, "[", 1);
@@ -535,8 +517,7 @@ emit_value(struct lua_dumper *d, struct node *nd,
  * Emit a raw string into output.
  */
 static void
-emit_raw_value(struct lua_dumper *d, int indent,
-	       const char *str, size_t len)
+emit_raw_value(struct lua_dumper *d, int indent, const char *str, size_t len)
 {
 	struct node node = {
 		.mask = NODE_RAW,
@@ -650,16 +631,16 @@ dump_table(struct lua_dumper *d, struct node *nd, int indent)
 	while (lua_next(d->L, -2)) {
 		lua_pushvalue(d->L, -2);
 		struct node node_key = {
-			.prev	= nd,
-			.mask	= NODE_LVALUE | NODE_MAP_KEY,
-			.index	= index++,
+			.prev = nd,
+			.mask = NODE_LVALUE | NODE_MAP_KEY,
+			.index = index++,
 		};
 		dump_node(d, &node_key, indent);
 		lua_pop(d->L, 1);
 
 		struct node node_val = {
-			.key	= &node_key,
-			.mask	= NODE_RVALUE | NODE_MAP_VALUE,
+			.key = &node_key,
+			.mask = NODE_RVALUE | NODE_MAP_VALUE,
 		};
 		dump_node(d, &node_val, indent);
 		lua_pop(d->L, 1);
@@ -708,8 +689,8 @@ decorate_key(struct node *nd, const char *str, size_t len)
 }
 
 static int
-emit_node(struct lua_dumper *d, struct node *nd, int indent,
-	  const char *str, size_t len)
+emit_node(struct lua_dumper *d, struct node *nd, int indent, const char *str,
+	  size_t len)
 {
 	struct luaL_field *field = &nd->field;
 
@@ -724,8 +705,7 @@ emit_node(struct lua_dumper *d, struct node *nd, int indent,
 		 * the current position in the table we
 		 * can simply skip it and print value only.
 		 */
-		if (nd->field.type == MP_INT ||
-		    nd->field.type == MP_UINT) {
+		if (nd->field.type == MP_INT || nd->field.type == MP_UINT) {
 			if (nd->index == (int)field->ival) {
 				d->noindent = false;
 				return 0;
@@ -837,14 +817,12 @@ dump_node(struct lua_dumper *d, struct node *nd, int indent)
 		}
 		break;
 	case MP_FLOAT:
-		fpconv_g_fmt(buf, field->fval,
-			     d->cfg->encode_number_precision);
+		fpconv_g_fmt(buf, field->fval, d->cfg->encode_number_precision);
 		len = strlen(buf);
 		str = buf;
 		break;
 	case MP_DOUBLE:
-		fpconv_g_fmt(buf, field->dval,
-			     d->cfg->encode_number_precision);
+		fpconv_g_fmt(buf, field->dval, d->cfg->encode_number_precision);
 		len = strlen(buf);
 		str = buf;
 		break;
@@ -872,8 +850,7 @@ dump_node(struct lua_dumper *d, struct node *nd, int indent)
 	default:
 		d->err = EINVAL;
 		snprintf(d->err_msg, sizeof(d->err_msg),
-			 "serializer: Unknown field %d type",
-			 field->type);
+			 "serializer: Unknown field %d type", field->type);
 		len = strlen(d->err_msg);
 		return -1;
 	}
@@ -966,10 +943,10 @@ lua_encode(lua_State *L, struct luaL_serializer *serializer,
 	   lua_dumper_opts_t *opts)
 {
 	struct lua_dumper dumper = {
-		.L	= L,
-		.cfg	= serializer,
-		.outputL= luaT_newthread(L),
-		.opts	= opts,
+		.L = L,
+		.cfg = serializer,
+		.outputL = luaT_newthread(L),
+		.opts = opts,
 	};
 
 	if (!dumper.outputL)
@@ -1045,11 +1022,11 @@ lua_serializer_init(struct lua_State *L)
 	};
 
 	serializer_lua = luaL_newserializer(L, NULL, lualib);
-	serializer_lua->has_compact		= 1;
-	serializer_lua->encode_invalid_numbers	= 1;
-	serializer_lua->encode_load_metatables	= 1;
-	serializer_lua->encode_use_tostring	= 1;
-	serializer_lua->encode_invalid_as_nil	= 1;
+	serializer_lua->has_compact = 1;
+	serializer_lua->encode_invalid_numbers = 1;
+	serializer_lua->encode_load_metatables = 1;
+	serializer_lua->encode_use_tostring = 1;
+	serializer_lua->encode_invalid_as_nil = 1;
 
 	/*
 	 * Keep a reference to this module so it

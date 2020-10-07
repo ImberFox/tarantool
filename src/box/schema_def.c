@@ -75,14 +75,14 @@ schema_object_type(const char *name)
 	 * name, and they are case-sensitive, so be case-sensitive
 	 * here too.
 	 */
-	int n_strs = sizeof(object_type_strs)/sizeof(*object_type_strs);
+	int n_strs = sizeof(object_type_strs) / sizeof(*object_type_strs);
 	int index = strindex(object_type_strs, name, n_strs);
-	return (enum schema_object_type) (index == n_strs ? 0 : index);
+	return (enum schema_object_type)(index == n_strs ? 0 : index);
 }
 
 const char *
 schema_object_name(enum schema_object_type type)
 {
-	assert((int) type < (int) schema_object_type_MAX);
+	assert((int)type < (int)schema_object_type_MAX);
 	return object_type_strs[type];
 }

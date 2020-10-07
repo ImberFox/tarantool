@@ -151,8 +151,8 @@ xrow_update_route_branch_map(struct xrow_update_field *next_hop,
 		mp_next(&end);
 		mp_next(&end);
 	}
-	if (xrow_update_map_create(next_hop, parent, data, end,
-				   field_count) != 0)
+	if (xrow_update_map_create(next_hop, parent, data, end, field_count) !=
+	    0)
 		return -1;
 	return op->meta->do_op(op, next_hop);
 }
@@ -209,7 +209,7 @@ xrow_update_route_branch(struct xrow_update_field *field,
 		}
 		if (json_token_cmp(&old_token, &new_token) != 0)
 			break;
-		switch(new_token.type) {
+		switch (new_token.type) {
 		case JSON_TOKEN_NUM:
 			rc = tuple_field_go_to_index(&parent, new_token.num);
 			break;
@@ -281,8 +281,8 @@ xrow_update_route_branch(struct xrow_update_field *field,
 
 	if (type == MP_ARRAY) {
 		if (new_token.type != JSON_TOKEN_NUM) {
-			xrow_update_err(new_op, "can not update array by "\
-					"non-integer index");
+			xrow_update_err(new_op, "can not update array by "
+						"non-integer index");
 			return NULL;
 		}
 		new_op->is_token_consumed = false;
@@ -293,8 +293,8 @@ xrow_update_route_branch(struct xrow_update_field *field,
 			return NULL;
 	} else if (type == MP_MAP) {
 		if (new_token.type != JSON_TOKEN_STR) {
-			xrow_update_err(new_op, "can not update map by "\
-					"non-string key");
+			xrow_update_err(new_op, "can not update map by "
+						"non-string key");
 			return NULL;
 		}
 		new_op->is_token_consumed = false;
@@ -327,7 +327,8 @@ xrow_update_route_branch(struct xrow_update_field *field,
  * the route is just followed, via a lexer offset increase.
  */
 static struct xrow_update_field *
-xrow_update_route_next(struct xrow_update_field *field, struct xrow_update_op *op)
+xrow_update_route_next(struct xrow_update_field *field,
+		       struct xrow_update_op *op)
 {
 	assert(field->type == XUPDATE_ROUTE);
 	assert(!xrow_update_op_is_term(op));
@@ -346,17 +347,17 @@ xrow_update_route_next(struct xrow_update_field *field, struct xrow_update_op *o
 	return xrow_update_route_branch(field, op);
 }
 
-#define DO_SCALAR_OP_GENERIC(op_type)						\
-int										\
-xrow_update_op_do_route_##op_type(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field)		\
-{										\
-	assert(field->type == XUPDATE_ROUTE);					\
-	struct xrow_update_field *next_hop = xrow_update_route_next(field, op);	\
-	if (next_hop == NULL)							\
-		return -1;							\
-	return xrow_update_op_do_field_##op_type(op, next_hop);			\
-}
+#define DO_SCALAR_OP_GENERIC(op_type)                                          \
+	int xrow_update_op_do_route_##op_type(struct xrow_update_op *op,       \
+					      struct xrow_update_field *field) \
+	{                                                                      \
+		assert(field->type == XUPDATE_ROUTE);                          \
+		struct xrow_update_field *next_hop =                           \
+			xrow_update_route_next(field, op);                     \
+		if (next_hop == NULL)                                          \
+			return -1;                                             \
+		return xrow_update_op_do_field_##op_type(op, next_hop);        \
+	}
 
 DO_SCALAR_OP_GENERIC(set)
 
@@ -383,9 +384,9 @@ xrow_update_route_store(struct xrow_update_field *field,
 			struct json_token *this_node, char *out, char *out_end)
 {
 	if (this_node != NULL) {
-		this_node = json_tree_lookup_path(
-			format_tree, this_node, field->route.path,
-			field->route.path_len, 0);
+		this_node = json_tree_lookup_path(format_tree, this_node,
+						  field->route.path,
+						  field->route.path_len, 0);
 	}
 	char *saved_out = out;
 	int before_hop = field->route.next_hop->data - field->data;

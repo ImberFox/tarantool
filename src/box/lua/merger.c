@@ -37,26 +37,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <lua.h>             /* lua_*() */
-#include <lauxlib.h>         /* luaL_*() */
+#include <lua.h>     /* lua_*() */
+#include <lauxlib.h> /* luaL_*() */
 
-#include "fiber.h"           /* fiber() */
-#include "diag.h"            /* diag_set() */
+#include "fiber.h" /* fiber() */
+#include "diag.h"  /* diag_set() */
 
-#include "box/tuple.h"       /* tuple_format_runtime,
+#include "box/tuple.h" /* tuple_format_runtime,
 				tuple_*(), ... */
 
-#include "lua/error.h"       /* luaT_error() */
-#include "lua/utils.h"       /* luaL_pushcdata(),
+#include "lua/error.h" /* luaT_error() */
+#include "lua/utils.h" /* luaL_pushcdata(),
 				luaL_iterator_*() */
 
 #include "box/lua/key_def.h" /* luaT_check_key_def() */
 #include "box/lua/tuple.h"   /* luaT_tuple_new() */
 
-#include "small/ibuf.h"      /* struct ibuf */
-#include "msgpuck.h"         /* mp_*() */
+#include "small/ibuf.h" /* struct ibuf */
+#include "msgpuck.h"	/* mp_*() */
 
-#include "box/merger.h"      /* merge_source_*, merger_*() */
+#include "box/merger.h" /* merge_source_*, merger_*() */
 
 static uint32_t CTID_STRUCT_MERGE_SOURCE_REF = 0;
 
@@ -105,7 +105,7 @@ decode_header(struct ibuf *buf, size_t *len_p)
 	if (ok)
 		ok = mp_check_array(buf->rpos, buf->wpos) <= 0;
 	if (ok)
-		*len_p = mp_decode_array((const char **) &buf->rpos);
+		*len_p = mp_decode_array((const char **)&buf->rpos);
 	return ok ? 0 : -1;
 }
 
@@ -270,8 +270,9 @@ lbox_merge_source_new(struct lua_State *L, const char *func_name,
 		merge_source_unref(source);
 		return luaT_error(L);
 	}
-	*(struct merge_source **)
-		luaL_pushcdata(L, CTID_STRUCT_MERGE_SOURCE_REF) = source;
+	*(struct merge_source **)luaL_pushcdata(L,
+						CTID_STRUCT_MERGE_SOURCE_REF) =
+		source;
 	lua_pushcfunction(L, lbox_merge_source_gc);
 	luaL_setcdatagc(L, -2);
 
@@ -310,8 +311,8 @@ luaT_merger_new_parse_sources(struct lua_State *L, int idx,
 {
 	/* Allocate sources array. */
 	uint32_t source_count = lua_objlen(L, idx);
-	const size_t sources_size = sizeof(struct merge_source *) *
-		source_count;
+	const size_t sources_size =
+		sizeof(struct merge_source *) * source_count;
 	struct merge_source **sources = malloc(sources_size);
 	if (sources == NULL) {
 		diag_set(OutOfMemory, sources_size, "malloc", "sources");
@@ -352,12 +353,12 @@ lbox_merger_new(struct lua_State *L)
 	struct key_def *key_def;
 	int top = lua_gettop(L);
 	bool ok = (top == 2 || top == 3) &&
-		/* key_def. */
-		(key_def = luaT_check_key_def(L, 1)) != NULL &&
-		/* Sources. */
-		lua_istable(L, 2) == 1 &&
-		/* Opts. */
-		(lua_isnoneornil(L, 3) == 1 || lua_istable(L, 3) == 1);
+		  /* key_def. */
+		  (key_def = luaT_check_key_def(L, 1)) != NULL &&
+		  /* Sources. */
+		  lua_istable(L, 2) == 1 &&
+		  /* Opts. */
+		  (lua_isnoneornil(L, 3) == 1 || lua_istable(L, 3) == 1);
 	if (!ok)
 		return lbox_merger_new_usage(L, NULL);
 
@@ -379,21 +380,22 @@ lbox_merger_new(struct lua_State *L)
 	}
 
 	uint32_t source_count = 0;
-	struct merge_source **sources = luaT_merger_new_parse_sources(L, 2,
-		&source_count);
+	struct merge_source **sources =
+		luaT_merger_new_parse_sources(L, 2, &source_count);
 	if (sources == NULL)
 		return luaT_error(L);
 
-	struct merge_source *merger = merger_new(key_def, sources, source_count,
-						 reverse);
+	struct merge_source *merger =
+		merger_new(key_def, sources, source_count, reverse);
 	free(sources);
 	if (merger == NULL) {
 		merge_source_unref(merger);
 		return luaT_error(L);
 	}
 
-	*(struct merge_source **)
-		luaL_pushcdata(L, CTID_STRUCT_MERGE_SOURCE_REF) = merger;
+	*(struct merge_source **)luaL_pushcdata(L,
+						CTID_STRUCT_MERGE_SOURCE_REF) =
+		merger;
 	lua_pushcfunction(L, lbox_merge_source_gc);
 	luaL_setcdatagc(L, -2);
 
@@ -435,8 +437,7 @@ static void
 luaL_merge_source_buffer_destroy(struct merge_source *base);
 static int
 luaL_merge_source_buffer_next(struct merge_source *base,
-			      struct tuple_format *format,
-			      struct tuple **out);
+			      struct tuple_format *format, struct tuple **out);
 
 /* Non-virtual methods */
 
@@ -455,8 +456,8 @@ luaL_merge_source_buffer_new(struct lua_State *L)
 		.next = luaL_merge_source_buffer_next,
 	};
 
-	struct merge_source_buffer *source = malloc(
-		sizeof(struct merge_source_buffer));
+	struct merge_source_buffer *source =
+		malloc(sizeof(struct merge_source_buffer));
 	if (source == NULL) {
 		diag_set(OutOfMemory, sizeof(struct merge_source_buffer),
 			 "malloc", "merge_source_buffer");
@@ -492,8 +493,10 @@ luaL_merge_source_buffer_fetch_impl(struct merge_source_buffer *source,
 
 	/* Handle incorrect results count. */
 	if (nresult != 2) {
-		diag_set(IllegalParams, "Expected <state>, <buffer>, got %d "
-			 "return values", nresult);
+		diag_set(IllegalParams,
+			 "Expected <state>, <buffer>, got %d "
+			 "return values",
+			 nresult);
 		return -1;
 	}
 
@@ -550,8 +553,8 @@ luaL_merge_source_buffer_fetch(struct merge_source_buffer *source)
 static void
 luaL_merge_source_buffer_destroy(struct merge_source *base)
 {
-	struct merge_source_buffer *source = container_of(base,
-		struct merge_source_buffer, base);
+	struct merge_source_buffer *source =
+		container_of(base, struct merge_source_buffer, base);
 
 	assert(source->fetch_it != NULL);
 	luaL_iterator_delete(source->fetch_it);
@@ -568,11 +571,10 @@ luaL_merge_source_buffer_destroy(struct merge_source *base)
  */
 static int
 luaL_merge_source_buffer_next(struct merge_source *base,
-			      struct tuple_format *format,
-			      struct tuple **out)
+			      struct tuple_format *format, struct tuple **out)
 {
-	struct merge_source_buffer *source = container_of(base,
-		struct merge_source_buffer, base);
+	struct merge_source_buffer *source =
+		container_of(base, struct merge_source_buffer, base);
 
 	/*
 	 * Handle the case when all data were processed: ask a
@@ -599,7 +601,7 @@ luaL_merge_source_buffer_next(struct merge_source *base,
 		return -1;
 	}
 	--source->remaining_tuple_count;
-	source->buf->rpos = (char *) tuple_end;
+	source->buf->rpos = (char *)tuple_end;
 	if (format == NULL)
 		format = tuple_format_runtime;
 	struct tuple *tuple = tuple_new(format, tuple_beg, tuple_end);
@@ -648,8 +650,7 @@ static void
 luaL_merge_source_table_destroy(struct merge_source *base);
 static int
 luaL_merge_source_table_next(struct merge_source *base,
-			     struct tuple_format *format,
-			     struct tuple **out);
+			     struct tuple_format *format, struct tuple **out);
 
 /* Non-virtual methods */
 
@@ -666,8 +667,8 @@ luaL_merge_source_table_new(struct lua_State *L)
 		.next = luaL_merge_source_table_next,
 	};
 
-	struct merge_source_table *source = malloc(
-		sizeof(struct merge_source_table));
+	struct merge_source_table *source =
+		malloc(sizeof(struct merge_source_table));
 	if (source == NULL) {
 		diag_set(OutOfMemory, sizeof(struct merge_source_table),
 			 "malloc", "merge_source_table");
@@ -705,8 +706,10 @@ luaL_merge_source_table_fetch(struct merge_source_table *source,
 
 	/* Handle incorrect results count. */
 	if (nresult != 2) {
-		diag_set(IllegalParams, "Expected <state>, <table>, got %d "
-			 "return values", nresult);
+		diag_set(IllegalParams,
+			 "Expected <state>, <table>, got %d "
+			 "return values",
+			 nresult);
 		return -1;
 	}
 
@@ -737,8 +740,8 @@ luaL_merge_source_table_fetch(struct merge_source_table *source,
 static void
 luaL_merge_source_table_destroy(struct merge_source *base)
 {
-	struct merge_source_table *source = container_of(base,
-		struct merge_source_table, base);
+	struct merge_source_table *source =
+		container_of(base, struct merge_source_table, base);
 
 	assert(source->fetch_it != NULL);
 	luaL_iterator_delete(source->fetch_it);
@@ -754,11 +757,10 @@ luaL_merge_source_table_destroy(struct merge_source *base)
 static int
 luaL_merge_source_table_next_impl(struct merge_source *base,
 				  struct tuple_format *format,
-				  struct tuple **out,
-				  struct lua_State *L)
+				  struct tuple **out, struct lua_State *L)
 {
-	struct merge_source_table *source = container_of(base,
-		struct merge_source_table, base);
+	struct merge_source_table *source =
+		container_of(base, struct merge_source_table, base);
 
 	if (source->ref > 0) {
 		lua_rawgeti(L, LUA_REGISTRYINDEX, source->ref);
@@ -806,8 +808,7 @@ luaL_merge_source_table_next_impl(struct merge_source *base,
  */
 static int
 luaL_merge_source_table_next(struct merge_source *base,
-			     struct tuple_format *format,
-			     struct tuple **out)
+			     struct tuple_format *format, struct tuple **out)
 {
 	int coro_ref = LUA_NOREF;
 	int top = -1;
@@ -850,8 +851,7 @@ static void
 luaL_merge_source_tuple_destroy(struct merge_source *base);
 static int
 luaL_merge_source_tuple_next(struct merge_source *base,
-			     struct tuple_format *format,
-			     struct tuple **out);
+			     struct tuple_format *format, struct tuple **out);
 
 /* Non-virtual methods */
 
@@ -868,8 +868,8 @@ luaL_merge_source_tuple_new(struct lua_State *L)
 		.next = luaL_merge_source_tuple_next,
 	};
 
-	struct merge_source_tuple *source = malloc(
-		sizeof(struct merge_source_tuple));
+	struct merge_source_tuple *source =
+		malloc(sizeof(struct merge_source_tuple));
 	if (source == NULL) {
 		diag_set(OutOfMemory, sizeof(struct merge_source_tuple),
 			 "malloc", "merge_source_tuple");
@@ -896,7 +896,7 @@ luaL_merge_source_tuple_new(struct lua_State *L)
  */
 static int
 luaL_merge_source_tuple_fetch(struct merge_source_tuple *source,
-			       struct lua_State *L)
+			      struct lua_State *L)
 {
 	int nresult = luaL_iterator_next(L, source->fetch_it);
 
@@ -910,14 +910,16 @@ luaL_merge_source_tuple_fetch(struct merge_source_tuple *source,
 
 	/* Handle incorrect results count. */
 	if (nresult != 2) {
-		diag_set(IllegalParams, "Expected <state>, <tuple>, got %d "
-			 "return values", nresult);
+		diag_set(IllegalParams,
+			 "Expected <state>, <tuple>, got %d "
+			 "return values",
+			 nresult);
 		return -1;
 	}
 
 	/* Set a new tuple as the current chunk. */
 	lua_insert(L, -2); /* Swap state and tuple. */
-	lua_pop(L, 1); /* Pop state. */
+	lua_pop(L, 1);	   /* Pop state. */
 
 	return 1;
 }
@@ -932,8 +934,8 @@ luaL_merge_source_tuple_fetch(struct merge_source_tuple *source,
 static void
 luaL_merge_source_tuple_destroy(struct merge_source *base)
 {
-	struct merge_source_tuple *source = container_of(base,
-		struct merge_source_tuple, base);
+	struct merge_source_tuple *source =
+		container_of(base, struct merge_source_tuple, base);
 
 	assert(source->fetch_it != NULL);
 	luaL_iterator_delete(source->fetch_it);
@@ -947,11 +949,10 @@ luaL_merge_source_tuple_destroy(struct merge_source *base)
 static int
 luaL_merge_source_tuple_next_impl(struct merge_source *base,
 				  struct tuple_format *format,
-				  struct tuple **out,
-				  struct lua_State *L)
+				  struct tuple **out, struct lua_State *L)
 {
-	struct merge_source_tuple *source = container_of(base,
-		struct merge_source_tuple, base);
+	struct merge_source_tuple *source =
+		container_of(base, struct merge_source_tuple, base);
 
 	int rc = luaL_merge_source_tuple_fetch(source, L);
 	if (rc < 0)
@@ -981,8 +982,7 @@ luaL_merge_source_tuple_next_impl(struct merge_source *base,
  */
 static int
 luaL_merge_source_tuple_next(struct merge_source *base,
-			     struct tuple_format *format,
-			     struct tuple **out)
+			     struct tuple_format *format, struct tuple **out)
 {
 	int coro_ref = LUA_NOREF;
 	int top = -1;
@@ -1024,10 +1024,10 @@ lbox_merge_source_gen(struct lua_State *L)
 {
 	struct merge_source *source;
 	bool ok = lua_gettop(L) == 2 && lua_isnil(L, 1) &&
-		(source = luaT_check_merge_source(L, 2)) != NULL;
+		  (source = luaT_check_merge_source(L, 2)) != NULL;
 	if (!ok)
 		return luaL_error(L, "Bad params, use: lbox_merge_source_gen("
-				  "nil, merge_source)");
+				     "nil, merge_source)");
 
 	struct tuple *tuple;
 	if (merge_source_next(source, NULL, &tuple) != 0)
@@ -1039,8 +1039,9 @@ lbox_merge_source_gen(struct lua_State *L)
 	}
 
 	/* Push merge_source, tuple. */
-	*(struct merge_source **)
-		luaL_pushcdata(L, CTID_STRUCT_MERGE_SOURCE_REF) = source;
+	*(struct merge_source **)luaL_pushcdata(L,
+						CTID_STRUCT_MERGE_SOURCE_REF) =
+		source;
 	luaT_pushtuple(L, tuple);
 
 	/*
@@ -1066,7 +1067,7 @@ lbox_merge_source_ipairs(struct lua_State *L)
 {
 	struct merge_source *source;
 	bool ok = lua_gettop(L) == 1 &&
-		(source = luaT_check_merge_source(L, 1)) != NULL;
+		  (source = luaT_check_merge_source(L, 1)) != NULL;
 	if (!ok)
 		return luaL_error(L, "Usage: merge_source:ipairs()");
 	/* Stack: merge_source. */
@@ -1116,8 +1117,8 @@ encode_result_buffer(struct lua_State *L, struct merge_source *source,
 	/* Fetch, merge and copy tuples to the buffer. */
 	struct tuple *tuple;
 	int rc = 0;
-	while (result_len < limit && (rc =
-	       merge_source_next(source, NULL, &tuple)) == 0 &&
+	while (result_len < limit &&
+	       (rc = merge_source_next(source, NULL, &tuple)) == 0 &&
 	       tuple != NULL) {
 		uint32_t bsize = tuple->bsize;
 		ibuf_reserve(output_buffer, bsize);
@@ -1156,8 +1157,8 @@ create_result_table(struct lua_State *L, struct merge_source *source,
 	/* Fetch, merge and save tuples to the table. */
 	struct tuple *tuple;
 	int rc = 0;
-	while (cur - 1 < limit && (rc =
-	       merge_source_next(source, NULL, &tuple)) == 0 &&
+	while (cur - 1 < limit &&
+	       (rc = merge_source_next(source, NULL, &tuple)) == 0 &&
 	       tuple != NULL) {
 		luaT_pushtuple(L, tuple);
 		lua_rawseti(L, -2, cur);
@@ -1209,10 +1210,10 @@ lbox_merge_source_select(struct lua_State *L)
 	struct merge_source *source;
 	int top = lua_gettop(L);
 	bool ok = (top == 1 || top == 2) &&
-		/* Merge source. */
-		(source = luaT_check_merge_source(L, 1)) != NULL &&
-		/* Opts. */
-		(lua_isnoneornil(L, 2) == 1 || lua_istable(L, 2) == 1);
+		  /* Merge source. */
+		  (source = luaT_check_merge_source(L, 1)) != NULL &&
+		  /* Opts. */
+		  (lua_isnoneornil(L, 2) == 1 || lua_istable(L, 2) == 1);
 	if (!ok)
 		return lbox_merge_source_select_usage(L, NULL);
 
@@ -1227,7 +1228,7 @@ lbox_merge_source_select(struct lua_State *L)
 		if (!lua_isnil(L, -1)) {
 			if ((output_buffer = luaL_checkibuf(L, -1)) == NULL)
 				return lbox_merge_source_select_usage(L,
-					"buffer");
+								      "buffer");
 		}
 		lua_pop(L, 1);
 
@@ -1239,7 +1240,7 @@ lbox_merge_source_select(struct lua_State *L)
 				limit = lua_tointeger(L, -1);
 			else
 				return lbox_merge_source_select_usage(L,
-					"limit");
+								      "limit");
 		}
 		lua_pop(L, 1);
 	}
@@ -1263,11 +1264,11 @@ luaopen_merger(struct lua_State *L)
 
 	/* Export C functions to Lua. */
 	static const struct luaL_Reg meta[] = {
-		{"new_buffer_source", lbox_merger_new_buffer_source},
-		{"new_table_source", lbox_merger_new_table_source},
-		{"new_tuple_source", lbox_merger_new_tuple_source},
-		{"new", lbox_merger_new},
-		{NULL, NULL}
+		{ "new_buffer_source", lbox_merger_new_buffer_source },
+		{ "new_table_source", lbox_merger_new_table_source },
+		{ "new_tuple_source", lbox_merger_new_tuple_source },
+		{ "new", lbox_merger_new },
+		{ NULL, NULL }
 	};
 	luaL_register_module(L, "merger", meta);
 

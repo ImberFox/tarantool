@@ -173,16 +173,16 @@ void
 box_lua_sequence_init(struct lua_State *L)
 {
 	static const struct luaL_Reg sequence_internal_lib[] = {
-		{"next", lbox_sequence_next},
-		{"set", lbox_sequence_set},
-		{"reset", lbox_sequence_reset},
-		{NULL, NULL}
+		{ "next", lbox_sequence_next },
+		{ "set", lbox_sequence_set },
+		{ "reset", lbox_sequence_reset },
+		{ NULL, NULL }
 	};
 	luaL_register(L, "box.internal.sequence", sequence_internal_lib);
 	lua_pop(L, 1);
 
 	static struct trigger on_alter_sequence_in_lua;
-	trigger_create(&on_alter_sequence_in_lua,
-		       lbox_sequence_new_or_delete, L, NULL);
+	trigger_create(&on_alter_sequence_in_lua, lbox_sequence_new_or_delete,
+		       L, NULL);
 	trigger_add(&on_alter_sequence, &on_alter_sequence_in_lua);
 }

@@ -48,7 +48,7 @@ static const struct port_vtab port_msgpack_vtab;
 void
 port_msgpack_create(struct port *base, const char *data, uint32_t data_sz)
 {
-	struct port_msgpack *port_msgpack = (struct port_msgpack *) base;
+	struct port_msgpack *port_msgpack = (struct port_msgpack *)base;
 	memset(port_msgpack, 0, sizeof(*port_msgpack));
 	port_msgpack->vtab = &port_msgpack_vtab;
 	port_msgpack->data = data;
@@ -58,7 +58,7 @@ port_msgpack_create(struct port *base, const char *data, uint32_t data_sz)
 static const char *
 port_msgpack_get_msgpack(struct port *base, uint32_t *size)
 {
-	struct port_msgpack *port = (struct port_msgpack *) base;
+	struct port_msgpack *port = (struct port_msgpack *)base;
 	assert(port->vtab == &port_msgpack_vtab);
 	*size = port->data_sz;
 	return port->data;
@@ -159,7 +159,10 @@ box_process_call(struct call_request *request, struct port *port)
 	if (func != NULL) {
 		rc = func_call(func, &args, port);
 	} else if ((rc = access_check_universe_object(PRIV_X | PRIV_U,
-				SC_FUNCTION, tt_cstr(name, name_len))) == 0) {
+						      SC_FUNCTION,
+						      tt_cstr(name,
+							      name_len))) ==
+		   0) {
 		rc = box_lua_call(name, name_len, &args, port);
 	}
 	if (rc != 0)

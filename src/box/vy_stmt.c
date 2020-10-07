@@ -33,7 +33,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <sys/uio.h> /* struct iovec */
+#include <sys/uio.h>  /* struct iovec */
 #include <pmatomic.h> /* for refs */
 
 #include "diag.h"
@@ -171,7 +171,7 @@ vy_stmt_alloc(struct tuple_format *format, uint32_t data_offset, uint32_t bsize)
 	uint32_t total_size = data_offset + bsize;
 	if (unlikely(total_size > env->max_tuple_size)) {
 		diag_set(ClientError, ER_VINYL_MAX_TUPLE_SIZE,
-			 (unsigned) total_size);
+			 (unsigned)total_size);
 		error_log(diag_last_error(diag_get()));
 		return NULL;
 	}
@@ -213,8 +213,8 @@ vy_stmt_dup(struct tuple *stmt)
 	 * tuple field map. This map can be simple memcopied from
 	 * the original tuple.
 	 */
-	struct tuple *res = vy_stmt_alloc(tuple_format(stmt),
-					  stmt->data_offset, stmt->bsize);
+	struct tuple *res = vy_stmt_alloc(tuple_format(stmt), stmt->data_offset,
+					  stmt->bsize);
 	if (res == NULL)
 		return NULL;
 	assert(tuple_size(res) == tuple_size(stmt));
@@ -238,8 +238,8 @@ vy_stmt_dup_lsregion(struct tuple *stmt, struct lsregion *lsregion,
 	if (type == IPROTO_UPSERT)
 		alloc_size += align;
 
-	mem_stmt = lsregion_aligned_alloc(lsregion, alloc_size, align,
-					  alloc_id);
+	mem_stmt =
+		lsregion_aligned_alloc(lsregion, alloc_size, align, alloc_id);
 	if (mem_stmt == NULL) {
 		diag_set(OutOfMemory, alloc_size, "lsregion_aligned_alloc",
 			 "mem_stmt");
@@ -279,11 +279,12 @@ vy_key_new(struct tuple_format *format, const char *key, uint32_t part_count)
 	/* Allocate stmt */
 	uint32_t key_size = key_end - key;
 	uint32_t bsize = mp_sizeof_array(part_count) + key_size;
-	struct tuple *stmt = vy_stmt_alloc(format, sizeof(struct vy_stmt), bsize);
+	struct tuple *stmt =
+		vy_stmt_alloc(format, sizeof(struct vy_stmt), bsize);
 	if (stmt == NULL)
 		return NULL;
 	/* Copy MsgPack data */
-	char *raw = (char *) stmt + sizeof(struct vy_stmt);
+	char *raw = (char *)stmt + sizeof(struct vy_stmt);
 	char *data = mp_encode_array(raw, part_count);
 	memcpy(data, key, key_size);
 	assert(data + key_size == raw + bsize);
@@ -312,8 +313,8 @@ vy_key_dup(const char *key)
  */
 static struct tuple *
 vy_stmt_new_with_ops(struct tuple_format *format, const char *tuple_begin,
-		     const char *tuple_end, struct iovec *ops,
-		     int op_count, enum iproto_type type)
+		     const char *tuple_end, struct iovec *ops, int op_count,
+		     enum iproto_type type)
 {
 	mp_tuple_assert(tuple_begin, tuple_end);
 
@@ -350,18 +351,17 @@ vy_stmt_new_with_ops(struct tuple_format *format, const char *tuple_begin,
 	 */
 	size_t mpsize = (tuple_end - tuple_begin);
 	size_t bsize = mpsize + ops_size;
-	stmt = vy_stmt_alloc(format, sizeof(struct vy_stmt) +
-			     field_map_size, bsize);
+	stmt = vy_stmt_alloc(format, sizeof(struct vy_stmt) + field_map_size,
+			     bsize);
 	if (stmt == NULL)
 		goto end;
 	/* Copy MsgPack data */
-	char *raw = (char *) tuple_data(stmt);
+	char *raw = (char *)tuple_data(stmt);
 	char *wpos = raw;
 	field_map_build(&builder, wpos - field_map_size);
 	memcpy(wpos, tuple_begin, mpsize);
 	wpos += mpsize;
-	for (struct iovec *op = ops, *end = ops + op_count;
-	     op != end; ++op) {
+	for (struct iovec *op = ops, *end = ops + op_count; op != end; ++op) {
 		memcpy(wpos, op->iov_base, op->iov_len);
 		wpos += op->iov_len;
 	}
@@ -376,32 +376,32 @@ vy_stmt_new_upsert(struct tuple_format *format, const char *tuple_begin,
 		   const char *tuple_end, struct iovec *operations,
 		   uint32_t ops_cnt)
 {
-	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end,
-				    operations, ops_cnt, IPROTO_UPSERT);
+	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end, operations,
+				    ops_cnt, IPROTO_UPSERT);
 }
 
 struct tuple *
 vy_stmt_new_replace(struct tuple_format *format, const char *tuple_begin,
 		    const char *tuple_end)
 {
-	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end,
-				    NULL, 0, IPROTO_REPLACE);
+	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end, NULL, 0,
+				    IPROTO_REPLACE);
 }
 
 struct tuple *
 vy_stmt_new_insert(struct tuple_format *format, const char *tuple_begin,
 		   const char *tuple_end)
 {
-	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end,
-				    NULL, 0, IPROTO_INSERT);
+	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end, NULL, 0,
+				    IPROTO_INSERT);
 }
 
 struct tuple *
 vy_stmt_new_delete(struct tuple_format *format, const char *tuple_begin,
 		   const char *tuple_end)
 {
-	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end,
-				    NULL, 0, IPROTO_DELETE);
+	return vy_stmt_new_with_ops(format, tuple_begin, tuple_end, NULL, 0,
+				    IPROTO_DELETE);
 }
 
 struct tuple *
@@ -415,7 +415,8 @@ vy_stmt_replace_from_upsert(struct tuple *upsert)
 
 	/* Copy statement data excluding UPSERT operations */
 	struct tuple_format *format = tuple_format(upsert);
-	struct tuple *replace = vy_stmt_alloc(format, upsert->data_offset, bsize);
+	struct tuple *replace =
+		vy_stmt_alloc(format, upsert->data_offset, bsize);
 	if (replace == NULL)
 		return NULL;
 	/* Copy both data and field_map. */
@@ -453,8 +454,8 @@ vy_stmt_new_surrogate_delete_raw(struct tuple_format *format,
 	uint32_t field_count;
 	struct tuple_format_iterator it;
 	if (tuple_format_iterator_create(&it, format, src_data,
-			TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY, &field_count,
-			region) != 0)
+					 TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY,
+					 &field_count, region) != 0)
 		goto out;
 	char *pos = mp_encode_array(data, field_count);
 	struct tuple_format_iterator_entry entry;
@@ -480,8 +481,9 @@ vy_stmt_new_surrogate_delete_raw(struct tuple_format *format,
 		uint32_t offset_slot = entry.field->offset_slot;
 		if (offset_slot != TUPLE_OFFSET_SLOT_NIL &&
 		    field_map_builder_set_slot(&builder, offset_slot,
-					pos - data, entry.multikey_idx,
-					entry.multikey_count, region) != 0)
+					       pos - data, entry.multikey_idx,
+					       entry.multikey_count,
+					       region) != 0)
 			goto out;
 		/* Copy field data. */
 		if (entry.field->type == FIELD_TYPE_ARRAY) {
@@ -502,7 +504,7 @@ vy_stmt_new_surrogate_delete_raw(struct tuple_format *format,
 			     bsize);
 	if (stmt == NULL)
 		goto out;
-	char *stmt_data = (char *) tuple_data(stmt);
+	char *stmt_data = (char *)tuple_data(stmt);
 	char *stmt_field_map_begin = stmt_data - field_map_size;
 	memcpy(stmt_data, data, bsize);
 	field_map_build(&builder, stmt_field_map_begin);
@@ -519,8 +521,8 @@ vy_stmt_extract_key(struct tuple *stmt, struct key_def *key_def,
 {
 	struct region *region = &fiber()->gc;
 	size_t region_svp = region_used(region);
-	const char *key_raw = tuple_extract_key(stmt, key_def,
-						multikey_idx, NULL);
+	const char *key_raw =
+		tuple_extract_key(stmt, key_def, multikey_idx, NULL);
 	if (key_raw == NULL)
 		return NULL;
 	uint32_t part_count = mp_decode_array(&key_raw);
@@ -551,34 +553,36 @@ vy_stmt_extract_key_raw(const char *data, const char *data_end,
 }
 
 int
-vy_bloom_builder_add(struct tuple_bloom_builder *builder,
-		     struct vy_entry entry, struct key_def *key_def)
+vy_bloom_builder_add(struct tuple_bloom_builder *builder, struct vy_entry entry,
+		     struct key_def *key_def)
 {
 	struct tuple *stmt = entry.stmt;
 	if (vy_stmt_is_key(stmt)) {
 		const char *data = tuple_data(stmt);
 		uint32_t part_count = mp_decode_array(&data);
-		return tuple_bloom_builder_add_key(builder, data,
-						   part_count, key_def);
+		return tuple_bloom_builder_add_key(builder, data, part_count,
+						   key_def);
 	} else {
 		return tuple_bloom_builder_add(builder, stmt, key_def,
-				vy_entry_multikey_idx(entry, key_def));
+					       vy_entry_multikey_idx(entry,
+								     key_def));
 	}
 }
 
 bool
-vy_bloom_maybe_has(const struct tuple_bloom *bloom,
-		   struct vy_entry entry, struct key_def *key_def)
+vy_bloom_maybe_has(const struct tuple_bloom *bloom, struct vy_entry entry,
+		   struct key_def *key_def)
 {
 	struct tuple *stmt = entry.stmt;
 	if (vy_stmt_is_key(stmt)) {
 		const char *data = tuple_data(stmt);
 		uint32_t part_count = mp_decode_array(&data);
-		return tuple_bloom_maybe_has_key(bloom, data,
-						 part_count, key_def);
+		return tuple_bloom_maybe_has_key(bloom, data, part_count,
+						 key_def);
 	} else {
 		return tuple_bloom_maybe_has(bloom, stmt, key_def,
-				vy_entry_multikey_idx(entry, key_def));
+					     vy_entry_multikey_idx(entry,
+								   key_def));
 	}
 }
 
@@ -652,9 +656,9 @@ vy_stmt_encode_primary(struct tuple *value, struct key_def *key_def,
 	switch (type) {
 	case IPROTO_DELETE:
 		extracted = vy_stmt_is_key(value) ?
-			    tuple_data_range(value, &size) :
-			    tuple_extract_key(value, key_def,
-					      MULTIKEY_NONE, &size);
+					  tuple_data_range(value, &size) :
+					  tuple_extract_key(value, key_def,
+						      MULTIKEY_NONE, &size);
 		if (extracted == NULL)
 			return -1;
 		request.key = extracted;
@@ -696,10 +700,10 @@ vy_stmt_encode_secondary(struct tuple *value, struct key_def *cmp_def,
 	memset(&request, 0, sizeof(request));
 	request.type = type;
 	uint32_t size;
-	const char *extracted = vy_stmt_is_key(value) ?
-				tuple_data_range(value, &size) :
-				tuple_extract_key(value, cmp_def,
-						  multikey_idx, &size);
+	const char *extracted =
+		vy_stmt_is_key(value) ?
+			      tuple_data_range(value, &size) :
+			      tuple_extract_key(value, cmp_def, multikey_idx, &size);
 	if (extracted == NULL)
 		return -1;
 	if (type == IPROTO_REPLACE || type == IPROTO_INSERT) {
@@ -733,15 +737,15 @@ vy_stmt_decode(struct xrow_header *xrow, struct tuple_format *format)
 	switch (request.type) {
 	case IPROTO_DELETE:
 		/* Always use key format for DELETE statements. */
-		stmt = vy_stmt_new_with_ops(env->key_format,
-					    request.key, request.key_end,
-					    NULL, 0, IPROTO_DELETE);
+		stmt = vy_stmt_new_with_ops(env->key_format, request.key,
+					    request.key_end, NULL, 0,
+					    IPROTO_DELETE);
 		break;
 	case IPROTO_INSERT:
 	case IPROTO_REPLACE:
 		stmt = vy_stmt_new_with_ops(format, request.tuple,
-					    request.tuple_end,
-					    NULL, 0, request.type);
+					    request.tuple_end, NULL, 0,
+					    request.type);
 		break;
 	case IPROTO_UPSERT:
 		ops.iov_base = (char *)request.ops;
@@ -781,14 +785,14 @@ vy_stmt_snprint(char *buf, int size, struct tuple *stmt)
 	}
 	SNPRINT(total, snprintf, buf, size, "%s(",
 		iproto_type_name(vy_stmt_type(stmt)));
-		SNPRINT(total, mp_snprint, buf, size, tuple_data(stmt));
+	SNPRINT(total, mp_snprint, buf, size, tuple_data(stmt));
 	if (vy_stmt_type(stmt) == IPROTO_UPSERT) {
 		SNPRINT(total, snprintf, buf, size, ", ops=");
 		SNPRINT(total, mp_snprint, buf, size,
 			vy_stmt_upsert_ops(stmt, &mp_size));
 	}
 	SNPRINT(total, snprintf, buf, size, ", lsn=%lld)",
-		(long long) vy_stmt_lsn(stmt));
+		(long long)vy_stmt_lsn(stmt));
 	return total;
 }
 

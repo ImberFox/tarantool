@@ -118,7 +118,8 @@ func_call(struct func *func, struct port *args, struct port *ret);
  * @retval 0 on success.
  */
 int
-module_reload(const char *package, const char *package_end, struct module **module);
+module_reload(const char *package, const char *package_end,
+	      struct module **module);
 
 #if defined(__cplusplus)
 } /* extern "C" */

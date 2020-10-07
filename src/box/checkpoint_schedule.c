@@ -35,8 +35,8 @@
 #include <stdlib.h>
 
 void
-checkpoint_schedule_cfg(struct checkpoint_schedule *sched,
-			double now, double interval)
+checkpoint_schedule_cfg(struct checkpoint_schedule *sched, double now,
+			double interval)
 {
 	sched->interval = interval;
 	sched->start_time = now + interval;

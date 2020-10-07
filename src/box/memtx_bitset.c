@@ -69,7 +69,9 @@ struct bitset_hash_entry {
 #if UINTPTR_MAX == 0xffffffff
 #define mh_hash_key(a, arg) ((uintptr_t)(a))
 #else
-#define mh_hash_key(a, arg) ((uint32_t)(((uintptr_t)(a)) >> 33 ^ ((uintptr_t)(a)) ^ ((uintptr_t)(a)) << 11))
+#define mh_hash_key(a, arg)                                     \
+	((uint32_t)(((uintptr_t)(a)) >> 33 ^ ((uintptr_t)(a)) ^ \
+		    ((uintptr_t)(a)) << 11))
 #endif
 #define mh_hash(a, arg) mh_hash_key((a)->tuple, arg)
 #define mh_cmp(a, b, arg) ((a)->tuple != (b)->tuple)
@@ -81,9 +83,7 @@ struct bitset_hash_entry {
 #define MH_SOURCE 1
 #include <salad/mhash.h>
 
-enum {
-	SPARE_ID_END = 0xFFFFFFFF
-};
+enum { SPARE_ID_END = 0xFFFFFFFF };
 
 static int
 memtx_bitset_index_register_tuple(struct memtx_bitset_index *index,
@@ -108,7 +108,7 @@ memtx_bitset_index_register_tuple(struct memtx_bitset_index *index,
 	if (pos == mh_end(index->tuple_to_id)) {
 		*(uint32_t *)tuple = index->spare_id;
 		index->spare_id = id;
-		diag_set(OutOfMemory, (ssize_t) pos, "hash", "key");
+		diag_set(OutOfMemory, (ssize_t)pos, "hash", "key");
 		return -1;
 	}
 	return 0;
@@ -118,9 +118,9 @@ static void
 memtx_bitset_index_unregister_tuple(struct memtx_bitset_index *index,
 				    struct tuple *tuple)
 {
-
 	uint32_t k = mh_bitset_index_find(index->tuple_to_id, tuple, 0);
-	struct bitset_hash_entry *e = mh_bitset_index_node(index->tuple_to_id, k);
+	struct bitset_hash_entry *e =
+		mh_bitset_index_node(index->tuple_to_id, k);
 	void *mem = matras_get(index->id_to_tuple, e->id);
 	*(uint32_t *)mem = index->spare_id;
 	index->spare_id = e->id;
@@ -132,7 +132,8 @@ memtx_bitset_index_tuple_to_value(struct memtx_bitset_index *index,
 				  struct tuple *tuple)
 {
 	uint32_t k = mh_bitset_index_find(index->tuple_to_id, tuple, 0);
-	struct bitset_hash_entry *e = mh_bitset_index_node(index->tuple_to_id, k);
+	struct bitset_hash_entry *e =
+		mh_bitset_index_node(index->tuple_to_id, k);
 	return e->id;
 }
 
@@ -155,7 +156,7 @@ tuple_to_value(struct tuple *tuple)
 	 * https://github.com/tarantool/tarantool/issues/49
 	 */
 	/* size_t value = small_ptr_compress(tuple); */
-	size_t value = (intptr_t) tuple >> 2;
+	size_t value = (intptr_t)tuple >> 2;
 	assert(value_to_tuple(value) == tuple);
 	return value;
 }
@@ -164,7 +165,7 @@ static inline struct tuple *
 value_to_tuple(size_t value)
 {
 	/* return (struct tuple *) salloc_ptr_from_index(value); */
-	return (struct tuple *) (value << 2);
+	return (struct tuple *)(value << 2);
 }
 #endif /* #ifndef OLD_GOOD_BITSET */
 
@@ -182,7 +183,7 @@ static_assert(sizeof(struct bitset_index_iterator) <= MEMTX_ITERATOR_SIZE,
 static struct bitset_index_iterator *
 bitset_index_iterator(struct iterator *it)
 {
-	return (struct bitset_index_iterator *) it;
+	return (struct bitset_index_iterator *)it;
 }
 
 static void
@@ -266,7 +267,7 @@ make_key(const char *field, uint32_t *key_len)
 	case MP_UINT:
 		u64key = mp_decode_uint(&field);
 		*key_len = sizeof(uint64_t);
-		return (const char *) &u64key;
+		return (const char *)&u64key;
 		break;
 	case MP_STR:
 		return mp_decode_str(&field, key_len);
@@ -288,18 +289,19 @@ memtx_bitset_index_replace(struct index *base, struct tuple *old_tuple,
 	assert(!base->def->opts.is_unique);
 	assert(!base->def->key_def->is_multikey);
 	assert(old_tuple != NULL || new_tuple != NULL);
-	(void) mode;
+	(void)mode;
 
 	*result = NULL;
 
 	if (old_tuple != NULL) {
 #ifndef OLD_GOOD_BITSET
-		uint32_t value = memtx_bitset_index_tuple_to_value(index, old_tuple);
+		uint32_t value =
+			memtx_bitset_index_tuple_to_value(index, old_tuple);
 #else /* #ifndef OLD_GOOD_BITSET */
 		size_t value = tuple_to_value(old_tuple);
 #endif /* #ifndef OLD_GOOD_BITSET */
 		if (tt_bitset_index_contains_value(&index->index,
-						   (size_t) value)) {
+						   (size_t)value)) {
 			*result = old_tuple;
 
 			assert(old_tuple != new_tuple);
@@ -311,23 +313,27 @@ memtx_bitset_index_replace(struct index *base, struct tuple *old_tuple,
 	}
 
 	if (new_tuple != NULL) {
-		const char *field = tuple_field_by_part(new_tuple,
-				base->def->key_def->parts, MULTIKEY_NONE);
+		const char *field =
+			tuple_field_by_part(new_tuple,
+					    base->def->key_def->parts,
+					    MULTIKEY_NONE);
 		uint32_t key_len;
 		const void *key = make_key(field, &key_len);
 #ifndef OLD_GOOD_BITSET
 		if (memtx_bitset_index_register_tuple(index, new_tuple) != 0)
 			return -1;
-		uint32_t value = memtx_bitset_index_tuple_to_value(index, new_tuple);
+		uint32_t value =
+			memtx_bitset_index_tuple_to_value(index, new_tuple);
 #else /* #ifndef OLD_GOOD_BITSET */
 		uint32_t value = tuple_to_value(new_tuple);
 #endif /* #ifndef OLD_GOOD_BITSET */
-		if (tt_bitset_index_insert(&index->index, key, key_len,
-					   value) < 0) {
+		if (tt_bitset_index_insert(&index->index, key, key_len, value) <
+		    0) {
 #ifndef OLD_GOOD_BITSET
 			memtx_bitset_index_unregister_tuple(index, new_tuple);
 #endif /* #ifndef OLD_GOOD_BITSET */
-			diag_set(OutOfMemory, 0, "memtx_bitset_index", "insert");
+			diag_set(OutOfMemory, 0, "memtx_bitset_index",
+				 "insert");
 			return -1;
 		}
 	}
@@ -342,13 +348,13 @@ memtx_bitset_index_create_iterator(struct index *base, enum iterator_type type,
 	struct memtx_engine *memtx = (struct memtx_engine *)base->engine;
 
 	assert(part_count == 0 || key != NULL);
-	(void) part_count;
+	(void)part_count;
 
 	struct bitset_index_iterator *it;
 	it = mempool_alloc(&memtx->iterator_pool);
 	if (!it) {
-		diag_set(OutOfMemory, sizeof(*it),
-			 "memtx_bitset_index", "iterator");
+		diag_set(OutOfMemory, sizeof(*it), "memtx_bitset_index",
+			 "iterator");
 		return NULL;
 	}
 
@@ -474,7 +480,7 @@ memtx_bitset_index_count(struct index *base, enum iterator_type type,
 		 */
 		if (bit_iterator_next(&bit_it) == SIZE_MAX)
 			return tt_bitset_index_size(&index->index) -
-				tt_bitset_index_count(&index->index, bit);
+			       tt_bitset_index_count(&index->index, bit);
 	}
 
 	/* Call generic method */
@@ -490,7 +496,7 @@ static const struct index_vtab memtx_bitset_index_vtab = {
 	/* .update_def = */ generic_index_update_def,
 	/* .depends_on_pk = */ generic_index_depends_on_pk,
 	/* .def_change_requires_rebuild = */
-		memtx_index_def_change_requires_rebuild,
+	memtx_index_def_change_requires_rebuild,
 	/* .size = */ memtx_bitset_index_size,
 	/* .bsize = */ memtx_bitset_index_bsize,
 	/* .min = */ generic_index_min,
@@ -501,7 +507,7 @@ static const struct index_vtab memtx_bitset_index_vtab = {
 	/* .replace = */ memtx_bitset_index_replace,
 	/* .create_iterator = */ memtx_bitset_index_create_iterator,
 	/* .create_snapshot_iterator = */
-		generic_index_create_snapshot_iterator,
+	generic_index_create_snapshot_iterator,
 	/* .stat = */ generic_index_stat,
 	/* .compact = */ generic_index_compact,
 	/* .reset_stat = */ generic_index_reset_stat,
@@ -520,8 +526,8 @@ memtx_bitset_index_new(struct memtx_engine *memtx, struct index_def *def)
 	struct memtx_bitset_index *index =
 		(struct memtx_bitset_index *)calloc(1, sizeof(*index));
 	if (index == NULL) {
-		diag_set(OutOfMemory, sizeof(*index),
-			 "malloc", "struct memtx_bitset_index");
+		diag_set(OutOfMemory, sizeof(*index), "malloc",
+			 "struct memtx_bitset_index");
 		return NULL;
 	}
 	if (index_create(&index->base, (struct engine *)memtx,
@@ -532,11 +538,13 @@ memtx_bitset_index_new(struct memtx_engine *memtx, struct index_def *def)
 
 #ifndef OLD_GOOD_BITSET
 	index->spare_id = SPARE_ID_END;
-	index->id_to_tuple = (struct matras *)malloc(sizeof(*index->id_to_tuple));
+	index->id_to_tuple =
+		(struct matras *)malloc(sizeof(*index->id_to_tuple));
 	if (index->id_to_tuple == NULL)
 		panic("failed to allocate memtx bitset index");
-	matras_create(index->id_to_tuple, MEMTX_EXTENT_SIZE, sizeof(struct tuple *),
-		      memtx_index_extent_alloc, memtx_index_extent_free, memtx);
+	matras_create(index->id_to_tuple, MEMTX_EXTENT_SIZE,
+		      sizeof(struct tuple *), memtx_index_extent_alloc,
+		      memtx_index_extent_free, memtx);
 
 	index->tuple_to_id = mh_bitset_index_new();
 	if (index->tuple_to_id == NULL)

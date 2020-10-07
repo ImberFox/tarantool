@@ -76,9 +76,9 @@ struct xrow_update_arg_del {
  */
 enum xrow_update_arith_type {
 	XUPDATE_TYPE_DECIMAL = 0, /* MP_EXT + MP_DECIMAL */
-	XUPDATE_TYPE_DOUBLE = 1, /* MP_DOUBLE */
-	XUPDATE_TYPE_FLOAT = 2, /* MP_FLOAT */
-	XUPDATE_TYPE_INT = 3 /* MP_INT/MP_UINT */
+	XUPDATE_TYPE_DOUBLE = 1,  /* MP_DOUBLE */
+	XUPDATE_TYPE_FLOAT = 2,	  /* MP_FLOAT */
+	XUPDATE_TYPE_INT = 3	  /* MP_INT/MP_UINT */
 };
 
 /**
@@ -143,19 +143,16 @@ union xrow_update_arg {
 	struct xrow_update_arg_splice splice;
 };
 
-typedef int
-(*xrow_update_op_read_arg_f)(struct xrow_update_op *op, const char **expr,
-			     int index_base);
+typedef int (*xrow_update_op_read_arg_f)(struct xrow_update_op *op,
+					 const char **expr, int index_base);
 
-typedef int
-(*xrow_update_op_do_f)(struct xrow_update_op *op,
-		       struct xrow_update_field *field);
+typedef int (*xrow_update_op_do_f)(struct xrow_update_op *op,
+				   struct xrow_update_field *field);
 
-typedef uint32_t
-(*xrow_update_op_store_f)(struct xrow_update_op *op,
-			  struct json_tree *format_tree,
-			  struct json_token *this_node, const char *in,
-			  char *out);
+typedef uint32_t (*xrow_update_op_store_f)(struct xrow_update_op *op,
+					   struct json_tree *format_tree,
+					   struct json_token *this_node,
+					   const char *in, char *out);
 
 /**
  * A set of functions and properties to initialize, do and store
@@ -482,39 +479,31 @@ xrow_update_field_store(struct xrow_update_field *field,
  * etc. Each complex type has basic operations of the same
  * signature: insert, set, delete, arith, bit, splice.
  */
-#define OP_DECL_GENERIC(type)							\
-int										\
-xrow_update_op_do_##type##_insert(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field);		\
-										\
-int										\
-xrow_update_op_do_##type##_set(struct xrow_update_op *op,			\
-			       struct xrow_update_field *field);		\
-										\
-int										\
-xrow_update_op_do_##type##_delete(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field);		\
-										\
-int										\
-xrow_update_op_do_##type##_arith(struct xrow_update_op *op,			\
-				 struct xrow_update_field *field);		\
-										\
-int										\
-xrow_update_op_do_##type##_bit(struct xrow_update_op *op,			\
-			       struct xrow_update_field *field);		\
-										\
-int										\
-xrow_update_op_do_##type##_splice(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field);		\
-										\
-uint32_t									\
-xrow_update_##type##_sizeof(struct xrow_update_field *field);			\
-										\
-uint32_t									\
-xrow_update_##type##_store(struct xrow_update_field *field,			\
-			   struct json_tree *format_tree,			\
-			   struct json_token *this_node, char *out,		\
-			   char *out_end);
+#define OP_DECL_GENERIC(type)                                                   \
+	int xrow_update_op_do_##type##_insert(struct xrow_update_op *op,        \
+					      struct xrow_update_field *field); \
+                                                                                \
+	int xrow_update_op_do_##type##_set(struct xrow_update_op *op,           \
+					   struct xrow_update_field *field);    \
+                                                                                \
+	int xrow_update_op_do_##type##_delete(struct xrow_update_op *op,        \
+					      struct xrow_update_field *field); \
+                                                                                \
+	int xrow_update_op_do_##type##_arith(struct xrow_update_op *op,         \
+					     struct xrow_update_field *field);  \
+                                                                                \
+	int xrow_update_op_do_##type##_bit(struct xrow_update_op *op,           \
+					   struct xrow_update_field *field);    \
+                                                                                \
+	int xrow_update_op_do_##type##_splice(struct xrow_update_op *op,        \
+					      struct xrow_update_field *field); \
+                                                                                \
+	uint32_t xrow_update_##type##_sizeof(struct xrow_update_field *field);  \
+                                                                                \
+	uint32_t xrow_update_##type##_store(struct xrow_update_field *field,    \
+					    struct json_tree *format_tree,      \
+					    struct json_token *this_node,       \
+					    char *out, char *out_end);
 
 /* }}} xrow_update_field */
 
@@ -666,27 +655,26 @@ OP_DECL_GENERIC(route)
  * fit ~10k update tree depth - incredible number, even though the
  * real limit is 4k due to limited number of operations.
  */
-#define OP_DECL_GENERIC(op_type)						\
-static inline int								\
-xrow_update_op_do_field_##op_type(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field)		\
-{										\
-	switch (field->type) {							\
-	case XUPDATE_ARRAY:							\
-		return xrow_update_op_do_array_##op_type(op, field);		\
-	case XUPDATE_NOP:							\
-		return xrow_update_op_do_nop_##op_type(op, field);		\
-	case XUPDATE_BAR:							\
-		return xrow_update_op_do_bar_##op_type(op, field);		\
-	case XUPDATE_ROUTE:							\
-		return xrow_update_op_do_route_##op_type(op, field);		\
-	case XUPDATE_MAP:							\
-		return xrow_update_op_do_map_##op_type(op, field);		\
-	default:								\
-		unreachable();							\
-	}									\
-	return 0;								\
-}
+#define OP_DECL_GENERIC(op_type)                                             \
+	static inline int xrow_update_op_do_field_##op_type(                 \
+		struct xrow_update_op *op, struct xrow_update_field *field)  \
+	{                                                                    \
+		switch (field->type) {                                       \
+		case XUPDATE_ARRAY:                                          \
+			return xrow_update_op_do_array_##op_type(op, field); \
+		case XUPDATE_NOP:                                            \
+			return xrow_update_op_do_nop_##op_type(op, field);   \
+		case XUPDATE_BAR:                                            \
+			return xrow_update_op_do_bar_##op_type(op, field);   \
+		case XUPDATE_ROUTE:                                          \
+			return xrow_update_op_do_route_##op_type(op, field); \
+		case XUPDATE_MAP:                                            \
+			return xrow_update_op_do_map_##op_type(op, field);   \
+		default:                                                     \
+			unreachable();                                       \
+		}                                                            \
+		return 0;                                                    \
+	}
 
 OP_DECL_GENERIC(insert)
 
@@ -758,15 +746,15 @@ xrow_update_err_double(const struct xrow_update_op *op)
 static inline int
 xrow_update_err_bad_json(const struct xrow_update_op *op, int pos)
 {
-	return xrow_update_err(op, tt_sprintf("invalid JSON in position %d",
-					      pos));
+	return xrow_update_err(op,
+			       tt_sprintf("invalid JSON in position %d", pos));
 }
 
 static inline int
 xrow_update_err_delete1(const struct xrow_update_op *op)
 {
-	return xrow_update_err(op, "can delete only 1 field from a map in a "\
-			       "row");
+	return xrow_update_err(op, "can delete only 1 field from a map in a "
+				   "row");
 }
 
 static inline int

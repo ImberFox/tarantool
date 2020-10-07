@@ -73,8 +73,8 @@ vy_entry_apply_upsert(struct vy_entry new_entry, struct vy_entry old_entry,
 {
 	struct vy_entry result;
 	result.hint = old_entry.stmt != NULL ? old_entry.hint : new_entry.hint;
-	result.stmt = vy_apply_upsert(new_entry.stmt, old_entry.stmt,
-				      cmp_def, suppress_error);
+	result.stmt = vy_apply_upsert(new_entry.stmt, old_entry.stmt, cmp_def,
+				      suppress_error);
 	return result.stmt != NULL ? result : vy_entry_none();
 }
 

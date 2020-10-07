@@ -51,7 +51,7 @@ extern struct universe universe;
 typedef unsigned int umap_int_t;
 enum {
 	UMAP_INT_BITS = CHAR_BIT * sizeof(umap_int_t),
-	USER_MAP_SIZE = (BOX_USER_MAX + UMAP_INT_BITS - 1)/UMAP_INT_BITS
+	USER_MAP_SIZE = (BOX_USER_MAX + UMAP_INT_BITS - 1) / UMAP_INT_BITS
 };
 
 struct user_map {
@@ -70,8 +70,7 @@ user_map_is_empty(struct user_map *map)
 typedef rb_tree(struct priv_def) privset_t;
 rb_proto(, privset_, privset_t, struct priv_def);
 
-struct user
-{
+struct user {
 	struct user_def *def;
 	/**
 	 * An id in privileges array to quickly find a

@@ -45,8 +45,7 @@ struct histogram;
 struct vy_quota;
 struct vy_regulator;
 
-typedef int
-(*vy_trigger_dump_f)(struct vy_regulator *regulator);
+typedef int (*vy_trigger_dump_f)(struct vy_regulator *regulator);
 
 /**
  * The regulator is supposed to keep track of vinyl memory usage
@@ -153,8 +152,8 @@ vy_regulator_quota_exceeded(struct vy_regulator *regulator);
  * Notify the regulator about memory dump completion.
  */
 void
-vy_regulator_dump_complete(struct vy_regulator *regulator,
-			   size_t mem_dumped, double dump_duration);
+vy_regulator_dump_complete(struct vy_regulator *regulator, size_t mem_dumped,
+			   double dump_duration);
 
 /**
  * Set memory limit and update the dump watermark accordingly.

@@ -47,19 +47,17 @@
  * @retval -1 - memory error
  */
 static int
-vy_upsert_try_to_squash(struct tuple_format *format,
-			const char *key_mp, const char *key_mp_end,
-			const char *old_serie, const char *old_serie_end,
-			const char *new_serie, const char *new_serie_end,
-			struct tuple **result_stmt)
+vy_upsert_try_to_squash(struct tuple_format *format, const char *key_mp,
+			const char *key_mp_end, const char *old_serie,
+			const char *old_serie_end, const char *new_serie,
+			const char *new_serie_end, struct tuple **result_stmt)
 {
 	*result_stmt = NULL;
 
 	size_t squashed_size;
-	const char *squashed =
-		xrow_upsert_squash(old_serie, old_serie_end,
-				   new_serie, new_serie_end, format,
-				   &squashed_size, 0);
+	const char *squashed = xrow_upsert_squash(old_serie, old_serie_end,
+						  new_serie, new_serie_end,
+						  format, &squashed_size, 0);
 	if (squashed == NULL)
 		return 0;
 	/* Successful squash! */
@@ -67,8 +65,8 @@ vy_upsert_try_to_squash(struct tuple_format *format,
 	operations[0].iov_base = (void *)squashed;
 	operations[0].iov_len = squashed_size;
 
-	*result_stmt = vy_stmt_new_upsert(format, key_mp, key_mp_end,
-					  operations, 1);
+	*result_stmt =
+		vy_stmt_new_upsert(format, key_mp, key_mp_end, operations, 1);
 	if (*result_stmt == NULL)
 		return -1;
 	return 0;
@@ -119,21 +117,20 @@ vy_apply_upsert(struct tuple *new_stmt, struct tuple *old_stmt,
 	uint8_t old_type = vy_stmt_type(old_stmt);
 	uint64_t column_mask = COLUMN_MASK_FULL;
 	result_mp = xrow_upsert_execute(new_ops, new_ops_end, result_mp,
-					result_mp_end, format, &mp_size,
-					0, suppress_error, &column_mask);
+					result_mp_end, format, &mp_size, 0,
+					suppress_error, &column_mask);
 	if (result_mp == NULL) {
 		region_truncate(region, region_svp);
 		return NULL;
 	}
 	result_mp_end = result_mp + mp_size;
 	if (old_type != IPROTO_UPSERT) {
-		assert(old_type == IPROTO_INSERT ||
-		       old_type == IPROTO_REPLACE);
+		assert(old_type == IPROTO_INSERT || old_type == IPROTO_REPLACE);
 		/*
 		 * UPDATE case: return the updated old stmt.
 		 */
-		result_stmt = vy_stmt_new_replace(format, result_mp,
-						  result_mp_end);
+		result_stmt =
+			vy_stmt_new_replace(format, result_mp, result_mp_end);
 		region_truncate(region, region_svp);
 		if (result_stmt == NULL)
 			return NULL; /* OOM */
@@ -154,8 +151,8 @@ vy_apply_upsert(struct tuple *new_stmt, struct tuple *old_stmt,
 	 * UPSERT + UPSERT case: combine operations
 	 */
 	assert(old_ops_end - old_ops > 0);
-	if (vy_upsert_try_to_squash(format, result_mp, result_mp_end,
-				    old_ops, old_ops_end, new_ops, new_ops_end,
+	if (vy_upsert_try_to_squash(format, result_mp, result_mp_end, old_ops,
+				    old_ops_end, new_ops, new_ops_end,
 				    &result_stmt) != 0) {
 		region_truncate(region, region_svp);
 		return NULL;
@@ -195,8 +192,8 @@ check_key:
 	 * Check that key hasn't been changed after applying operations.
 	 */
 	if (!key_update_can_be_skipped(cmp_def->column_mask, column_mask) &&
-	    vy_stmt_compare(old_stmt, HINT_NONE, result_stmt,
-			    HINT_NONE, cmp_def) != 0) {
+	    vy_stmt_compare(old_stmt, HINT_NONE, result_stmt, HINT_NONE,
+			    cmp_def) != 0) {
 		/*
 		 * Key has been changed: ignore this UPSERT and
 		 * @retval the old stmt.

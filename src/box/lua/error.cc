@@ -70,8 +70,8 @@ luaT_error_create(lua_State *L, int top_base)
 	lua_Debug info;
 	int top = lua_gettop(L);
 	int top_type = lua_type(L, top_base);
-	if (top >= top_base && (top_type == LUA_TNUMBER ||
-				top_type == LUA_TSTRING)) {
+	if (top >= top_base &&
+	    (top_type == LUA_TNUMBER || top_type == LUA_TSTRING)) {
 		/* Shift of the "reason args". */
 		int shift = 1;
 		if (top_type == LUA_TNUMBER) {
@@ -182,8 +182,8 @@ luaT_error_new(lua_State *L)
 {
 	struct error *e;
 	if (lua_gettop(L) == 0 || (e = luaT_error_create(L, 1)) == NULL) {
-		return luaL_error(L, "Usage: box.error.new(code, args) or "\
-				  "box.error.new(type, args)");
+		return luaL_error(L, "Usage: box.error.new(code, args) or "
+				     "box.error.new(type, args)");
 	}
 	lua_settop(L, 0);
 	luaT_pusherror(L, e);
@@ -213,12 +213,13 @@ luaT_error_set(struct lua_State *L)
 static int
 lbox_errinj_set(struct lua_State *L)
 {
-	char *name = (char*)luaL_checkstring(L, 1);
+	char *name = (char *)luaL_checkstring(L, 1);
 	struct errinj *errinj;
 	errinj = errinj_by_name(name);
 	if (errinj == NULL) {
 		say_error("%s", name);
-		lua_pushfstring(L, "error: can't find error injection '%s'", name);
+		lua_pushfstring(L, "error: can't find error injection '%s'",
+				name);
 		return 1;
 	}
 	switch (errinj->type) {
@@ -262,7 +263,7 @@ lbox_errinj_push_value(struct lua_State *L, const struct errinj *e)
 static int
 lbox_errinj_get(struct lua_State *L)
 {
-	char *name = (char*)luaL_checkstring(L, 1);
+	char *name = (char *)luaL_checkstring(L, 1);
 	struct errinj *e = errinj_by_name(name);
 	if (e != NULL)
 		return lbox_errinj_push_value(L, e);
@@ -273,7 +274,7 @@ lbox_errinj_get(struct lua_State *L)
 static inline int
 lbox_errinj_cb(struct errinj *e, void *cb_ctx)
 {
-	struct lua_State *L = (struct lua_State*)cb_ctx;
+	struct lua_State *L = (struct lua_State *)cb_ctx;
 	lua_pushstring(L, e->name);
 	lua_newtable(L);
 	lua_pushstring(L, "state");
@@ -292,10 +293,9 @@ lbox_errinj_info(struct lua_State *L)
 }
 
 void
-box_lua_error_init(struct lua_State *L) {
-	static const struct luaL_Reg errorlib[] = {
-		{NULL, NULL}
-	};
+box_lua_error_init(struct lua_State *L)
+{
+	static const struct luaL_Reg errorlib[] = { { NULL, NULL } };
 	luaL_register_module(L, "box.error", errorlib);
 	for (int i = 0; i < box_error_code_MAX; i++) {
 		const char *name = box_error_codes[i].errstr;
@@ -334,12 +334,11 @@ box_lua_error_init(struct lua_State *L) {
 
 	lua_pop(L, 1);
 
-	static const struct luaL_Reg errinjlib[] = {
-		{"info", lbox_errinj_info},
-		{"set", lbox_errinj_set},
-		{"get", lbox_errinj_get},
-		{NULL, NULL}
-	};
+	static const struct luaL_Reg errinjlib[] = { { "info",
+						       lbox_errinj_info },
+						     { "set", lbox_errinj_set },
+						     { "get", lbox_errinj_get },
+						     { NULL, NULL } };
 	/* box.error.injection is not set by register_module */
 	luaL_register_module(L, "box.error.injection", errinjlib);
 	lua_pop(L, 1);

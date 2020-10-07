@@ -60,9 +60,10 @@ vclock_snprint(char *buf, int size, const struct vclock *vclock)
 	const char *sep = "";
 	struct vclock_iterator it;
 	vclock_iterator_init(&it, vclock);
-	vclock_foreach(&it, replica) {
-		SNPRINT(total, snprintf, buf, size, "%s%u: %lld",
-			sep, (unsigned)replica.id, (long long)replica.lsn);
+	vclock_foreach(&it, replica)
+	{
+		SNPRINT(total, snprintf, buf, size, "%s%u: %lld", sep,
+			(unsigned)replica.id, (long long)replica.lsn);
 		sep = ", ";
 	}
 
@@ -86,78 +87,78 @@ vclock_from_string(struct vclock *vclock, const char *str)
 	long long lsn;
 
 	const char *p = str;
-	begin:
-		if (*p == '{') {
-			++p;
-			goto key;
-		} else if (isblank(*p)) {
-			++p;
-			goto begin;
-		}
-		goto error;
-	key:
-		if (isdigit(*p)) {
-			errno = 0;
-			replica_id = strtol(p, (char **) &p, 10);
-			if (errno != 0 || replica_id < 0 || replica_id >= VCLOCK_MAX)
-				goto error;
-			goto sep;
-		} else if (*p == '}') {
-			++p;
-			goto end;
-		} else if (isblank(*p)) {
-			++p;
-			goto key;
-		}
-		goto error;
-	sep:
-		if (*p == ':') {
-			++p;
-			goto val;
-		} else if (isblank(*p)) {
-			++p;
-			goto sep;
-		}
-		goto error;
-	val:
-		if (isblank(*p)) {
-			++p;
-			goto val;
-		} else if (isdigit(*p)) {
-			errno = 0;
-			lsn = strtoll(p, (char **)  &p, 10);
-			if (errno != 0 || lsn < 0 || lsn > INT64_MAX ||
-			    replica_id >= VCLOCK_MAX ||
-			    vclock_get(vclock, replica_id) > 0)
-				goto error;
-			vclock->map |= 1 << replica_id;
-			vclock->lsn[replica_id] = lsn;
-			goto comma;
-		}
-		goto error;
-	comma:
-		if (isspace(*p)) {
-			++p;
-			goto comma;
-		} else if (*p == '}') {
-			++p;
-			goto end;
-		} else if (*p == ',') {
-			++p;
-			goto key;
-		}
-		goto error;
-	end:
-		if (*p == '\0') {
-			vclock->signature = vclock_calc_sum(vclock);
-			return 0;
-		} else if (isblank(*p)) {
-			++p;
-			goto end;
-		}
-		/* goto error; */
-	error:
-		return p - str + 1; /* error */
+begin:
+	if (*p == '{') {
+		++p;
+		goto key;
+	} else if (isblank(*p)) {
+		++p;
+		goto begin;
+	}
+	goto error;
+key:
+	if (isdigit(*p)) {
+		errno = 0;
+		replica_id = strtol(p, (char **)&p, 10);
+		if (errno != 0 || replica_id < 0 || replica_id >= VCLOCK_MAX)
+			goto error;
+		goto sep;
+	} else if (*p == '}') {
+		++p;
+		goto end;
+	} else if (isblank(*p)) {
+		++p;
+		goto key;
+	}
+	goto error;
+sep:
+	if (*p == ':') {
+		++p;
+		goto val;
+	} else if (isblank(*p)) {
+		++p;
+		goto sep;
+	}
+	goto error;
+val:
+	if (isblank(*p)) {
+		++p;
+		goto val;
+	} else if (isdigit(*p)) {
+		errno = 0;
+		lsn = strtoll(p, (char **)&p, 10);
+		if (errno != 0 || lsn < 0 || lsn > INT64_MAX ||
+		    replica_id >= VCLOCK_MAX ||
+		    vclock_get(vclock, replica_id) > 0)
+			goto error;
+		vclock->map |= 1 << replica_id;
+		vclock->lsn[replica_id] = lsn;
+		goto comma;
+	}
+	goto error;
+comma:
+	if (isspace(*p)) {
+		++p;
+		goto comma;
+	} else if (*p == '}') {
+		++p;
+		goto end;
+	} else if (*p == ',') {
+		++p;
+		goto key;
+	}
+	goto error;
+end:
+	if (*p == '\0') {
+		vclock->signature = vclock_calc_sum(vclock);
+		return 0;
+	} else if (isblank(*p)) {
+		++p;
+		goto end;
+	}
+	/* goto error; */
+error:
+	return p - str + 1; /* error */
 }
 
 static int

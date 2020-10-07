@@ -63,8 +63,7 @@ static inline void
 applier_set_state(struct applier *applier, enum applier_state state)
 {
 	applier->state = state;
-	say_debug("=> %s", applier_state_strs[state] +
-		  strlen("APPLIER_"));
+	say_debug("=> %s", applier_state_strs[state] + strlen("APPLIER_"));
 	trigger_run_xc(&applier->on_state, applier);
 }
 
@@ -185,9 +184,8 @@ applier_writer_f(va_list ap)
 			struct xrow_header xrow;
 			xrow_encode_vclock(&xrow, &replicaset.vclock);
 			coio_write_xrow(&io, &xrow);
-			ERROR_INJECT(ERRINJ_APPLIER_SLOW_ACK, {
-				fiber_sleep(0.01);
-			});
+			ERROR_INJECT(ERRINJ_APPLIER_SLOW_ACK,
+				     { fiber_sleep(0.01); });
 			/*
 			 * Even if new ACK is requested during the
 			 * write, don't send it again right away.
@@ -385,16 +383,17 @@ applier_connect(struct applier *applier)
 	coio_read_xrow(coio, ibuf, &row);
 	if (row.type == IPROTO_OK) {
 		xrow_decode_ballot_xc(&row, &applier->ballot);
-	} else try {
-		xrow_decode_error_xc(&row);
-	} catch (ClientError *e) {
-		if (e->errcode() != ER_UNKNOWN_REQUEST_TYPE)
-			e->raise();
-		/*
+	} else
+		try {
+			xrow_decode_error_xc(&row);
+		} catch (ClientError *e) {
+			if (e->errcode() != ER_UNKNOWN_REQUEST_TYPE)
+				e->raise();
+			/*
 		 * Master isn't aware of IPROTO_VOTE request.
 		 * It's OK - we can proceed without it.
 		 */
-	}
+		}
 
 	applier_set_state(applier, APPLIER_CONNECTED);
 
@@ -442,7 +441,7 @@ applier_wait_snapshot(struct applier *applier)
 			xrow_decode_error_xc(&row); /* re-throw error */
 		} else if (row.type != IPROTO_OK) {
 			tnt_raise(ClientError, ER_UNKNOWN_REQUEST_TYPE,
-				  (uint32_t) row.type);
+				  (uint32_t)row.type);
 		}
 		/*
 		 * Start vclock. The vclock of the checkpoint
@@ -464,7 +463,8 @@ applier_wait_snapshot(struct applier *applier)
 			if (apply_snapshot_row(&row) != 0)
 				diag_raise();
 			if (++row_count % 100000 == 0)
-				say_info("%.1fM rows received", row_count / 1e6);
+				say_info("%.1fM rows received",
+					 row_count / 1e6);
 		} else if (row.type == IPROTO_OK) {
 			if (applier->version_id < version_id(1, 7, 0)) {
 				/*
@@ -478,10 +478,10 @@ applier_wait_snapshot(struct applier *applier)
 			}
 			break; /* end of stream */
 		} else if (iproto_type_is_error(row.type)) {
-			xrow_decode_error_xc(&row);  /* rethrow error */
+			xrow_decode_error_xc(&row); /* rethrow error */
 		} else {
 			tnt_raise(ClientError, ER_UNKNOWN_REQUEST_TYPE,
-				  (uint32_t) row.type);
+				  (uint32_t)row.type);
 		}
 	}
 
@@ -531,7 +531,8 @@ applier_wait_register(struct applier *applier, uint64_t row_count)
 			if (apply_final_join_row(&row) != 0)
 				diag_raise();
 			if (++row_count % 100000 == 0)
-				say_info("%.1fM rows received", row_count / 1e6);
+				say_info("%.1fM rows received",
+					 row_count / 1e6);
 		} else if (row.type == IPROTO_OK) {
 			/*
 			 * Current vclock. This is not used now,
@@ -540,10 +541,10 @@ applier_wait_register(struct applier *applier, uint64_t row_count)
 			++row_count;
 			break; /* end of stream */
 		} else if (iproto_type_is_error(row.type)) {
-			xrow_decode_error_xc(&row);  /* rethrow error */
+			xrow_decode_error_xc(&row); /* rethrow error */
 		} else {
 			tnt_raise(ClientError, ER_UNKNOWN_REQUEST_TYPE,
-				  (uint32_t) row.type);
+				  (uint32_t)row.type);
 		}
 	}
 
@@ -695,8 +696,7 @@ applier_read_tx(struct applier *applier, struct stailq *rows)
 					  "transaction.");
 		}
 		if (tsn != row->tsn)
-			tnt_raise(ClientError, ER_UNSUPPORTED,
-				  "replication",
+			tnt_raise(ClientError, ER_UNSUPPORTED, "replication",
 				  "interleaving transactions");
 
 		assert(row->bodycnt <= 1);
@@ -708,8 +708,8 @@ applier_read_tx(struct applier *applier, struct stailq *rows)
 			 * buffer will not be used while the
 			 * transaction is applied.
 			 */
-			void *new_base = region_alloc(&fiber()->gc,
-						      row->body->iov_len);
+			void *new_base =
+				region_alloc(&fiber()->gc, row->body->iov_len);
 			if (new_base == NULL)
 				tnt_raise(OutOfMemory, row->body->iov_len,
 					  "region", "xrow body");
@@ -720,8 +720,8 @@ applier_read_tx(struct applier *applier, struct stailq *rows)
 		}
 		stailq_add_tail(rows, &tx_row->next);
 
-	} while (!stailq_last_entry(rows, struct applier_tx_row,
-				    next)->row.is_commit);
+	} while (!stailq_last_entry(rows, struct applier_tx_row, next)
+			  ->row.is_commit);
 }
 
 static void
@@ -740,8 +740,7 @@ applier_rollback_by_wal_io(void)
 	 * the journal engine.
 	 */
 	diag_set(ClientError, ER_WAL_IO);
-	diag_set_error(&replicaset.applier.diag,
-		       diag_last_error(diag_get()));
+	diag_set_error(&replicaset.applier.diag, diag_last_error(diag_get()));
 
 	/* Broadcast the rollback across all appliers. */
 	trigger_run(&replicaset.applier.on_rollback, NULL);
@@ -753,8 +752,8 @@ applier_rollback_by_wal_io(void)
 static int
 applier_txn_rollback_cb(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	struct txn *txn = (struct txn *) event;
+	(void)trigger;
+	struct txn *txn = (struct txn *)event;
 	/*
 	 * Synchronous transaction rollback due to receiving a
 	 * ROLLBACK entry is a normal event and requires no
@@ -768,8 +767,8 @@ applier_txn_rollback_cb(struct trigger *trigger, void *event)
 static int
 applier_txn_wal_write_cb(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	(void) event;
+	(void)trigger;
+	(void)event;
 	/* Broadcast the WAL write across all appliers. */
 	trigger_run(&replicaset.applier.on_wal_write, NULL);
 	return 0;
@@ -777,7 +776,7 @@ applier_txn_wal_write_cb(struct trigger *trigger, void *event)
 
 struct synchro_entry {
 	/** Encoded form of a synchro record. */
-	struct synchro_body_bin	body_bin;
+	struct synchro_body_bin body_bin;
 
 	/** xrow to write, used by the journal engine. */
 	struct xrow_header row;
@@ -818,8 +817,7 @@ apply_synchro_row_cb(struct journal_entry *entry)
  * the journal engine in async write way.
  */
 static struct synchro_entry *
-synchro_entry_new(struct xrow_header *applier_row,
-		  struct synchro_request *req)
+synchro_entry_new(struct xrow_header *applier_row, struct synchro_request *req)
 {
 	struct synchro_entry *entry;
 	size_t size = sizeof(*entry) + sizeof(struct xrow_header *);
@@ -884,7 +882,8 @@ applier_handle_raft(struct applier *applier, struct xrow_header *row)
 {
 	assert(iproto_type_is_raft_request(row->type));
 	if (applier->instance_id == 0) {
-		diag_set(ClientError, ER_PROTOCOL, "Can't apply a Raft request "
+		diag_set(ClientError, ER_PROTOCOL,
+			 "Can't apply a Raft request "
 			 "from an instance without an ID");
 		return -1;
 	}
@@ -917,8 +916,8 @@ applier_apply_tx(struct applier *applier, struct stailq *rows)
 	 */
 	if (!raft_is_source_allowed(applier->instance_id))
 		return 0;
-	struct xrow_header *first_row = &stailq_first_entry(rows,
-					struct applier_tx_row, next)->row;
+	struct xrow_header *first_row =
+		&stailq_first_entry(rows, struct applier_tx_row, next)->row;
 	struct xrow_header *last_row;
 	last_row = &stailq_last_entry(rows, struct applier_tx_row, next)->row;
 	struct replica *replica = replica_by_id(first_row->replica_id);
@@ -929,10 +928,10 @@ applier_apply_tx(struct applier *applier, struct stailq *rows)
 	 * that belong to the same server id.
 	 */
 	struct latch *latch = (replica ? &replica->order_latch :
-			       &replicaset.applier.order_latch);
+					       &replicaset.applier.order_latch);
 	latch_lock(latch);
-	if (vclock_get(&replicaset.applier.vclock,
-		       last_row->replica_id) >= last_row->lsn) {
+	if (vclock_get(&replicaset.applier.vclock, last_row->replica_id) >=
+	    last_row->lsn) {
 		latch_unlock(latch);
 		return 0;
 	} else if (vclock_get(&replicaset.applier.vclock,
@@ -944,9 +943,9 @@ applier_apply_tx(struct applier *applier, struct stailq *rows)
 		 */
 		struct xrow_header *tmp;
 		while (true) {
-			tmp = &stailq_first_entry(rows,
-						  struct applier_tx_row,
-						  next)->row;
+			tmp = &stailq_first_entry(rows, struct applier_tx_row,
+						  next)
+				       ->row;
 			if (tmp->lsn <= vclock_get(&replicaset.applier.vclock,
 						   tmp->replica_id)) {
 				stailq_shift(rows);
@@ -981,7 +980,8 @@ applier_apply_tx(struct applier *applier, struct stailq *rows)
 		latch_unlock(latch);
 		return -1;
 	}
-	stailq_foreach_entry(item, rows, next) {
+	stailq_foreach_entry(item, rows, next)
+	{
 		struct xrow_header *row = &item->row;
 		int res = apply_row(row);
 		if (res != 0) {
@@ -1017,18 +1017,18 @@ applier_apply_tx(struct applier *applier, struct stailq *rows)
 		 * new changes which local rows may overwrite.
 		 * Raise an error.
 		 */
-		diag_set(ClientError, ER_UNSUPPORTED,
-			 "Replication", "distributed transactions");
+		diag_set(ClientError, ER_UNSUPPORTED, "Replication",
+			 "distributed transactions");
 		goto rollback;
 	}
 
 	/* We are ready to submit txn to wal. */
 	struct trigger *on_rollback, *on_wal_write;
 	size_t size;
-	on_rollback = region_alloc_object(&txn->region, typeof(*on_rollback),
-					  &size);
-	on_wal_write = region_alloc_object(&txn->region, typeof(*on_wal_write),
-					   &size);
+	on_rollback =
+		region_alloc_object(&txn->region, typeof(*on_rollback), &size);
+	on_wal_write =
+		region_alloc_object(&txn->region, typeof(*on_wal_write), &size);
 	if (on_rollback == NULL || on_wal_write == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_object",
 			 "on_rollback/on_wal_write");
@@ -1081,7 +1081,7 @@ applier_signal_ack(struct applier *applier)
 static int
 applier_on_wal_write(struct trigger *trigger, void *event)
 {
-	(void) event;
+	(void)event;
 	struct applier *applier = (struct applier *)trigger->data;
 	applier_signal_ack(applier);
 	return 0;
@@ -1093,7 +1093,7 @@ applier_on_wal_write(struct trigger *trigger, void *event)
 static int
 applier_on_rollback(struct trigger *trigger, void *event)
 {
-	(void) event;
+	(void)event;
 	struct applier *applier = (struct applier *)trigger->data;
 	/* Setup a shared error. */
 	if (!diag_is_empty(&replicaset.applier.diag)) {
@@ -1133,7 +1133,7 @@ applier_subscribe(struct applier *applier)
 	if (applier->version_id >= version_id(1, 6, 7)) {
 		coio_read_xrow(coio, ibuf, &row);
 		if (iproto_type_is_error(row.type)) {
-			xrow_decode_error_xc(&row);  /* error */
+			xrow_decode_error_xc(&row); /* error */
 		} else if (row.type != IPROTO_OK) {
 			tnt_raise(ClientError, ER_PROTOCOL,
 				  "Invalid response to SUBSCRIBE");
@@ -1147,8 +1147,9 @@ applier_subscribe(struct applier *applier)
 		 * its and master's cluster ids match.
 		 */
 		vclock_create(&applier->remote_vclock_at_subscribe);
-		xrow_decode_subscribe_response_xc(&row, &cluster_id,
-					&applier->remote_vclock_at_subscribe);
+		xrow_decode_subscribe_response_xc(
+			&row, &cluster_id,
+			&applier->remote_vclock_at_subscribe);
 		applier->instance_id = row.replica_id;
 		/*
 		 * If master didn't send us its cluster id
@@ -1204,7 +1205,8 @@ applier_subscribe(struct applier *applier)
 
 		char name[FIBER_NAME_MAX];
 		int pos = snprintf(name, sizeof(name), "applierw/");
-		uri_format(name + pos, sizeof(name) - pos, &applier->uri, false);
+		uri_format(name + pos, sizeof(name) - pos, &applier->uri,
+			   false);
 
 		applier->writer = fiber_new_xc(name, applier_writer_f);
 		fiber_set_joinable(applier->writer, true);
@@ -1254,14 +1256,14 @@ applier_subscribe(struct applier *applier)
 		 * and check applier state.
 		 */
 		struct xrow_header *first_row =
-			&stailq_first_entry(&rows, struct applier_tx_row,
-					    next)->row;
+			&stailq_first_entry(&rows, struct applier_tx_row, next)
+				 ->row;
 		raft_process_heartbeat(applier->instance_id);
 		if (first_row->lsn == 0) {
 			if (unlikely(iproto_type_is_raft_request(
-							first_row->type))) {
-				if (applier_handle_raft(applier,
-							first_row) != 0)
+				    first_row->type))) {
+				if (applier_handle_raft(applier, first_row) !=
+				    0)
 					diag_raise();
 			}
 			applier_signal_ack(applier);
@@ -1381,7 +1383,8 @@ applier_f(va_list ap)
 			} else if (e->errcode() == ER_SYSTEM) {
 				/* System error from master instance. */
 				applier_log_error(applier, e);
-				applier_disconnect(applier, APPLIER_DISCONNECTED);
+				applier_disconnect(applier,
+						   APPLIER_DISCONNECTED);
 				goto reconnect;
 			} else {
 				/* Unrecoverable errors */
@@ -1448,7 +1451,7 @@ applier_f(va_list ap)
 		 *
 		 * See: https://github.com/tarantool/tarantool/issues/136
 		*/
-reconnect:
+	reconnect:
 		fiber_sleep(replication_reconnect_interval());
 	}
 	return 0;
@@ -1488,8 +1491,8 @@ applier_stop(struct applier *applier)
 struct applier *
 applier_new(const char *uri)
 {
-	struct applier *applier = (struct applier *)
-		calloc(1, sizeof(struct applier));
+	struct applier *applier =
+		(struct applier *)calloc(1, sizeof(struct applier));
 	if (applier == NULL) {
 		diag_set(OutOfMemory, sizeof(*applier), "malloc",
 			 "struct applier");
@@ -1503,7 +1506,7 @@ applier_new(const char *uri)
 	int rc = uri_parse(&applier->uri, applier->source);
 	/* URI checked by box_check_replication() */
 	assert(rc == 0 && applier->uri.service != NULL);
-	(void) rc;
+	(void)rc;
 
 	applier->last_row_time = ev_monotonic_now(loop());
 	rlist_create(&applier->on_state);
@@ -1554,7 +1557,7 @@ struct applier_on_state {
 static int
 applier_on_state_f(struct trigger *trigger, void *event)
 {
-	(void) event;
+	(void)event;
 	struct applier_on_state *on_state =
 		container_of(trigger, struct applier_on_state, base);
 
@@ -1573,8 +1576,7 @@ applier_on_state_f(struct trigger *trigger, void *event)
 }
 
 static inline void
-applier_add_on_state(struct applier *applier,
-		     struct applier_on_state *trigger,
+applier_add_on_state(struct applier *applier, struct applier_on_state *trigger,
 		     enum applier_state desired_state)
 {
 	trigger_create(&trigger->base, applier_on_state_f, NULL, NULL);

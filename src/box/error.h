@@ -50,8 +50,8 @@ struct error *
 BuildXlogError(const char *file, unsigned line, const char *format, ...);
 
 struct error *
-BuildXlogGapError(const char *file, unsigned line,
-		  const struct vclock *from, const struct vclock *to);
+BuildXlogGapError(const char *file, unsigned line, const struct vclock *from,
+		  const struct vclock *to);
 
 struct error *
 BuildCustomError(const char *file, unsigned int line, const char *custom_type,
@@ -189,43 +189,33 @@ extern const struct type_info type_CustomError;
 struct rmean;
 extern "C" struct rmean *rmean_error;
 
-enum rmean_error_name {
-	RMEAN_ERROR,
-	RMEAN_ERROR_LAST
-};
+enum rmean_error_name { RMEAN_ERROR, RMEAN_ERROR_LAST };
 extern const char *rmean_error_strings[RMEAN_ERROR_LAST];
 
-class ClientError: public Exception
-{
+class ClientError: public Exception {
 public:
-	virtual void raise()
-	{
-		throw this;
-	}
+	virtual void raise() { throw this; }
 
 	virtual void log() const;
 
-	int
-	errcode() const
-	{
-		return m_errcode;
-	}
+	int errcode() const { return m_errcode; }
 
 	ClientError(const char *file, unsigned line, uint32_t errcode, ...);
 
 	static uint32_t get_errcode(const struct error *e);
 	/* client errno code */
 	int m_errcode;
+
 protected:
 	ClientError(const type_info *type, const char *file, unsigned line,
 		    uint32_t errcode);
 };
 
-class LoggedError: public ClientError
-{
+class LoggedError: public ClientError {
 public:
-	template <typename ... Args>
-	LoggedError(const char *file, unsigned line, uint32_t errcode, Args ... args)
+	template <typename... Args>
+	LoggedError(const char *file, unsigned line, uint32_t errcode,
+		    Args... args)
 		: ClientError(file, line, errcode, args...)
 	{
 		/* TODO: actually calls ClientError::log */
@@ -237,8 +227,7 @@ public:
  * A special type of exception which must be used
  * for all access denied errors, since it invokes audit triggers.
  */
-class AccessDeniedError: public ClientError
-{
+class AccessDeniedError: public ClientError {
 public:
 	AccessDeniedError(const char *file, unsigned int line,
 			  const char *access_type, const char *object_type,
@@ -252,23 +241,11 @@ public:
 		free(m_access_type);
 	}
 
-	const char *
-	object_type()
-	{
-		return m_object_type;
-	}
+	const char *object_type() { return m_object_type; }
 
-	const char *
-	object_name()
-	{
-		return m_object_name?:"(nil)";
-	}
+	const char *object_name() { return m_object_name ?: "(nil)"; }
 
-	const char *
-	access_type()
-	{
-		return m_access_type;
-	}
+	const char *access_type() { return m_access_type; }
 
 private:
 	/** Type of object the required access was denied to */
@@ -285,46 +262,37 @@ private:
  * of exception is introduced to gracefully skip such errors
  * in force_recovery = true mode.
  */
-struct XlogError: public Exception
-{
+struct XlogError: public Exception {
 	XlogError(const char *file, unsigned line, const char *format,
 		  va_list ap)
-		:Exception(&type_XlogError, file, line)
+		: Exception(&type_XlogError, file, line)
 	{
 		error_vformat_msg(this, format, ap);
 	}
-	XlogError(const struct type_info *type, const char *file,
-		  unsigned line)
-		:Exception(type, file, line)
-	{
-	}
+	XlogError(const struct type_info *type, const char *file, unsigned line)
+		: Exception(type, file, line)
+	{}
 
 	virtual void raise() { throw this; }
 };
 
-struct XlogGapError: public XlogError
-{
-	XlogGapError(const char *file, unsigned line,
-		     const struct vclock *from, const struct vclock *to);
-	XlogGapError(const char *file, unsigned line,
-		     const char *msg);
+struct XlogGapError: public XlogError {
+	XlogGapError(const char *file, unsigned line, const struct vclock *from,
+		     const struct vclock *to);
+	XlogGapError(const char *file, unsigned line, const char *msg);
 
 	virtual void raise() { throw this; }
 };
 
-class CustomError: public ClientError
-{
+class CustomError: public ClientError {
 public:
 	CustomError(const char *file, unsigned int line,
 		    const char *custom_type, uint32_t errcode);
 
 	virtual void log() const;
 
-	const char*
-	custom_type()
-	{
-		return m_custom_type;
-	}
+	const char *custom_type() { return m_custom_type; }
+
 private:
 	/** Custom type name. */
 	char m_custom_type[64];

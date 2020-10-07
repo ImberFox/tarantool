@@ -53,8 +53,8 @@ static int
 lbox_pushcursor(struct lua_State *L, struct xlog_cursor *cur)
 {
 	struct xlog_cursor **pcur = NULL;
-	pcur = (struct xlog_cursor **)luaL_pushcdata(L,
-			CTID_STRUCT_XLOG_CURSOR_REF);
+	pcur = (struct xlog_cursor **)
+		luaL_pushcdata(L, CTID_STRUCT_XLOG_CURSOR_REF);
 	*pcur = cur;
 	return 1;
 }
@@ -66,7 +66,7 @@ lbox_checkcursor(struct lua_State *L, int narg, const char *src)
 	void *data = NULL;
 	data = (struct xlog_cursor *)luaL_checkcdata(L, narg, &ctypeid);
 	assert(ctypeid == CTID_STRUCT_XLOG_CURSOR_REF);
-	if (ctypeid != (uint32_t )CTID_STRUCT_XLOG_CURSOR_REF)
+	if (ctypeid != (uint32_t)CTID_STRUCT_XLOG_CURSOR_REF)
 		luaL_error(L, "%s: expecting xlog_cursor object", src);
 	return *(struct xlog_cursor **)data;
 }
@@ -90,7 +90,8 @@ lbox_xlog_pushkey(lua_State *L, const char *key)
 }
 
 static void
-lbox_xlog_parse_body_kv(struct lua_State *L, int type, const char **beg, const char *end)
+lbox_xlog_parse_body_kv(struct lua_State *L, int type, const char **beg,
+			const char *end)
 {
 	if (mp_typeof(**beg) != MP_UINT)
 		luaL_error(L, "Broken type of body key");
@@ -146,7 +147,8 @@ lbox_xlog_parse_body(struct lua_State *L, int type, const char *ptr, size_t len)
 		lbox_xlog_parse_body_kv(L, type, beg, end);
 	if (i != size)
 		say_warn("warning: decoded %u values from"
-			 " MP_MAP, %u expected", i, size);
+			 " MP_MAP, %u expected",
+			 i, size);
 	return 0;
 }
 
@@ -244,7 +246,7 @@ lbox_xlog_parser_iterate(struct lua_State *L)
 		lua_newtable(L);
 		lbox_xlog_parse_body(L, row.type, row.body[0].iov_base,
 				     row.body[0].iov_len);
-		lua_settable(L, -3);  /* BODY */
+		lua_settable(L, -3); /* BODY */
 	}
 	return 2;
 }
@@ -252,7 +254,8 @@ lbox_xlog_parser_iterate(struct lua_State *L)
 /* }}} */
 
 static void
-lbox_xlog_parser_close(struct xlog_cursor *cur) {
+lbox_xlog_parser_close(struct xlog_cursor *cur)
+{
 	if (cur == NULL)
 		return;
 	xlog_cursor_close(cur, false);
@@ -277,11 +280,11 @@ lbox_xlog_parser_open_pairs(struct lua_State *L)
 	const char *filename = luaL_checkstring(L, 1);
 
 	/* Construct xlog cursor */
-	struct xlog_cursor *cur = (struct xlog_cursor *)calloc(1,
-			sizeof(struct xlog_cursor));
+	struct xlog_cursor *cur =
+		(struct xlog_cursor *)calloc(1, sizeof(struct xlog_cursor));
 	if (cur == NULL) {
-		diag_set(OutOfMemory, sizeof(struct xlog_cursor),
-			 "malloc", "struct xlog_cursor");
+		diag_set(OutOfMemory, sizeof(struct xlog_cursor), "malloc",
+			 "struct xlog_cursor");
 		return luaT_error(L);
 	}
 	/* Construct xlog object */
@@ -296,8 +299,7 @@ lbox_xlog_parser_open_pairs(struct lua_State *L)
 	    strncmp(cur->meta.filetype, "VYLOG", 4) != 0) {
 		char buf[1024];
 		snprintf(buf, sizeof(buf), "'%.*s' file type",
-			 (int) strlen(cur->meta.filetype),
-			 cur->meta.filetype);
+			 (int)strlen(cur->meta.filetype), cur->meta.filetype);
 		diag_set(ClientError, ER_UNSUPPORTED, "xlog reader", buf);
 		xlog_cursor_close(cur, false);
 		free(cur);
@@ -314,9 +316,9 @@ lbox_xlog_parser_open_pairs(struct lua_State *L)
 	return 3;
 }
 
-static const struct luaL_Reg lbox_xlog_parser_lib [] = {
-	{ "pairs",	lbox_xlog_parser_open_pairs },
-	{ NULL,		NULL                        }
+static const struct luaL_Reg lbox_xlog_parser_lib[] = {
+	{ "pairs", lbox_xlog_parser_open_pairs },
+	{ NULL, NULL }
 };
 
 void
@@ -324,7 +326,9 @@ box_lua_xlog_init(struct lua_State *L)
 {
 	int rc = 0;
 	/* Get CTypeIDs */
-	rc = luaL_cdef(L, "struct xlog_cursor;"); assert(rc == 0); (void) rc;
+	rc = luaL_cdef(L, "struct xlog_cursor;");
+	assert(rc == 0);
+	(void)rc;
 	CTID_STRUCT_XLOG_CURSOR_REF = luaL_ctypeid(L, "struct xlog_cursor&");
 	assert(CTID_STRUCT_XLOG_CURSOR_REF != 0);
 

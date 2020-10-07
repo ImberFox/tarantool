@@ -88,7 +88,8 @@ struct rmean *rmean_box;
 
 struct rlist box_on_shutdown = RLIST_HEAD_INITIALIZER(box_on_shutdown);
 
-static void title(const char *new_status)
+static void
+title(const char *new_status)
 {
 	snprintf(status, sizeof(status), "%s", new_status);
 	title_set_status(new_status);
@@ -192,10 +193,9 @@ box_check_writable_xc(void)
 static void
 box_check_memtx_min_tuple_size(ssize_t memtx_min_tuple_size)
 {
-
 	if (memtx_min_tuple_size < 8 || memtx_min_tuple_size > 1048280)
-	tnt_raise(ClientError, ER_CFG, "memtx_min_tuple_size",
-		  "specified value is out of bounds");
+		tnt_raise(ClientError, ER_CFG, "memtx_min_tuple_size",
+			  "specified value is out of bounds");
 }
 
 int
@@ -254,7 +254,7 @@ box_process_rw(struct request *request, struct space *space,
 		}
 		if (res < 0)
 			goto error;
-	        fiber_gc();
+		fiber_gc();
 	}
 	if (return_tuple) {
 		tuple_bless(tuple);
@@ -354,10 +354,9 @@ struct recovery_journal {
  * min/max LSN of created LSM levels.
  */
 static int
-recovery_journal_write(struct journal *base,
-		       struct journal_entry *entry)
+recovery_journal_write(struct journal *base, struct journal_entry *entry)
 {
-	struct recovery_journal *journal = (struct recovery_journal *) base;
+	struct recovery_journal *journal = (struct recovery_journal *)base;
 	entry->res = vclock_sum(journal->vclock);
 	/*
 	 * Since there're no actual writes, fire a
@@ -401,7 +400,8 @@ apply_wal_row(struct xstream *stream, struct xrow_header *row)
 	if (request.type != IPROTO_NOP) {
 		struct space *space = space_cache_find_xc(request.space_id);
 		if (box_process_rw(&request, space, NULL) != 0) {
-			say_error("error applying row: %s", request_str(&request));
+			say_error("error applying row: %s",
+				  request_str(&request));
 			diag_raise();
 		}
 	}
@@ -450,7 +450,7 @@ box_check_say(void)
 	enum say_format format = say_format_by_name(log_format);
 	if (format == say_format_MAX)
 		tnt_raise(ClientError, ER_CFG, "log_format",
-			 "expected 'plain' or 'json'");
+			  "expected 'plain' or 'json'");
 	if (type == SAY_LOGGER_SYSLOG && format == SF_JSON) {
 		tnt_raise(ClientError, ER_CFG, "log_format",
 			  "'json' can't be used with syslog logger");
@@ -662,15 +662,14 @@ box_check_wal_mode(const char *mode_name)
 	int mode = strindex(wal_mode_STRS, mode_name, WAL_MODE_MAX);
 	if (mode == WAL_MODE_MAX)
 		tnt_raise(ClientError, ER_CFG, "wal_mode", mode_name);
-	return (enum wal_mode) mode;
+	return (enum wal_mode)mode;
 }
 
 static void
 box_check_readahead(int readahead)
 {
 	enum { READAHEAD_MIN = 128, READAHEAD_MAX = 2147483647 };
-	if (readahead < (int) READAHEAD_MIN ||
-	    readahead > (int) READAHEAD_MAX) {
+	if (readahead < (int)READAHEAD_MIN || readahead > (int)READAHEAD_MAX) {
 		tnt_raise(ClientError, ER_CFG, "readahead",
 			  "specified value is out of bounds");
 	}
@@ -700,11 +699,11 @@ static ssize_t
 box_check_memory_quota(const char *quota_name)
 {
 	int64_t size = cfg_geti64(quota_name);
-	if (size >= 0 && (size_t) size <= QUOTA_MAX)
+	if (size >= 0 && (size_t)size <= QUOTA_MAX)
 		return size;
 	diag_set(ClientError, ER_CFG, quota_name,
 		 tt_sprintf("must be >= 0 and <= %zu, but it is %lld",
-		 QUOTA_MAX, size));
+			    QUOTA_MAX, size));
 	return -1;
 }
 
@@ -832,14 +831,13 @@ box_set_election_timeout(void)
 static struct applier **
 cfg_get_replication(int *p_count)
 {
-
 	/* Use static buffer for result */
 	static struct applier *appliers[VCLOCK_MAX];
 
 	int count = cfg_getarr_size("replication");
 	if (count >= VCLOCK_MAX) {
 		tnt_raise(ClientError, ER_CFG, "replication",
-				"too many replicas");
+			  "too many replicas");
 	}
 
 	for (int i = 0; i < count; i++) {
@@ -871,7 +869,7 @@ box_sync_replication(bool connect_quorum)
 	if (appliers == NULL)
 		diag_raise();
 
-	auto guard = make_scoped_guard([=]{
+	auto guard = make_scoped_guard([=] {
 		for (int i = 0; i < count; i++)
 			applier_delete(appliers[i]); /* doesn't affect diag */
 	});
@@ -976,9 +974,8 @@ box_set_replication_anon(void)
 		return;
 
 	if (!anon) {
-		auto guard = make_scoped_guard([&]{
-			replication_anon = !anon;
-		});
+		auto guard =
+			make_scoped_guard([&] { replication_anon = !anon; });
 		/* Turn anonymous instance into a normal one. */
 		replication_anon = anon;
 		/*
@@ -1021,7 +1018,6 @@ box_set_replication_anon(void)
 			  "cannot be turned on after bootstrap"
 			  " has finished");
 	}
-
 }
 
 void
@@ -1046,16 +1042,17 @@ box_clear_synchro_queue(void)
 	if (!txn_limbo_is_empty(&txn_limbo)) {
 		int64_t lsns[VCLOCK_MAX];
 		int len = 0;
-		const struct vclock  *vclock;
-		replicaset_foreach(replica) {
+		const struct vclock *vclock;
+		replicaset_foreach(replica)
+		{
 			if (replica->relay != NULL &&
 			    relay_get_state(replica->relay) != RELAY_OFF &&
 			    !replica->anon) {
 				assert(!tt_uuid_is_equal(&INSTANCE_UUID,
 							 &replica->uuid));
 				vclock = relay_vclock(replica->relay);
-				int64_t lsn = vclock_get(vclock,
-							 former_leader_id);
+				int64_t lsn =
+					vclock_get(vclock, former_leader_id);
 				lsns[len++] = lsn;
 			}
 		}
@@ -1108,11 +1105,11 @@ box_set_snap_io_rate_limit(void)
 	memtx = (struct memtx_engine *)engine_by_name("memtx");
 	assert(memtx != NULL);
 	memtx_engine_set_snap_io_rate_limit(memtx,
-			cfg_getd("snap_io_rate_limit"));
+					    cfg_getd("snap_io_rate_limit"));
 	struct engine *vinyl = engine_by_name("vinyl");
 	assert(vinyl != NULL);
 	vinyl_engine_set_snap_io_rate_limit(vinyl,
-			cfg_getd("snap_io_rate_limit"));
+					    cfg_getd("snap_io_rate_limit"));
 }
 
 void
@@ -1134,7 +1131,7 @@ box_set_memtx_max_tuple_size(void)
 	memtx = (struct memtx_engine *)engine_by_name("memtx");
 	assert(memtx != NULL);
 	memtx_engine_set_max_tuple_size(memtx,
-			cfg_geti("memtx_max_tuple_size"));
+					cfg_geti("memtx_max_tuple_size"));
 }
 
 void
@@ -1194,7 +1191,7 @@ box_set_vinyl_max_tuple_size(void)
 	struct engine *vinyl = engine_by_name("vinyl");
 	assert(vinyl != NULL);
 	vinyl_engine_set_max_tuple_size(vinyl,
-			cfg_geti("vinyl_max_tuple_size"));
+					cfg_geti("vinyl_max_tuple_size"));
 }
 
 void
@@ -1210,7 +1207,7 @@ box_set_vinyl_timeout(void)
 {
 	struct engine *vinyl = engine_by_name("vinyl");
 	assert(vinyl != NULL);
-	vinyl_engine_set_timeout(vinyl,	cfg_getd("vinyl_timeout"));
+	vinyl_engine_set_timeout(vinyl, cfg_getd("vinyl_timeout"));
 }
 
 void
@@ -1220,7 +1217,7 @@ box_set_net_msg_max(void)
 	iproto_set_msg_max(new_iproto_msg_max);
 	fiber_pool_set_max_size(&tx_fiber_pool,
 				new_iproto_msg_max *
-				IPROTO_FIBER_POOL_SIZE_FACTOR);
+					IPROTO_FIBER_POOL_SIZE_FACTOR);
 }
 
 int
@@ -1317,7 +1314,7 @@ box_space_id_by_name(const char *name, uint32_t len)
 	if (len > BOX_NAME_MAX)
 		return BOX_ID_NIL;
 	uint32_t size = mp_sizeof_array(1) + mp_sizeof_str(len);
-	char *begin = (char *) region_alloc(&fiber()->gc, size);
+	char *begin = (char *)region_alloc(&fiber()->gc, size);
 	if (begin == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "begin");
 		return BOX_ID_NIL;
@@ -1332,7 +1329,7 @@ box_space_id_by_name(const char *name, uint32_t len)
 	if (tuple == NULL)
 		return BOX_ID_NIL;
 	uint32_t result = BOX_ID_NIL;
-	(void) tuple_field_u32(tuple, BOX_SPACE_FIELD_ID, &result);
+	(void)tuple_field_u32(tuple, BOX_SPACE_FIELD_ID, &result);
 	return result;
 }
 
@@ -1343,7 +1340,7 @@ box_index_id_by_name(uint32_t space_id, const char *name, uint32_t len)
 		return BOX_ID_NIL;
 	uint32_t size = mp_sizeof_array(2) + mp_sizeof_uint(space_id) +
 			mp_sizeof_str(len);
-	char *begin = (char *) region_alloc(&fiber()->gc, size);
+	char *begin = (char *)region_alloc(&fiber()->gc, size);
 	if (begin == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "begin");
 		return BOX_ID_NIL;
@@ -1359,7 +1356,7 @@ box_index_id_by_name(uint32_t space_id, const char *name, uint32_t len)
 	if (tuple == NULL)
 		return BOX_ID_NIL;
 	uint32_t result = BOX_ID_NIL;
-	(void) tuple_field_u32(tuple, BOX_INDEX_FIELD_ID, &result);
+	(void)tuple_field_u32(tuple, BOX_INDEX_FIELD_ID, &result);
 	return result;
 }
 /** \endcond public */
@@ -1372,16 +1369,14 @@ box_process1(struct request *request, box_tuple_t **result)
 	if (space == NULL)
 		return -1;
 	if (!space_is_temporary(space) &&
-	    space_group_id(space) != GROUP_LOCAL &&
-	    box_check_writable() != 0)
+	    space_group_id(space) != GROUP_LOCAL && box_check_writable() != 0)
 		return -1;
 	return box_process_rw(request, space, result);
 }
 
 API_EXPORT int
-box_select(uint32_t space_id, uint32_t index_id,
-	   int iterator, uint32_t offset, uint32_t limit,
-	   const char *key, const char *key_end,
+box_select(uint32_t space_id, uint32_t index_id, int iterator, uint32_t offset,
+	   uint32_t limit, const char *key, const char *key_end,
 	   struct port *port)
 {
 	(void)key_end;
@@ -1404,7 +1399,7 @@ box_select(uint32_t space_id, uint32_t index_id,
 	if (index == NULL)
 		return -1;
 
-	enum iterator_type type = (enum iterator_type) iterator;
+	enum iterator_type type = (enum iterator_type)iterator;
 	uint32_t part_count = key ? mp_decode_array(&key) : 0;
 	if (key_validate(index->def, type, key, part_count))
 		return -1;
@@ -1418,8 +1413,8 @@ box_select(uint32_t space_id, uint32_t index_id,
 	if (txn_begin_ro_stmt(space, &txn) != 0)
 		return -1;
 
-	struct iterator *it = index_create_iterator(index, type,
-						    key, part_count);
+	struct iterator *it =
+		index_create_iterator(index, type, key, part_count);
 	if (it == NULL) {
 		txn_rollback_stmt(txn);
 		return -1;
@@ -1564,8 +1559,8 @@ space_truncate(struct space *space)
 	ops_buf_end = mp_encode_uint(ops_buf_end, 1);
 	assert(ops_buf_end < buf + buf_size);
 
-	if (box_upsert(BOX_TRUNCATE_ID, 0, tuple_buf, tuple_buf_end,
-		       ops_buf, ops_buf_end, 0, NULL) != 0)
+	if (box_upsert(BOX_TRUNCATE_ID, 0, tuple_buf, tuple_buf_end, ops_buf,
+		       ops_buf_end, 0, NULL) != 0)
 		diag_raise();
 }
 
@@ -1585,9 +1580,9 @@ box_truncate(uint32_t space_id)
 static int
 sequence_data_update(uint32_t seq_id, int64_t value)
 {
-	size_t tuple_buf_size = (mp_sizeof_array(2) +
-				 2 * mp_sizeof_uint(UINT64_MAX));
-	char *tuple_buf = (char *) region_alloc(&fiber()->gc, tuple_buf_size);
+	size_t tuple_buf_size =
+		(mp_sizeof_array(2) + 2 * mp_sizeof_uint(UINT64_MAX));
+	char *tuple_buf = (char *)region_alloc(&fiber()->gc, tuple_buf_size);
 	if (tuple_buf == NULL) {
 		diag_set(OutOfMemory, tuple_buf_size, "region", "tuple");
 		return -1;
@@ -1595,16 +1590,15 @@ sequence_data_update(uint32_t seq_id, int64_t value)
 	char *tuple_buf_end = tuple_buf;
 	tuple_buf_end = mp_encode_array(tuple_buf_end, 2);
 	tuple_buf_end = mp_encode_uint(tuple_buf_end, seq_id);
-	tuple_buf_end = (value < 0 ?
-			 mp_encode_int(tuple_buf_end, value) :
-			 mp_encode_uint(tuple_buf_end, value));
+	tuple_buf_end = (value < 0 ? mp_encode_int(tuple_buf_end, value) :
+					   mp_encode_uint(tuple_buf_end, value));
 	assert(tuple_buf_end < tuple_buf + tuple_buf_size);
 
 	struct credentials *orig_credentials = effective_user();
 	fiber_set_user(fiber(), &admin_credentials);
 
-	int rc = box_replace(BOX_SEQUENCE_DATA_ID,
-			     tuple_buf, tuple_buf_end, NULL);
+	int rc = box_replace(BOX_SEQUENCE_DATA_ID, tuple_buf, tuple_buf_end,
+			     NULL);
 
 	fiber_set_user(fiber(), orig_credentials);
 	return rc;
@@ -1615,7 +1609,7 @@ static int
 sequence_data_delete(uint32_t seq_id)
 {
 	size_t key_buf_size = mp_sizeof_array(1) + mp_sizeof_uint(UINT64_MAX);
-	char *key_buf = (char *) region_alloc(&fiber()->gc, key_buf_size);
+	char *key_buf = (char *)region_alloc(&fiber()->gc, key_buf_size);
 	if (key_buf == NULL) {
 		diag_set(OutOfMemory, key_buf_size, "region", "key");
 		return -1;
@@ -1628,8 +1622,8 @@ sequence_data_delete(uint32_t seq_id)
 	struct credentials *orig_credentials = effective_user();
 	fiber_set_user(fiber(), &admin_credentials);
 
-	int rc = box_delete(BOX_SEQUENCE_DATA_ID, 0,
-			    key_buf, key_buf_end, NULL);
+	int rc =
+		box_delete(BOX_SEQUENCE_DATA_ID, 0, key_buf, key_buf_end, NULL);
 
 	fiber_set_user(fiber(), orig_credentials);
 	return rc;
@@ -1707,8 +1701,8 @@ box_session_push(const char *data, const char *data_end)
 static inline void
 box_register_replica(uint32_t id, const struct tt_uuid *uuid)
 {
-	if (boxk(IPROTO_INSERT, BOX_CLUSTER_ID, "[%u%s]",
-		 (unsigned) id, tt_uuid_str(uuid)) != 0)
+	if (boxk(IPROTO_INSERT, BOX_CLUSTER_ID, "[%u%s]", (unsigned)id,
+		 tt_uuid_str(uuid)) != 0)
 		diag_raise();
 	assert(replica_by_uuid(uuid)->id == id);
 }
@@ -1732,15 +1726,15 @@ box_on_join(const tt_uuid *instance_uuid)
 	/** Find the largest existing replica id. */
 	struct space *space = space_cache_find_xc(BOX_CLUSTER_ID);
 	struct index *index = index_find_system_xc(space, 0);
-	struct iterator *it = index_create_iterator_xc(index, ITER_ALL,
-						       NULL, 0);
+	struct iterator *it =
+		index_create_iterator_xc(index, ITER_ALL, NULL, 0);
 	IteratorGuard iter_guard(it);
 	struct tuple *tuple;
 	/** Assign a new replica id. */
 	uint32_t replica_id = 1;
 	while ((tuple = iterator_next_xc(it)) != NULL) {
-		if (tuple_field_u32_xc(tuple,
-				       BOX_CLUSTER_FIELD_ID) != replica_id)
+		if (tuple_field_u32_xc(tuple, BOX_CLUSTER_FIELD_ID) !=
+		    replica_id)
 			break;
 		replica_id++;
 	}
@@ -1779,7 +1773,8 @@ box_process_fetch_snapshot(struct ev_io *io, struct xrow_header *header)
 			  "wal_mode = 'none'");
 	}
 
-	say_info("sending current read-view to replica at %s", sio_socketname(io->fd));
+	say_info("sending current read-view to replica at %s",
+		 sio_socketname(io->fd));
 
 	/* Send the snapshot data to the instance. */
 	struct vclock start_vclock;
@@ -1830,14 +1825,15 @@ box_process_register(struct ev_io *io, struct xrow_header *header)
 			  "wal_mode = 'none'");
 	}
 
-	struct gc_consumer *gc = gc_consumer_register(&replicaset.vclock,
-				"replica %s", tt_uuid_str(&instance_uuid));
+	struct gc_consumer *gc =
+		gc_consumer_register(&replicaset.vclock, "replica %s",
+				     tt_uuid_str(&instance_uuid));
 	if (gc == NULL)
 		diag_raise();
 	auto gc_guard = make_scoped_guard([&] { gc_consumer_unregister(gc); });
 
-	say_info("registering replica %s at %s",
-		 tt_uuid_str(&instance_uuid), sio_socketname(io->fd));
+	say_info("registering replica %s at %s", tt_uuid_str(&instance_uuid),
+		 sio_socketname(io->fd));
 
 	/* See box_process_join() */
 	int64_t limbo_rollback_count = txn_limbo.rollback_count;
@@ -1974,14 +1970,15 @@ box_process_join(struct ev_io *io, struct xrow_header *header)
 	 * Register the replica as a WAL consumer so that
 	 * it can resume FINAL JOIN where INITIAL JOIN ends.
 	 */
-	struct gc_consumer *gc = gc_consumer_register(&replicaset.vclock,
-				"replica %s", tt_uuid_str(&instance_uuid));
+	struct gc_consumer *gc =
+		gc_consumer_register(&replicaset.vclock, "replica %s",
+				     tt_uuid_str(&instance_uuid));
 	if (gc == NULL)
 		diag_raise();
 	auto gc_guard = make_scoped_guard([&] { gc_consumer_unregister(gc); });
 
-	say_info("joining replica %s at %s",
-		 tt_uuid_str(&instance_uuid), sio_socketname(io->fd));
+	say_info("joining replica %s at %s", tt_uuid_str(&instance_uuid),
+		 sio_socketname(io->fd));
 
 	/*
 	 * In order to join a replica, master has to make sure it
@@ -2102,7 +2099,8 @@ box_process_subscribe(struct ev_io *io, struct xrow_header *header)
 			  tt_uuid_str(&replica_uuid));
 	}
 	if (anon && replica != NULL && replica->id != REPLICA_ID_NIL) {
-		tnt_raise(ClientError, ER_PROTOCOL, "Can't subscribe an "
+		tnt_raise(ClientError, ER_PROTOCOL,
+			  "Can't subscribe an "
 			  "anonymous replica having an ID assigned");
 	}
 	if (replica == NULL)
@@ -2147,8 +2145,8 @@ box_process_subscribe(struct ev_io *io, struct xrow_header *header)
 	row.sync = header->sync;
 	coio_write_xrow(io, &row);
 
-	say_info("subscribed replica %s at %s",
-		 tt_uuid_str(&replica_uuid), sio_socketname(io->fd));
+	say_info("subscribed replica %s at %s", tt_uuid_str(&replica_uuid),
+		 sio_socketname(io->fd));
 	say_info("remote vclock %s local vclock %s",
 		 vclock_to_string(&replica_clock), vclock_to_string(&vclock));
 	if (raft_is_enabled()) {
@@ -2368,15 +2366,15 @@ bootstrap_from_master(struct replica *master)
 
 	assert(!tt_uuid_is_nil(&INSTANCE_UUID));
 	enum applier_state wait_state = replication_anon ?
-					APPLIER_FETCH_SNAPSHOT :
-					APPLIER_INITIAL_JOIN;
+						      APPLIER_FETCH_SNAPSHOT :
+						      APPLIER_INITIAL_JOIN;
 	applier_resume_to_state(applier, wait_state, TIMEOUT_INFINITY);
 	/*
 	 * Process initial data (snapshot or dirty disk data).
 	 */
 	engine_begin_initial_recovery_xc(NULL);
 	wait_state = replication_anon ? APPLIER_FETCHED_SNAPSHOT :
-					APPLIER_FINAL_JOIN;
+					      APPLIER_FINAL_JOIN;
 	applier_resume_to_state(applier, wait_state, TIMEOUT_INFINITY);
 
 	/*
@@ -2423,8 +2421,7 @@ bootstrap_from_master(struct replica *master)
  */
 static void
 bootstrap(const struct tt_uuid *instance_uuid,
-	  const struct tt_uuid *replicaset_uuid,
-	  bool *is_bootstrap_leader)
+	  const struct tt_uuid *replicaset_uuid, bool *is_bootstrap_leader)
 {
 	/* Initialize instance UUID. */
 	assert(tt_uuid_is_nil(&INSTANCE_UUID));
@@ -2456,7 +2453,8 @@ bootstrap(const struct tt_uuid *instance_uuid,
 	struct replica *master = replicaset_leader();
 	assert(master == NULL || master->applier != NULL);
 
-	if (master != NULL && !tt_uuid_is_equal(&master->uuid, &INSTANCE_UUID)) {
+	if (master != NULL &&
+	    !tt_uuid_is_equal(&master->uuid, &INSTANCE_UUID)) {
 		bootstrap_from_master(master);
 		/* Check replica set UUID */
 		if (!tt_uuid_is_nil(replicaset_uuid) &&
@@ -2506,7 +2504,7 @@ local_recovery(const struct tt_uuid *instance_uuid,
 	 * in box.info while local recovery is in progress.
 	 */
 	box_vclock = &recovery->vclock;
-	auto guard = make_scoped_guard([&]{
+	auto guard = make_scoped_guard([&] {
 		box_vclock = &replicaset.vclock;
 		recovery_delete(recovery);
 	});
@@ -2611,8 +2609,8 @@ local_recovery(const struct tt_uuid *instance_uuid,
 static void
 tx_prio_cb(struct ev_loop *loop, ev_watcher *watcher, int events)
 {
-	(void) loop;
-	(void) events;
+	(void)loop;
+	(void)events;
 	struct cbus_endpoint *endpoint = (struct cbus_endpoint *)watcher->data;
 	cbus_process(endpoint);
 }
@@ -2669,7 +2667,8 @@ box_cfg_xc(void)
 			  IPROTO_MSG_MAX_MIN * IPROTO_FIBER_POOL_SIZE_FACTOR,
 			  FIBER_POOL_IDLE_TIMEOUT);
 	/* Add an extra endpoint for WAL wake up/rollback messages. */
-	cbus_endpoint_create(&tx_prio_endpoint, "tx_prio", tx_prio_cb, &tx_prio_endpoint);
+	cbus_endpoint_create(&tx_prio_endpoint, "tx_prio", tx_prio_cb,
+			     &tx_prio_endpoint);
 
 	rmean_box = rmean_new(iproto_type_strs, IPROTO_TYPE_STAT_MAX);
 	rmean_error = rmean_new(rmean_error_strings, RMEAN_ERROR_LAST);
@@ -2682,7 +2681,8 @@ box_cfg_xc(void)
 	iproto_init();
 	sql_init();
 
-	int64_t wal_max_size = box_check_wal_max_size(cfg_geti64("wal_max_size"));
+	int64_t wal_max_size =
+		box_check_wal_max_size(cfg_geti64("wal_max_size"));
 	enum wal_mode wal_mode = box_check_wal_mode(cfg_gets("wal_mode"));
 	if (wal_init(wal_mode, cfg_gets("wal_dir"), wal_max_size,
 		     &INSTANCE_UUID, on_wal_garbage_collection,
@@ -2734,9 +2734,8 @@ box_cfg_xc(void)
 	struct journal bootstrap_journal;
 	journal_create(&bootstrap_journal, NULL, bootstrap_journal_write);
 	journal_set(&bootstrap_journal);
-	auto bootstrap_journal_guard = make_scoped_guard([] {
-		journal_set(NULL);
-	});
+	auto bootstrap_journal_guard =
+		make_scoped_guard([] { journal_set(NULL); });
 
 	bool is_bootstrap_leader = false;
 	if (checkpoint != NULL) {
@@ -2855,7 +2854,7 @@ int
 box_checkpoint(void)
 {
 	/* Signal arrived before box.cfg{} */
-	if (! is_box_configured)
+	if (!is_box_configured)
 		return 0;
 
 	return gc_checkpoint();
@@ -2870,7 +2869,8 @@ box_backup_start(int checkpoint_idx, box_backup_cb cb, void *cb_arg)
 		return -1;
 	}
 	struct gc_checkpoint *checkpoint;
-	gc_foreach_checkpoint_reverse(checkpoint) {
+	gc_foreach_checkpoint_reverse(checkpoint)
+	{
 		if (checkpoint_idx-- == 0)
 			break;
 	}
@@ -2900,7 +2900,7 @@ box_backup_stop(void)
 const char *
 box_status(void)
 {
-    return status;
+	return status;
 }
 
 static int

@@ -42,14 +42,16 @@
 /* {{{ Utilities. **********************************************/
 
 UnsupportedIndexFeature::UnsupportedIndexFeature(const char *file,
-	unsigned line, struct index_def *index_def, const char *what)
+						 unsigned line,
+						 struct index_def *index_def,
+						 const char *what)
 	: ClientError(file, line, ER_UNKNOWN)
 {
 	struct space *space = space_cache_find_xc(index_def->space_id);
 	m_errcode = ER_UNSUPPORTED_INDEX_FEATURE;
 	error_format_msg(this, tnt_errcode_desc(m_errcode), index_def->name,
-			 index_type_strs[index_def->type],
-			 space->def->name, space->def->engine_name, what);
+			 index_type_strs[index_def->type], space->def->name,
+			 space->def->engine_name, what);
 }
 
 struct error *
@@ -84,7 +86,7 @@ key_validate(const struct index_def *index_def, enum iterator_type type,
 	if (index_def->type == RTREE) {
 		unsigned d = index_def->opts.dimension;
 		if (part_count != 1 && part_count != d && part_count != d * 2) {
-			diag_set(ClientError, ER_KEY_PART_COUNT, d  * 2,
+			diag_set(ClientError, ER_KEY_PART_COUNT, d * 2,
 				 part_count);
 			return -1;
 		}
@@ -98,8 +100,8 @@ key_validate(const struct index_def *index_def, enum iterator_type type,
 				return -1;
 			}
 			for (uint32_t part = 0; part < array_size; part++) {
-				if (key_part_validate(FIELD_TYPE_NUMBER, key,
-						      0, false))
+				if (key_part_validate(FIELD_TYPE_NUMBER, key, 0,
+						      false))
 					return -1;
 				mp_next(&key);
 			}
@@ -119,16 +121,16 @@ key_validate(const struct index_def *index_def, enum iterator_type type,
 		}
 
 		/* Partial keys are allowed only for TREE index type. */
-		if (index_def->type != TREE && part_count < index_def->key_def->part_count) {
+		if (index_def->type != TREE &&
+		    part_count < index_def->key_def->part_count) {
 			diag_set(ClientError, ER_PARTIAL_KEY,
 				 index_type_strs[index_def->type],
-				 index_def->key_def->part_count,
-				 part_count);
+				 index_def->key_def->part_count, part_count);
 			return -1;
 		}
 		const char *key_end;
-		if (key_validate_parts(index_def->key_def, key,
-				       part_count, true, &key_end) != 0)
+		if (key_validate_parts(index_def->key_def, key, part_count,
+				       true, &key_end) != 0)
 			return -1;
 	}
 	return 0;
@@ -158,13 +160,13 @@ box_tuple_extract_key(box_tuple_t *tuple, uint32_t space_id, uint32_t index_id,
 	struct index *index = index_find(space, index_id);
 	if (index == NULL)
 		return NULL;
-	return tuple_extract_key(tuple, index->def->key_def,
-				 MULTIKEY_NONE, key_size);
+	return tuple_extract_key(tuple, index->def->key_def, MULTIKEY_NONE,
+				 key_size);
 }
 
 static inline int
-check_index(uint32_t space_id, uint32_t index_id,
-	    struct space **space, struct index **index)
+check_index(uint32_t space_id, uint32_t index_id, struct space **space,
+	    struct index **index)
 {
 	*space = space_cache_find(space_id);
 	if (*space == NULL)
@@ -205,7 +207,7 @@ box_index_bsize(uint32_t space_id, uint32_t index_id)
 
 int
 box_index_random(uint32_t space_id, uint32_t index_id, uint32_t rnd,
-		box_tuple_t **result)
+		 box_tuple_t **result)
 {
 	assert(result != NULL);
 	struct space *space;
@@ -318,8 +320,8 @@ box_index_max(uint32_t space_id, uint32_t index_id, const char *key,
 }
 
 ssize_t
-box_index_count(uint32_t space_id, uint32_t index_id, int type,
-		const char *key, const char *key_end)
+box_index_count(uint32_t space_id, uint32_t index_id, int type, const char *key,
+		const char *key_end)
 {
 	assert(key != NULL && key_end != NULL);
 	mp_tuple_assert(key, key_end);
@@ -328,7 +330,7 @@ box_index_count(uint32_t space_id, uint32_t index_id, int type,
 			 "Invalid iterator type");
 		return -1;
 	}
-	enum iterator_type itype = (enum iterator_type) type;
+	enum iterator_type itype = (enum iterator_type)type;
 	struct space *space;
 	struct index *index;
 	if (check_index(space_id, index_id, &space, &index) != 0)
@@ -355,7 +357,7 @@ box_index_count(uint32_t space_id, uint32_t index_id, int type,
 
 box_iterator_t *
 box_index_iterator(uint32_t space_id, uint32_t index_id, int type,
-                   const char *key, const char *key_end)
+		   const char *key, const char *key_end)
 {
 	assert(key != NULL && key_end != NULL);
 	mp_tuple_assert(key, key_end);
@@ -364,7 +366,7 @@ box_index_iterator(uint32_t space_id, uint32_t index_id, int type,
 			 "Invalid iterator type");
 		return NULL;
 	}
-	enum iterator_type itype = (enum iterator_type) type;
+	enum iterator_type itype = (enum iterator_type)type;
 	struct space *space;
 	struct index *index;
 	if (check_index(space_id, index_id, &space, &index) != 0)
@@ -376,8 +378,8 @@ box_index_iterator(uint32_t space_id, uint32_t index_id, int type,
 	struct txn *txn;
 	if (txn_begin_ro_stmt(space, &txn) != 0)
 		return NULL;
-	struct iterator *it = index_create_iterator(index, itype,
-						    key, part_count);
+	struct iterator *it =
+		index_create_iterator(index, itype, key, part_count);
 	if (it == NULL) {
 		txn_rollback_stmt(txn);
 		return NULL;
@@ -409,8 +411,7 @@ box_iterator_free(box_iterator_t *it)
 /* {{{ Other index functions */
 
 int
-box_index_stat(uint32_t space_id, uint32_t index_id,
-	       struct info_handler *info)
+box_index_stat(uint32_t space_id, uint32_t index_id, struct info_handler *info)
 {
 	struct space *space;
 	struct index *index;
@@ -520,9 +521,8 @@ index_build(struct index *index, struct index *pk)
 		return -1;
 
 	if (n_tuples > 0) {
-		say_info("Adding %zd keys to %s index '%s' ...",
-			 n_tuples, index_type_strs[index->def->type],
-			 index->def->name);
+		say_info("Adding %zd keys to %s index '%s' ...", n_tuples,
+			 index_type_strs[index->def->type], index->def->name);
 	}
 
 	struct iterator *it = index_create_iterator(pk, ITER_ALL, NULL, 0);
@@ -555,30 +555,26 @@ index_build(struct index *index, struct index *pk)
 
 void
 generic_index_commit_create(struct index *, int64_t)
-{
-}
+{}
 
 void
 generic_index_abort_create(struct index *)
-{
-}
+{}
 
 void
 generic_index_commit_modify(struct index *, int64_t)
-{
-}
+{}
 
 void
 generic_index_commit_drop(struct index *, int64_t)
-{
-}
+{}
 
 void
 generic_index_update_def(struct index *)
-{
-}
+{}
 
-bool generic_index_depends_on_pk(struct index *)
+bool
+generic_index_depends_on_pk(struct index *)
 {
 	return false;
 }
@@ -604,11 +600,11 @@ generic_index_bsize(struct index *)
 }
 
 int
-generic_index_min(struct index *index, const char *key,
-		  uint32_t part_count, struct tuple **result)
+generic_index_min(struct index *index, const char *key, uint32_t part_count,
+		  struct tuple **result)
 {
-	struct iterator *it = index_create_iterator(index, ITER_EQ,
-						    key, part_count);
+	struct iterator *it =
+		index_create_iterator(index, ITER_EQ, key, part_count);
 	if (it == NULL)
 		return -1;
 	int rc = iterator_next(it, result);
@@ -617,11 +613,11 @@ generic_index_min(struct index *index, const char *key,
 }
 
 int
-generic_index_max(struct index *index, const char *key,
-		  uint32_t part_count, struct tuple **result)
+generic_index_max(struct index *index, const char *key, uint32_t part_count,
+		  struct tuple **result)
 {
-	struct iterator *it = index_create_iterator(index, ITER_REQ,
-						    key, part_count);
+	struct iterator *it =
+		index_create_iterator(index, ITER_REQ, key, part_count);
 	if (it == NULL)
 		return -1;
 	int rc = iterator_next(it, result);
@@ -642,8 +638,8 @@ ssize_t
 generic_index_count(struct index *index, enum iterator_type type,
 		    const char *key, uint32_t part_count)
 {
-	struct iterator *it = index_create_iterator(index, type,
-						    key, part_count);
+	struct iterator *it =
+		index_create_iterator(index, type, key, part_count);
 	if (it == NULL)
 		return -1;
 	int rc = 0;
@@ -658,8 +654,8 @@ generic_index_count(struct index *index, enum iterator_type type,
 }
 
 int
-generic_index_get(struct index *index, const char *key,
-		  uint32_t part_count, struct tuple **result)
+generic_index_get(struct index *index, const char *key, uint32_t part_count,
+		  struct tuple **result)
 {
 	(void)key;
 	(void)part_count;
@@ -685,11 +681,12 @@ struct iterator *
 generic_index_create_iterator(struct index *base, enum iterator_type type,
 			      const char *key, uint32_t part_count)
 {
-	(void) type; (void) key; (void) part_count;
+	(void)type;
+	(void)key;
+	(void)part_count;
 	diag_set(UnsupportedIndexFeature, base->def, "read view");
 	return NULL;
 }
-
 
 struct snapshot_iterator *
 generic_index_create_snapshot_iterator(struct index *index)
@@ -720,8 +717,7 @@ generic_index_reset_stat(struct index *index)
 
 void
 generic_index_begin_build(struct index *)
-{
-}
+{}
 
 int
 generic_index_reserve(struct index *, uint32_t)
@@ -745,13 +741,13 @@ generic_index_build_next(struct index *index, struct tuple *tuple)
 
 void
 generic_index_end_build(struct index *)
-{
-}
+{}
 
 int
 disabled_index_build_next(struct index *index, struct tuple *tuple)
 {
-	(void) index; (void) tuple;
+	(void)index;
+	(void)tuple;
 	return 0;
 }
 
@@ -760,8 +756,10 @@ disabled_index_replace(struct index *index, struct tuple *old_tuple,
 		       struct tuple *new_tuple, enum dup_replace_mode mode,
 		       struct tuple **result)
 {
-	(void) old_tuple; (void) new_tuple; (void) mode;
-	(void) index;
+	(void)old_tuple;
+	(void)new_tuple;
+	(void)mode;
+	(void)index;
 	*result = NULL;
 	return 0;
 }

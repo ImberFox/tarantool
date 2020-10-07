@@ -92,8 +92,8 @@ sequence_data_extent_alloc(void *ctx)
 	(void)ctx;
 	void *ret = mempool_alloc(&sequence_data_extent_pool);
 	if (ret == NULL)
-		diag_set(OutOfMemory, SEQUENCE_DATA_EXTENT_SIZE,
-			 "mempool", "sequence_data_extent");
+		diag_set(OutOfMemory, SEQUENCE_DATA_EXTENT_SIZE, "mempool",
+			 "sequence_data_extent");
 	return ret;
 }
 
@@ -166,11 +166,11 @@ sequence_set(struct sequence *seq, int64_t value)
 	struct sequence_data new_data, old_data;
 	new_data.id = key;
 	new_data.value = value;
-	if (light_sequence_replace(&sequence_data_index, hash,
-				   new_data, &old_data) != light_sequence_end)
+	if (light_sequence_replace(&sequence_data_index, hash, new_data,
+				   &old_data) != light_sequence_end)
 		return 0;
-	if (light_sequence_insert(&sequence_data_index, hash,
-				  new_data) != light_sequence_end)
+	if (light_sequence_insert(&sequence_data_index, hash, new_data) !=
+	    light_sequence_end)
 		return 0;
 	return -1;
 }
@@ -189,7 +189,8 @@ sequence_update(struct sequence *seq, int64_t value)
 		if ((seq->def->step > 0 && value > data.value) ||
 		    (seq->def->step < 0 && value < data.value)) {
 			if (light_sequence_replace(&sequence_data_index, hash,
-					new_data, &data) == light_sequence_end)
+						   new_data,
+						   &data) == light_sequence_end)
 				unreachable();
 		}
 	} else {
@@ -246,8 +247,8 @@ done:
 	assert(value >= def->min && value <= def->max);
 	new_data.id = key;
 	new_data.value = value;
-	if (light_sequence_replace(&sequence_data_index, hash,
-				   new_data, &old_data) == light_sequence_end)
+	if (light_sequence_replace(&sequence_data_index, hash, new_data,
+				   &old_data) == light_sequence_end)
 		unreachable();
 	*result = value;
 	return 0;
@@ -272,25 +273,23 @@ access_check_sequence(struct sequence *seq)
 
 	user_access_t access = PRIV_U | PRIV_W;
 	user_access_t sequence_access = access & ~cr->universal_access;
-	sequence_access &= ~entity_access_get(SC_SEQUENCE)[cr->auth_token].effective;
+	sequence_access &=
+		~entity_access_get(SC_SEQUENCE)[cr->auth_token].effective;
 	if (sequence_access &&
 	    /* Check for missing Usage access, ignore owner rights. */
 	    (sequence_access & PRIV_U ||
 	     /* Check for missing specific access, respect owner rights. */
 	     (seq->def->uid != cr->uid &&
 	      sequence_access & ~seq->access[cr->auth_token].effective))) {
-
 		/* Access violation, report error. */
 		struct user *user = user_find(cr->uid);
 		if (user != NULL) {
 			if (!(cr->universal_access & PRIV_U)) {
-				diag_set(AccessDeniedError,
-					 priv_name(PRIV_U),
+				diag_set(AccessDeniedError, priv_name(PRIV_U),
 					 schema_object_name(SC_UNIVERSE), "",
 					 user->def->name);
 			} else {
-				diag_set(AccessDeniedError,
-					 priv_name(access),
+				diag_set(AccessDeniedError, priv_name(access),
 					 schema_object_name(SC_SEQUENCE),
 					 seq->def->name, user->def->name);
 			}
@@ -308,12 +307,12 @@ struct sequence_data_iterator {
 	char tuple[0];
 };
 
-#define SEQUENCE_TUPLE_BUF_SIZE		(mp_sizeof_array(2) + \
-					 2 * mp_sizeof_uint(UINT64_MAX))
+#define SEQUENCE_TUPLE_BUF_SIZE \
+	(mp_sizeof_array(2) + 2 * mp_sizeof_uint(UINT64_MAX))
 
 static int
-sequence_data_iterator_next(struct snapshot_iterator *base,
-			    const char **data, uint32_t *size)
+sequence_data_iterator_next(struct snapshot_iterator *base, const char **data,
+			    uint32_t *size)
 {
 	struct sequence_data_iterator *iter =
 		(struct sequence_data_iterator *)base;
@@ -329,9 +328,8 @@ sequence_data_iterator_next(struct snapshot_iterator *base,
 	char *buf_end = iter->tuple;
 	buf_end = mp_encode_array(buf_end, 2);
 	buf_end = mp_encode_uint(buf_end, sd->id);
-	buf_end = (sd->value >= 0 ?
-		   mp_encode_uint(buf_end, sd->value) :
-		   mp_encode_int(buf_end, sd->value));
+	buf_end = (sd->value >= 0 ? mp_encode_uint(buf_end, sd->value) :
+					  mp_encode_int(buf_end, sd->value));
 	assert(buf_end <= iter->tuple + SEQUENCE_TUPLE_BUF_SIZE);
 	*data = iter->tuple;
 	*size = buf_end - iter->tuple;
@@ -351,8 +349,8 @@ sequence_data_iterator_free(struct snapshot_iterator *base)
 struct snapshot_iterator *
 sequence_data_iterator_create(void)
 {
-	struct sequence_data_iterator *iter = calloc(1, sizeof(*iter) +
-						     SEQUENCE_TUPLE_BUF_SIZE);
+	struct sequence_data_iterator *iter =
+		calloc(1, sizeof(*iter) + SEQUENCE_TUPLE_BUF_SIZE);
 	if (iter == NULL) {
 		diag_set(OutOfMemory, sizeof(*iter) + SEQUENCE_TUPLE_BUF_SIZE,
 			 "malloc", "sequence_data_iterator");
@@ -377,8 +375,8 @@ sequence_get_value(struct sequence *seq, int64_t *result)
 		diag_set(ClientError, ER_SEQUENCE_NOT_STARTED, seq->def->name);
 		return -1;
 	}
-	struct sequence_data data = light_sequence_get(&sequence_data_index,
-						       pos);
+	struct sequence_data data =
+		light_sequence_get(&sequence_data_index, pos);
 	*result = data.value;
 	return 0;
 }

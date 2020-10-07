@@ -85,8 +85,9 @@ int
 xrow_update_err_no_such_field(const struct xrow_update_op *op)
 {
 	if (op->lexer.src == NULL) {
-		diag_set(ClientError, ER_NO_SUCH_FIELD_NO, op->field_no +
-			 (op->field_no >= 0 ? TUPLE_INDEX_BASE : 0));
+		diag_set(ClientError, ER_NO_SUCH_FIELD_NO,
+			 op->field_no +
+				 (op->field_no >= 0 ? TUPLE_INDEX_BASE : 0));
 		return -1;
 	}
 	diag_set(ClientError, ER_NO_SUCH_FIELD_NAME,
@@ -132,7 +133,7 @@ xrow_update_field_store(struct xrow_update_field *field,
 			struct json_token *this_node, char *out, char *out_end)
 {
 	struct xrow_update_op *op;
-	switch(field->type) {
+	switch (field->type) {
 	case XUPDATE_NOP:
 		assert(out_end - out >= field->size);
 		memcpy(out, field->data, field->size);
@@ -188,7 +189,7 @@ xrow_mp_read_arg_arith(struct xrow_update_op *op, const char **expr,
 {
 	int8_t ext_type;
 	uint32_t len;
-	switch(mp_typeof(**expr)) {
+	switch (mp_typeof(**expr)) {
 	case MP_UINT:
 		ret->type = XUPDATE_TYPE_INT;
 		int96_set_unsigned(&ret->int96, mp_decode_uint(expr));
@@ -237,10 +238,10 @@ static int
 xrow_update_read_arg_set(struct xrow_update_op *op, const char **expr,
 			 int index_base)
 {
-	(void) index_base;
+	(void)index_base;
 	op->arg.set.value = *expr;
 	mp_next(expr);
-	op->arg.set.length = (uint32_t) (*expr - op->arg.set.value);
+	op->arg.set.length = (uint32_t)(*expr - op->arg.set.value);
 	return 0;
 }
 
@@ -248,9 +249,9 @@ static int
 xrow_update_read_arg_delete(struct xrow_update_op *op, const char **expr,
 			    int index_base)
 {
-	(void) index_base;
+	(void)index_base;
 	if (mp_typeof(**expr) == MP_UINT) {
-		op->arg.del.count = (uint32_t) mp_decode_uint(expr);
+		op->arg.del.count = (uint32_t)mp_decode_uint(expr);
 		if (op->arg.del.count != 0)
 			return 0;
 		return xrow_update_err(op, "cannot delete 0 fields");
@@ -262,7 +263,7 @@ static int
 xrow_update_read_arg_arith(struct xrow_update_op *op, const char **expr,
 			   int index_base)
 {
-	(void) index_base;
+	(void)index_base;
 	return xrow_mp_read_arg_arith(op, expr, &op->arg.arith);
 }
 
@@ -270,7 +271,7 @@ static int
 xrow_update_read_arg_bit(struct xrow_update_op *op, const char **expr,
 			 int index_base)
 {
-	(void) index_base;
+	(void)index_base;
 	return xrow_update_mp_read_uint(op, expr, &op->arg.bit.val);
 }
 
@@ -373,7 +374,7 @@ xrow_update_arith_make(struct xrow_update_op *op,
 		lowest_type = arg2.type;
 
 	if (lowest_type == XUPDATE_TYPE_INT) {
-		switch(opcode) {
+		switch (opcode) {
 		case '+':
 			int96_add(&arg1.int96, &arg2.int96);
 			break;
@@ -393,7 +394,7 @@ xrow_update_arith_make(struct xrow_update_op *op,
 		double a = xrow_update_arg_arith_to_double(arg1);
 		double b = xrow_update_arg_arith_to_double(arg2);
 		double c;
-		switch(opcode) {
+		switch (opcode) {
 		case '+':
 			c = a + b;
 			break;
@@ -417,13 +418,13 @@ xrow_update_arith_make(struct xrow_update_op *op,
 		return 0;
 	} else {
 		decimal_t a, b, c;
-		if (! xrow_update_arg_arith_to_decimal(arg1, &a) ||
-		    ! xrow_update_arg_arith_to_decimal(arg2, &b)) {
-			return xrow_update_err_arg_type(op, "a number "\
-							"convertible to "\
-							"decimal");
+		if (!xrow_update_arg_arith_to_decimal(arg1, &a) ||
+		    !xrow_update_arg_arith_to_decimal(arg2, &b)) {
+			return xrow_update_err_arg_type(op, "a number "
+							    "convertible to "
+							    "decimal");
 		}
-		switch(opcode) {
+		switch (opcode) {
 		case '+':
 			if (decimal_add(&c, &a, &b) == NULL)
 				return xrow_update_err_decimal_overflow(op);
@@ -482,7 +483,7 @@ xrow_update_op_do_splice(struct xrow_update_op *op, const char *old)
 {
 	struct xrow_update_arg_splice *arg = &op->arg.splice;
 	int32_t str_len = 0;
-	if (xrow_update_mp_read_str(op, &old, (uint32_t *) &str_len, &old) != 0)
+	if (xrow_update_mp_read_str(op, &old, (uint32_t *)&str_len, &old) != 0)
 		return -1;
 
 	if (arg->offset < 0) {
@@ -520,9 +521,9 @@ xrow_update_op_store_set(struct xrow_update_op *op,
 			 struct json_token *this_node, const char *in,
 			 char *out)
 {
-	(void) format_tree;
-	(void) this_node;
-	(void) in;
+	(void)format_tree;
+	(void)this_node;
+	(void)in;
 	memcpy(out, op->arg.set.value, op->arg.set.length);
 	return op->arg.set.length;
 }
@@ -533,19 +534,19 @@ xrow_update_op_store_arith(struct xrow_update_op *op,
 			   struct json_token *this_node, const char *in,
 			   char *out)
 {
-	(void) format_tree;
-	(void) in;
+	(void)format_tree;
+	(void)in;
 	char *begin = out;
 	struct xrow_update_arg_arith *arg = &op->arg.arith;
 	switch (arg->type) {
 	case XUPDATE_TYPE_INT:
 		if (int96_is_uint64(&arg->int96)) {
-			out = mp_encode_uint(
-				out, int96_extract_uint64(&arg->int96));
+			out = mp_encode_uint(out,
+					     int96_extract_uint64(&arg->int96));
 		} else {
 			assert(int96_is_neg_int64(&arg->int96));
-			out = mp_encode_int(
-				out, int96_extract_neg_int64( &arg->int96));
+			out = mp_encode_int(out, int96_extract_neg_int64(
+							 &arg->int96));
 		}
 		break;
 	case XUPDATE_TYPE_DOUBLE:
@@ -555,7 +556,8 @@ xrow_update_op_store_arith(struct xrow_update_op *op,
 		if (this_node != NULL) {
 			enum field_type type =
 				json_tree_entry(this_node, struct tuple_field,
-						token)->type;
+						token)
+					->type;
 			if (type == FIELD_TYPE_DOUBLE) {
 				out = mp_encode_double(out, arg->flt);
 				break;
@@ -577,9 +579,9 @@ xrow_update_op_store_bit(struct xrow_update_op *op,
 			 struct json_token *this_node, const char *in,
 			 char *out)
 {
-	(void) format_tree;
-	(void) this_node;
-	(void) in;
+	(void)format_tree;
+	(void)this_node;
+	(void)in;
 	char *end = mp_encode_uint(out, op->arg.bit.val);
 	return end - out;
 }
@@ -590,13 +592,13 @@ xrow_update_op_store_splice(struct xrow_update_op *op,
 			    struct json_token *this_node, const char *in,
 			    char *out)
 {
-	(void) format_tree;
-	(void) this_node;
+	(void)format_tree;
+	(void)this_node;
 	struct xrow_update_arg_splice *arg = &op->arg.splice;
-	uint32_t new_str_len = arg->offset + arg->paste_length +
-			       arg->tail_length;
+	uint32_t new_str_len =
+		arg->offset + arg->paste_length + arg->tail_length;
 	char *begin = out;
-	(void) mp_decode_strl(&in);
+	(void)mp_decode_strl(&in);
 	out = mp_encode_strl(out, new_str_len);
 	/* Copy field head. */
 	memcpy(out, in, arg->offset);
@@ -614,27 +616,27 @@ xrow_update_op_store_splice(struct xrow_update_op *op,
 
 static const struct xrow_update_op_meta op_set = {
 	xrow_update_read_arg_set, xrow_update_op_do_field_set,
-	(xrow_update_op_store_f) xrow_update_op_store_set, 3
+	(xrow_update_op_store_f)xrow_update_op_store_set, 3
 };
 static const struct xrow_update_op_meta op_insert = {
 	xrow_update_read_arg_set, xrow_update_op_do_field_insert,
-	(xrow_update_op_store_f) xrow_update_op_store_set, 3
+	(xrow_update_op_store_f)xrow_update_op_store_set, 3
 };
 static const struct xrow_update_op_meta op_arith = {
 	xrow_update_read_arg_arith, xrow_update_op_do_field_arith,
-	(xrow_update_op_store_f) xrow_update_op_store_arith, 3
+	(xrow_update_op_store_f)xrow_update_op_store_arith, 3
 };
 static const struct xrow_update_op_meta op_bit = {
 	xrow_update_read_arg_bit, xrow_update_op_do_field_bit,
-	(xrow_update_op_store_f) xrow_update_op_store_bit, 3
+	(xrow_update_op_store_f)xrow_update_op_store_bit, 3
 };
 static const struct xrow_update_op_meta op_splice = {
 	xrow_update_read_arg_splice, xrow_update_op_do_field_splice,
-	(xrow_update_op_store_f) xrow_update_op_store_splice, 5
+	(xrow_update_op_store_f)xrow_update_op_store_splice, 5
 };
 static const struct xrow_update_op_meta op_delete = {
 	xrow_update_read_arg_delete, xrow_update_op_do_field_delete,
-	(xrow_update_op_store_f) NULL, 3
+	(xrow_update_op_store_f)NULL, 3
 };
 
 static inline const struct xrow_update_op_meta *
@@ -689,13 +691,15 @@ xrow_update_op_decode(struct xrow_update_op *op, int op_num, int index_base,
 		      struct tuple_dictionary *dict, const char **expr)
 {
 	if (mp_typeof(**expr) != MP_ARRAY) {
-		diag_set(ClientError, ER_ILLEGAL_PARAMS, "update operation "
+		diag_set(ClientError, ER_ILLEGAL_PARAMS,
+			 "update operation "
 			 "must be an array {op,..}");
 		return -1;
 	}
 	uint32_t len, arg_count = mp_decode_array(expr);
 	if (arg_count < 1) {
-		diag_set(ClientError, ER_ILLEGAL_PARAMS, "update operation "\
+		diag_set(ClientError, ER_ILLEGAL_PARAMS,
+			 "update operation "
 			 "must be an array {op,..}, got empty array");
 		return -1;
 	}
@@ -710,7 +714,7 @@ xrow_update_op_decode(struct xrow_update_op *op, int op_num, int index_base,
 		return -1;
 	op->opcode = *opcode;
 	if (arg_count != op->meta->arg_count) {
-		const char *str = tt_sprintf("wrong number of arguments, "\
+		const char *str = tt_sprintf("wrong number of arguments, "
 					     "expected %u, got %u",
 					     op->meta->arg_count, arg_count);
 		diag_set(ClientError, ER_UNKNOWN_UPDATE_OP, op_num, str);
@@ -724,7 +728,7 @@ xrow_update_op_decode(struct xrow_update_op *op, int op_num, int index_base,
 	op->token_type = JSON_TOKEN_NUM;
 	op->is_token_consumed = false;
 	int32_t field_no = 0;
-	switch(mp_typeof(**expr)) {
+	switch (mp_typeof(**expr)) {
 	case MP_INT:
 	case MP_UINT: {
 		json_lexer_create(&op->lexer, NULL, 0, 0);
@@ -744,9 +748,9 @@ xrow_update_op_decode(struct xrow_update_op *op, int op_num, int index_base,
 		const char *path = mp_decode_str(expr, &len);
 		uint32_t field_no, hash = field_name_hash(path, len);
 		json_lexer_create(&op->lexer, path, len, TUPLE_INDEX_BASE);
-		if (tuple_fieldno_by_name(dict, path, len, hash,
-					  &field_no) == 0) {
-			op->field_no = (int32_t) field_no;
+		if (tuple_fieldno_by_name(dict, path, len, hash, &field_no) ==
+		    0) {
+			op->field_no = (int32_t)field_no;
 			op->lexer.offset = len;
 			break;
 		}
@@ -762,7 +766,7 @@ xrow_update_op_decode(struct xrow_update_op *op, int op_num, int index_base,
 			hash = field_name_hash(token.str, token.len);
 			if (tuple_fieldno_by_name(dict, token.str, token.len,
 						  hash, &field_no) == 0) {
-				op->field_no = (int32_t) field_no;
+				op->field_no = (int32_t)field_no;
 				break;
 			}
 			FALLTHROUGH;

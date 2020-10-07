@@ -51,7 +51,7 @@ struct tuple_bloom_builder *
 tuple_bloom_builder_new(uint32_t part_count)
 {
 	size_t size = sizeof(struct tuple_bloom_builder) +
-		part_count * sizeof(struct tuple_hash_array);
+		      part_count * sizeof(struct tuple_hash_array);
 	struct tuple_bloom_builder *builder = malloc(size);
 	if (builder == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "tuple bloom builder");
@@ -89,8 +89,8 @@ tuple_hash_array_add(struct tuple_hash_array *hash_arr, uint32_t hash)
 	}
 	if (hash_arr->count >= hash_arr->capacity) {
 		uint32_t capacity = MAX(hash_arr->capacity * 2, 1024U);
-		uint32_t *values = realloc(hash_arr->values,
-					   capacity * sizeof(*values));
+		uint32_t *values =
+			realloc(hash_arr->values, capacity * sizeof(*values));
 		if (values == NULL) {
 			diag_set(OutOfMemory, capacity * sizeof(*values),
 				 "malloc", "tuple hash array");
@@ -153,8 +153,8 @@ struct tuple_bloom *
 tuple_bloom_new(struct tuple_bloom_builder *builder, double fpr)
 {
 	uint32_t part_count = builder->part_count;
-	size_t size = sizeof(struct tuple_bloom) +
-			part_count * sizeof(struct bloom);
+	size_t size =
+		sizeof(struct tuple_bloom) + part_count * sizeof(struct bloom);
 	struct tuple_bloom *bloom = malloc(size);
 	if (bloom == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "tuple bloom");
@@ -229,9 +229,8 @@ tuple_bloom_maybe_has(const struct tuple_bloom *bloom, struct tuple *tuple,
 }
 
 bool
-tuple_bloom_maybe_has_key(const struct tuple_bloom *bloom,
-			  const char *key, uint32_t part_count,
-			  struct key_def *key_def)
+tuple_bloom_maybe_has_key(const struct tuple_bloom *bloom, const char *key,
+			  uint32_t part_count, struct key_def *key_def)
 {
 	if (bloom->is_legacy) {
 		if (part_count < key_def->part_count)
@@ -321,11 +320,11 @@ struct tuple_bloom *
 tuple_bloom_decode(const char **data)
 {
 	uint32_t part_count = mp_decode_array(data);
-	struct tuple_bloom *bloom = malloc(sizeof(*bloom) +
-			part_count * sizeof(*bloom->parts));
+	struct tuple_bloom *bloom =
+		malloc(sizeof(*bloom) + part_count * sizeof(*bloom->parts));
 	if (bloom == NULL) {
-		diag_set(OutOfMemory, sizeof(*bloom) +
-			 part_count * sizeof(*bloom->parts),
+		diag_set(OutOfMemory,
+			 sizeof(*bloom) + part_count * sizeof(*bloom->parts),
 			 "malloc", "tuple bloom");
 		return NULL;
 	}
@@ -346,8 +345,8 @@ tuple_bloom_decode(const char **data)
 struct tuple_bloom *
 tuple_bloom_decode_legacy(const char **data)
 {
-	struct tuple_bloom *bloom = malloc(sizeof(*bloom) +
-					   sizeof(*bloom->parts));
+	struct tuple_bloom *bloom =
+		malloc(sizeof(*bloom) + sizeof(*bloom->parts));
 	if (bloom == NULL) {
 		diag_set(OutOfMemory, sizeof(*bloom) + sizeof(*bloom->parts),
 			 "malloc", "tuple bloom");

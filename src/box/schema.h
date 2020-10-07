@@ -169,8 +169,8 @@ schema_init(void);
 void
 schema_free(void);
 
-struct space *schema_space(uint32_t id);
-
+struct space *
+schema_space(uint32_t id);
 
 /**
  * Check whether or not an object has grants on it (restrict
@@ -241,18 +241,17 @@ struct on_access_denied_ctx {
 
 /** Global grants to classes of objects. */
 struct entity_access {
-       struct access space[BOX_USER_MAX];
-       struct access function[BOX_USER_MAX];
-       struct access user[BOX_USER_MAX];
-       struct access role[BOX_USER_MAX];
-       struct access sequence[BOX_USER_MAX];
+	struct access space[BOX_USER_MAX];
+	struct access function[BOX_USER_MAX];
+	struct access user[BOX_USER_MAX];
+	struct access role[BOX_USER_MAX];
+	struct access sequence[BOX_USER_MAX];
 };
 
 /** A single instance of the global entities. */
 extern struct entity_access entity_access;
 
-static inline
-struct access *
+static inline struct access *
 entity_access_get(enum schema_object_type type)
 {
 	switch (type) {

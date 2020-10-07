@@ -58,8 +58,7 @@ vy_point_lookup_scan_txw(struct vy_lsm *lsm, struct vy_tx *tx,
 	if (tx == NULL)
 		return 0;
 	lsm->stat.txw.iterator.lookup++;
-	struct txv *txv =
-		write_set_search_key(&tx->write_set, lsm, key);
+	struct txv *txv = write_set_search_key(&tx->write_set, lsm, key);
 	assert(txv == NULL || txv->lsm == lsm);
 	if (txv == NULL)
 		return 0;
@@ -92,19 +91,18 @@ vy_point_lookup_scan_cache(struct vy_lsm *lsm, const struct vy_read_view **rv,
  */
 static int
 vy_point_lookup_scan_mem(struct vy_lsm *lsm, struct vy_mem *mem,
-			 const struct vy_read_view **rv,
-			 struct vy_entry key, struct vy_history *history)
+			 const struct vy_read_view **rv, struct vy_entry key,
+			 struct vy_history *history)
 {
 	struct vy_mem_iterator mem_itr;
-	vy_mem_iterator_open(&mem_itr, &lsm->stat.memory.iterator,
-			     mem, ITER_EQ, key, rv);
+	vy_mem_iterator_open(&mem_itr, &lsm->stat.memory.iterator, mem, ITER_EQ,
+			     key, rv);
 	struct vy_history mem_history;
 	vy_history_create(&mem_history, &lsm->env->history_node_pool);
 	int rc = vy_mem_iterator_next(&mem_itr, &mem_history);
 	vy_history_splice(history, &mem_history);
 	vy_mem_iterator_close(&mem_itr);
 	return rc;
-
 }
 
 /**
@@ -142,8 +140,8 @@ vy_point_lookup_scan_slice(struct vy_lsm *lsm, struct vy_slice *slice,
 	 * format in vy_mem.
 	 */
 	struct vy_run_iterator run_itr;
-	vy_run_iterator_open(&run_itr, &lsm->stat.disk.iterator, slice,
-			     ITER_EQ, key, rv, lsm->cmp_def, lsm->key_def,
+	vy_run_iterator_open(&run_itr, &lsm->stat.disk.iterator, slice, ITER_EQ,
+			     key, rv, lsm->cmp_def, lsm->key_def,
 			     lsm->disk_format);
 	struct vy_history slice_history;
 	vy_history_create(&slice_history, &lsm->env->history_node_pool);
@@ -163,14 +161,14 @@ static int
 vy_point_lookup_scan_slices(struct vy_lsm *lsm, const struct vy_read_view **rv,
 			    struct vy_entry key, struct vy_history *history)
 {
-	struct vy_range *range = vy_range_tree_find_by_key(&lsm->range_tree,
-							   ITER_EQ, key);
+	struct vy_range *range =
+		vy_range_tree_find_by_key(&lsm->range_tree, ITER_EQ, key);
 	assert(range != NULL);
 	int slice_count = range->slice_count;
 	size_t size;
-	struct vy_slice **slices =
-		region_alloc_array(&fiber()->gc, typeof(slices[0]), slice_count,
-				   &size);
+	struct vy_slice **slices = region_alloc_array(&fiber()->gc,
+						      typeof(slices[0]),
+						      slice_count, &size);
 	if (slices == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_array", "slices");
 		return -1;
@@ -185,8 +183,8 @@ vy_point_lookup_scan_slices(struct vy_lsm *lsm, const struct vy_read_view **rv,
 	int rc = 0;
 	for (i = 0; i < slice_count; i++) {
 		if (rc == 0 && !vy_history_is_terminal(history))
-			rc = vy_point_lookup_scan_slice(lsm, slices[i],
-							rv, key, history);
+			rc = vy_point_lookup_scan_slice(lsm, slices[i], rv, key,
+							history);
 		vy_slice_unpin(slices[i]);
 	}
 	return rc;
@@ -194,8 +192,8 @@ vy_point_lookup_scan_slices(struct vy_lsm *lsm, const struct vy_read_view **rv,
 
 int
 vy_point_lookup(struct vy_lsm *lsm, struct vy_tx *tx,
-		const struct vy_read_view **rv,
-		struct vy_entry key, struct vy_entry *ret)
+		const struct vy_read_view **rv, struct vy_entry key,
+		struct vy_entry *ret)
 {
 	/* All key parts must be set for a point lookup. */
 	assert(vy_stmt_is_full_key(key.stmt, lsm->cmp_def));
@@ -284,8 +282,8 @@ done:
 
 	if (rc == 0) {
 		int upserts_applied;
-		rc = vy_history_apply(&history, lsm->cmp_def,
-				      false, &upserts_applied, ret);
+		rc = vy_history_apply(&history, lsm->cmp_def, false,
+				      &upserts_applied, ret);
 		lsm->stat.upsert.applied += upserts_applied;
 	}
 	vy_history_cleanup(&history);
@@ -319,8 +317,8 @@ vy_point_lookup_mem(struct vy_lsm *lsm, const struct vy_read_view **rv,
 done:
 	if (rc == 0) {
 		int upserts_applied;
-		rc = vy_history_apply(&history, lsm->cmp_def,
-				      true, &upserts_applied, ret);
+		rc = vy_history_apply(&history, lsm->cmp_def, true,
+				      &upserts_applied, ret);
 		lsm->stat.upsert.applied += upserts_applied;
 	}
 out:

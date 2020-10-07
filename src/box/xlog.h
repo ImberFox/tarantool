@@ -94,9 +94,9 @@ extern const struct xlog_opts xlog_opts_default;
  * but an xlog object sees only those files which match its type.
  */
 enum xdir_type {
-	SNAP,		/* memtx snapshot */
-	XLOG,		/* write ahead log */
-	VYLOG,		/* vinyl metadata log */
+	SNAP,  /* memtx snapshot */
+	XLOG,  /* write ahead log */
+	VYLOG, /* vinyl metadata log */
 };
 
 /**
@@ -323,8 +323,7 @@ struct xlog_meta {
 void
 xlog_meta_create(struct xlog_meta *meta, const char *filetype,
 		 const struct tt_uuid *instance_uuid,
-		 const struct vclock *vclock,
-		 const struct vclock *prev_vclock);
+		 const struct vclock *vclock, const struct vclock *prev_vclock);
 
 /* }}} */
 
@@ -455,7 +454,6 @@ xlog_create(struct xlog *xlog, const char *name, int flags,
 int
 xlog_open(struct xlog *xlog, const char *name, const struct xlog_opts *opts);
 
-
 /**
  * Reset an xlog object without opening it.
  * The object is in limbo state: it doesn't hold
@@ -464,7 +462,6 @@ xlog_open(struct xlog *xlog, const char *name, const struct xlog_opts *opts);
  */
 void
 xlog_clear(struct xlog *xlog);
-
 
 /** Returns true if the xlog file is open. */
 static inline bool
@@ -531,7 +528,6 @@ xlog_tx_rollback(struct xlog *log);
 ssize_t
 xlog_flush(struct xlog *log);
 
-
 /**
  * Sync a log file. The exact action is defined
  * by xdir flags.
@@ -563,8 +559,7 @@ xlog_atfork(struct xlog *xlog);
 /**
  * xlog tx iterator
  */
-struct xlog_tx_cursor
-{
+struct xlog_tx_cursor {
 	/** rows buffer */
 	struct ibuf rows;
 	/** tx size */
@@ -580,9 +575,8 @@ struct xlog_tx_cursor
  * @retval >0 how many additional bytes should be read to parse tx
  */
 ssize_t
-xlog_tx_cursor_create(struct xlog_tx_cursor *cursor,
-		      const char **data, const char *data_end,
-		      ZSTD_DStream *zdctx);
+xlog_tx_cursor_create(struct xlog_tx_cursor *cursor, const char **data,
+		      const char *data_end, ZSTD_DStream *zdctx);
 
 /**
  * Destroy xlog tx cursor and free all associated memory
@@ -598,7 +592,8 @@ xlog_tx_cursor_destroy(struct xlog_tx_cursor *tx_cursor);
  * @retval -1 for error
  */
 int
-xlog_tx_cursor_next_row(struct xlog_tx_cursor *tx_cursor, struct xrow_header *xrow);
+xlog_tx_cursor_next_row(struct xlog_tx_cursor *tx_cursor,
+			struct xrow_header *xrow);
 
 /**
  * Return current tx cursor position
@@ -624,9 +619,8 @@ xlog_tx_cursor_pos(struct xlog_tx_cursor *tx_cursor)
  * @retval -1 error, check diag
  */
 int
-xlog_tx_decode(const char *data, const char *data_end,
-	       char *rows, char *rows_end,
-	       ZSTD_DStream *zdctx);
+xlog_tx_decode(const char *data, const char *data_end, char *rows,
+	       char *rows_end, ZSTD_DStream *zdctx);
 
 /* }}} */
 
@@ -762,8 +756,8 @@ xlog_cursor_next_row(struct xlog_cursor *cursor, struct xrow_header *xrow);
  * @retval -1 for error
  */
 int
-xlog_cursor_next(struct xlog_cursor *cursor,
-		 struct xrow_header *xrow, bool force_recovery);
+xlog_cursor_next(struct xlog_cursor *cursor, struct xrow_header *xrow,
+		 bool force_recovery);
 
 /**
  * Move to the next xlog tx
@@ -875,8 +869,8 @@ xlog_cursor_open_xc(struct xlog_cursor *cursor, const char *name)
  * @copydoc xlog_cursor_next
  */
 static inline int
-xlog_cursor_next_xc(struct xlog_cursor *cursor,
-		    struct xrow_header *xrow, bool force_recovery)
+xlog_cursor_next_xc(struct xlog_cursor *cursor, struct xrow_header *xrow,
+		    bool force_recovery)
 {
 	int rc = xlog_cursor_next(cursor, xrow, force_recovery);
 	if (rc == -1)

@@ -78,8 +78,7 @@ vy_range_tree_key_cmp(struct vy_entry entry, struct vy_range *range)
 
 struct vy_range *
 vy_range_tree_find_by_key(vy_range_tree_t *tree,
-			  enum iterator_type iterator_type,
-			  struct vy_entry key)
+			  enum iterator_type iterator_type, struct vy_entry key)
 {
 	if (vy_stmt_is_empty_key(key.stmt)) {
 		switch (iterator_type) {
@@ -180,8 +179,8 @@ vy_range_new(int64_t id, struct vy_entry begin, struct vy_entry end,
 {
 	struct vy_range *range = calloc(1, sizeof(*range));
 	if (range == NULL) {
-		diag_set(OutOfMemory, sizeof(*range),
-			 "malloc", "struct vy_range");
+		diag_set(OutOfMemory, sizeof(*range), "malloc",
+			 "struct vy_range");
 		return NULL;
 	}
 	range->id = id;
@@ -430,7 +429,8 @@ vy_range_update_dumps_per_compaction(struct vy_range *range)
 {
 	if (!rlist_empty(&range->slices)) {
 		struct vy_slice *slice = rlist_last_entry(&range->slices,
-						struct vy_slice, in_range);
+							  struct vy_slice,
+							  in_range);
 		range->dumps_per_compaction = slice->run->dump_count;
 	} else {
 		range->dumps_per_compaction = 0;
@@ -471,11 +471,12 @@ vy_range_needs_split(struct vy_range *range, int64_t range_size,
 	/* Find the median key in the oldest run (approximately). */
 	struct vy_page_info *mid_page;
 	mid_page = vy_run_page_info(slice->run, slice->first_page_no +
-				    (slice->last_page_no -
-				     slice->first_page_no) / 2);
+							(slice->last_page_no -
+							 slice->first_page_no) /
+								2);
 
-	struct vy_page_info *first_page = vy_run_page_info(slice->run,
-						slice->first_page_no);
+	struct vy_page_info *first_page =
+		vy_run_page_info(slice->run, slice->first_page_no);
 
 	/* No point in splitting if a new range is going to be empty. */
 	if (key_compare(first_page->min_key, first_page->min_key_hint,

@@ -135,16 +135,14 @@ struct session_vtab {
 	 * @retval  0 Success.
 	 * @retval -1 Error.
 	 */
-	int
-	(*push)(struct session *session, struct port *port);
+	int (*push)(struct session *session, struct port *port);
 	/**
 	 * Get session file descriptor if exists.
 	 * @param session Session to get descriptor from.
 	 * @retval  -1 No fd.
 	 * @retval >=0 Found fd.
 	 */
-	int
-	(*fd)(struct session *session);
+	int (*fd)(struct session *session);
 	/**
 	 * For iproto requests, we set sync to the value of packet
 	 * sync. Since the session may be reused between many
@@ -152,8 +150,7 @@ struct session_vtab {
 	 * of the request, and gets distorted after the first
 	 * yield. For other sessions it is 0.
 	 */
-	int64_t
-	(*sync)(struct session *session);
+	int64_t (*sync)(struct session *session);
 };
 
 extern struct session_vtab session_vtab_registry[];

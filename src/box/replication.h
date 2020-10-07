@@ -357,9 +357,9 @@ replicaset_first(void);
 struct replica *
 replicaset_next(struct replica *replica);
 
-#define replicaset_foreach(var) \
-	for (struct replica *var = replicaset_first(); \
-	     var != NULL; var = replicaset_next(var))
+#define replicaset_foreach(var)                                     \
+	for (struct replica *var = replicaset_first(); var != NULL; \
+	     var = replicaset_next(var))
 
 /**
  * Set numeric replica-set-local id of remote replica.
@@ -380,7 +380,7 @@ void
 replica_clear_applier(struct replica *replica);
 
 void
-replica_set_applier(struct replica * replica, struct applier * applier);
+replica_set_applier(struct replica *replica, struct applier *applier);
 
 /**
  * Unregister \a relay from the \a replica.
@@ -421,8 +421,7 @@ replicaset_add_anon(const struct tt_uuid *replica_uuid);
  *                       appliers have successfully connected.
  */
 void
-replicaset_connect(struct applier **appliers, int count,
-		   bool connect_quorum);
+replicaset_connect(struct applier **appliers, int count, bool connect_quorum);
 
 /**
  * Check if the current instance fell too much behind its

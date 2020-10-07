@@ -102,8 +102,7 @@
  */
 
 /** Update internal state */
-struct xrow_update
-{
+struct xrow_update {
 	/** Operations array. */
 	struct xrow_update_op *ops;
 	/** Length of ops. */
@@ -253,7 +252,7 @@ xrow_update_read_ops(struct xrow_update *update, const char *expr,
 			if (opcode == '!')
 				++field_count_hint;
 			else if (opcode == '#')
-				field_count_hint -= (int32_t) op->arg.del.count;
+				field_count_hint -= (int32_t)op->arg.del.count;
 
 			if (opcode == '!' || opcode == '#')
 				/*
@@ -349,7 +348,7 @@ xrow_update_finish(struct xrow_update *update, struct tuple_format *format,
 		   uint32_t *p_tuple_len)
 {
 	uint32_t tuple_len = xrow_update_array_sizeof(&update->root);
-	char *buffer = (char *) region_alloc(&fiber()->gc, tuple_len);
+	char *buffer = (char *)region_alloc(&fiber()->gc, tuple_len);
 	if (buffer == NULL) {
 		diag_set(OutOfMemory, tuple_len, "region_alloc", "buffer");
 		return NULL;
@@ -371,7 +370,7 @@ xrow_update_check_ops(const char *expr, const char *expr_end,
 }
 
 const char *
-xrow_update_execute(const char *expr,const char *expr_end,
+xrow_update_execute(const char *expr, const char *expr_end,
 		    const char *old_data, const char *old_data_end,
 		    struct tuple_format *format, uint32_t *p_tuple_len,
 		    int index_base, uint64_t *column_mask)
@@ -394,7 +393,7 @@ xrow_update_execute(const char *expr,const char *expr_end,
 }
 
 const char *
-xrow_upsert_execute(const char *expr,const char *expr_end,
+xrow_upsert_execute(const char *expr, const char *expr_end,
 		    const char *old_data, const char *old_data_end,
 		    struct tuple_format *format, uint32_t *p_tuple_len,
 		    int index_base, bool suppress_error, uint64_t *column_mask)
@@ -417,19 +416,18 @@ xrow_upsert_execute(const char *expr,const char *expr_end,
 }
 
 const char *
-xrow_upsert_squash(const char *expr1, const char *expr1_end,
-		   const char *expr2, const char *expr2_end,
-		   struct tuple_format *format, size_t *result_size,
-		   int index_base)
+xrow_upsert_squash(const char *expr1, const char *expr1_end, const char *expr2,
+		   const char *expr2_end, struct tuple_format *format,
+		   size_t *result_size, int index_base)
 {
-	const char *expr[2] = {expr1, expr2};
-	const char *expr_end[2] = {expr1_end, expr2_end};
+	const char *expr[2] = { expr1, expr2 };
+	const char *expr_end[2] = { expr1_end, expr2_end };
 	struct xrow_update update[2];
 	struct tuple_dictionary *dict = format->dict;
 	for (int j = 0; j < 2; j++) {
 		xrow_update_init(&update[j], index_base);
-		if (xrow_update_read_ops(&update[j], expr[j], expr_end[j],
-					 dict, 0) != 0)
+		if (xrow_update_read_ops(&update[j], expr[j], expr_end[j], dict,
+					 0) != 0)
 			return NULL;
 		mp_decode_array(&expr[j]);
 		int32_t prev_field_no = index_base - 1;
@@ -454,8 +452,8 @@ xrow_upsert_squash(const char *expr1, const char *expr1_end,
 	}
 	size_t possible_size = expr1_end - expr1 + expr2_end - expr2;
 	const uint32_t space_for_arr_tag = 5;
-	char *buf = (char *) region_alloc(&fiber()->gc,
-					  possible_size + space_for_arr_tag);
+	char *buf = (char *)region_alloc(&fiber()->gc,
+					 possible_size + space_for_arr_tag);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, possible_size + space_for_arr_tag,
 			 "region_alloc", "buf");
@@ -465,16 +463,16 @@ xrow_upsert_squash(const char *expr1, const char *expr1_end,
 	char *res_ops = buf + space_for_arr_tag;
 	uint32_t res_count = 0; /* number of resulting operations */
 
-	uint32_t op_count[2] = {update[0].op_count, update[1].op_count};
-	uint32_t op_no[2] = {0, 0};
+	uint32_t op_count[2] = { update[0].op_count, update[1].op_count };
+	uint32_t op_no[2] = { 0, 0 };
 	struct json_tree *format_tree = &format->fields;
 	struct json_token *root = &format_tree->root;
 	struct json_token token;
 	token.type = JSON_TOKEN_NUM;
 	while (op_no[0] < op_count[0] || op_no[1] < op_count[1]) {
 		res_count++;
-		struct xrow_update_op *op[2] = {update[0].ops + op_no[0],
-						update[1].ops + op_no[1]};
+		struct xrow_update_op *op[2] = { update[0].ops + op_no[0],
+						 update[1].ops + op_no[1] };
 		/*
 		 * from:
 		 * 0 - take op from first update,
@@ -482,11 +480,13 @@ xrow_upsert_squash(const char *expr1, const char *expr1_end,
 		 * 2 - merge both ops
 		 */
 		uint32_t from;
-		uint32_t has[2] = {op_no[0] < op_count[0], op_no[1] < op_count[1]};
+		uint32_t has[2] = { op_no[0] < op_count[0],
+				    op_no[1] < op_count[1] };
 		assert(has[0] || has[1]);
 		if (has[0] && has[1]) {
 			from = op[0]->field_no < op[1]->field_no ? 0 :
-			       op[0]->field_no > op[1]->field_no ? 1 : 2;
+			       op[0]->field_no > op[1]->field_no ? 1 :
+									 2;
 		} else {
 			assert(has[0] != has[1]);
 			from = has[1];
@@ -527,21 +527,20 @@ xrow_upsert_squash(const char *expr1, const char *expr1_end,
 		 */
 		if (op[0]->opcode == '=') {
 			if (xrow_mp_read_arg_arith(op[0], &op[0]->arg.set.value,
-					           &arith) != 0)
+						   &arith) != 0)
 				return NULL;
 		} else {
 			arith = op[0]->arg.arith;
 		}
 		struct xrow_update_op res;
-		if (xrow_update_arith_make(op[1], arith,
-					   &res.arg.arith) != 0)
+		if (xrow_update_arith_make(op[1], arith, &res.arg.arith) != 0)
 			return NULL;
 		res_ops = mp_encode_array(res_ops, 3);
-		res_ops = mp_encode_str(res_ops,
-					(const char *)&op[0]->opcode, 1);
+		res_ops =
+			mp_encode_str(res_ops, (const char *)&op[0]->opcode, 1);
 		token.num = op[0]->field_no;
-		res_ops = mp_encode_uint(res_ops, token.num +
-					 update[0].index_base);
+		res_ops = mp_encode_uint(res_ops,
+					 token.num + update[0].index_base);
 		struct json_token *this_node =
 			json_tree_lookup(format_tree, root, &token);
 		xrow_update_op_store_arith(&res, format_tree, this_node, NULL,
@@ -554,8 +553,7 @@ xrow_upsert_squash(const char *expr1, const char *expr1_end,
 	}
 	assert(op_no[0] == op_count[0] && op_no[1] == op_count[1]);
 	assert(expr[0] == expr_end[0] && expr[1] == expr_end[1]);
-	char *arr_start = buf + space_for_arr_tag -
-		mp_sizeof_array(res_count);
+	char *arr_start = buf + space_for_arr_tag - mp_sizeof_array(res_count);
 	mp_encode_array(arr_start, res_count);
 	*result_size = res_ops - arr_start;
 	return arr_start;

@@ -42,7 +42,7 @@ msgpack_fprint_ext(FILE *file, const char **data, int depth)
 	const char **orig = data;
 	int8_t type;
 	uint32_t len = mp_decode_extl(data, &type);
-	switch(type) {
+	switch (type) {
 	case MP_DECIMAL:
 		return mp_fprint_decimal(file, data, len);
 	case MP_UUID:
@@ -60,7 +60,7 @@ msgpack_snprint_ext(char *buf, int size, const char **data, int depth)
 	const char **orig = data;
 	int8_t type;
 	uint32_t len = mp_decode_extl(data, &type);
-	switch(type) {
+	switch (type) {
 	case MP_DECIMAL:
 		return mp_snprint_decimal(buf, size, data, len);
 	case MP_UUID:

@@ -171,8 +171,8 @@ vy_range_tree_key_cmp(struct vy_entry entry, struct vy_range *range);
 
 typedef rb_tree(struct vy_range) vy_range_tree_t;
 rb_gen_ext_key(MAYBE_UNUSED static inline, vy_range_tree_, vy_range_tree_t,
-	       struct vy_range, tree_node, vy_range_tree_cmp,
-	       struct vy_entry, vy_range_tree_key_cmp);
+	       struct vy_range, tree_node, vy_range_tree_cmp, struct vy_entry,
+	       vy_range_tree_key_cmp);
 
 /**
  * Find the first range in which a given key should be looked up.

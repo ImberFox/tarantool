@@ -36,8 +36,7 @@ struct journal *current_journal = NULL;
 
 struct journal_entry *
 journal_entry_new(size_t n_rows, struct region *region,
-		  journal_write_async_f write_async_cb,
-		  void *complete_data)
+		  journal_write_async_f write_async_cb, void *complete_data)
 {
 	struct journal_entry *entry;
 
@@ -51,7 +50,6 @@ journal_entry_new(size_t n_rows, struct region *region,
 		return NULL;
 	}
 
-	journal_entry_create(entry, n_rows, 0, write_async_cb,
-			     complete_data);
+	journal_entry_create(entry, n_rows, 0, write_async_cb, complete_data);
 	return entry;
 }

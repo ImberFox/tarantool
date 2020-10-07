@@ -52,8 +52,8 @@ blackhole_space_execute_replace(struct space *space, struct txn *txn,
 				struct request *request, struct tuple **result)
 {
 	struct txn_stmt *stmt = txn_current_stmt(txn);
-	stmt->new_tuple = tuple_new(space->format, request->tuple,
-				    request->tuple_end);
+	stmt->new_tuple =
+		tuple_new(space->format, request->tuple, request->tuple_end);
 	if (stmt->new_tuple == NULL)
 		return -1;
 	tuple_ref(stmt->new_tuple);
@@ -146,8 +146,7 @@ blackhole_engine_create_space(struct engine *engine, struct space_def *def,
 
 	struct space *space = (struct space *)calloc(1, sizeof(*space));
 	if (space == NULL) {
-		diag_set(OutOfMemory, sizeof(*space),
-			 "malloc", "struct space");
+		diag_set(OutOfMemory, sizeof(*space), "malloc", "struct space");
 		return NULL;
 	}
 
@@ -163,8 +162,8 @@ blackhole_engine_create_space(struct engine *engine, struct space_def *def,
 	}
 	tuple_format_ref(format);
 
-	if (space_create(space, engine, &blackhole_space_vtab,
-			 def, key_list, format) != 0) {
+	if (space_create(space, engine, &blackhole_space_vtab, def, key_list,
+			 format) != 0) {
 		tuple_format_unref(format);
 		free(space);
 		return NULL;
@@ -205,8 +204,8 @@ blackhole_engine_new(void)
 {
 	struct engine *engine = calloc(1, sizeof(*engine));
 	if (engine == NULL) {
-		diag_set(OutOfMemory, sizeof(*engine),
-			 "malloc", "struct engine");
+		diag_set(OutOfMemory, sizeof(*engine), "malloc",
+			 "struct engine");
 		return NULL;
 	}
 

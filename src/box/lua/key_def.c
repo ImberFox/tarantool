@@ -102,7 +102,7 @@ luaT_key_def_set_part(struct lua_State *L, struct key_part_def *part,
 		}
 	} else {
 		lua_getfield(L, -2, "field");
-		if (! lua_isnil(L, -1)) {
+		if (!lua_isnil(L, -1)) {
 			diag_set(IllegalParams,
 				 "Conflicting options: fieldno and field");
 			return -1;
@@ -171,14 +171,14 @@ luaT_key_def_set_part(struct lua_State *L, struct key_part_def *part,
 		/* Check for conflicting options. */
 		if (part->coll_id != COLL_NONE) {
 			diag_set(IllegalParams, "Conflicting options: "
-				 "collation_id and collation");
+						"collation_id and collation");
 			return -1;
 		}
 
 		size_t coll_name_len;
 		const char *coll_name = lua_tolstring(L, -1, &coll_name_len);
-		struct coll_id *coll_id = coll_by_name(coll_name,
-						       coll_name_len);
+		struct coll_id *coll_id =
+			coll_by_name(coll_name, coll_name_len);
 		if (coll_id == NULL) {
 			diag_set(IllegalParams, "Unknown collation: \"%s\"",
 				 coll_name);
@@ -199,7 +199,8 @@ luaT_key_def_set_part(struct lua_State *L, struct key_part_def *part,
 			return -1;
 		}
 		if ((size_t)json_path_multikey_offset(path, path_len,
-					      TUPLE_INDEX_BASE) != path_len) {
+						      TUPLE_INDEX_BASE) !=
+		    path_len) {
 			diag_set(IllegalParams, "multikey path is unsupported");
 			return -1;
 		}
@@ -358,15 +359,14 @@ lbox_key_def_compare_with_key(struct lua_State *L)
 	size_t key_len;
 	const char *key_end, *key = lbox_encode_tuple_on_gc(L, 3, &key_len);
 	uint32_t part_count = mp_decode_array(&key);
-	if (key_validate_parts(key_def, key, part_count, true,
-			       &key_end) != 0) {
+	if (key_validate_parts(key_def, key, part_count, true, &key_end) != 0) {
 		region_truncate(region, region_svp);
 		tuple_unref(tuple);
 		return luaT_error(L);
 	}
 
-	int rc = tuple_compare_with_key(tuple, HINT_NONE, key,
-					part_count, HINT_NONE, key_def);
+	int rc = tuple_compare_with_key(tuple, HINT_NONE, key, part_count,
+					HINT_NONE, key_def);
 	region_truncate(region, region_svp);
 	tuple_unref(tuple);
 	lua_pushinteger(L, rc);
@@ -395,13 +395,12 @@ lbox_key_def_merge(struct lua_State *L)
 	if (new_key_def == NULL)
 		return luaT_error(L);
 
-	*(struct key_def **) luaL_pushcdata(L,
-				CTID_STRUCT_KEY_DEF_REF) = new_key_def;
+	*(struct key_def **)luaL_pushcdata(L, CTID_STRUCT_KEY_DEF_REF) =
+		new_key_def;
 	lua_pushcfunction(L, lbox_key_def_gc);
 	luaL_setcdatagc(L, -2);
 	return 1;
 }
-
 
 /**
  * Push a new table representing a key_def to a Lua stack.
@@ -431,11 +430,11 @@ lbox_key_def_new(struct lua_State *L)
 {
 	if (lua_gettop(L) != 1 || lua_istable(L, 1) != 1)
 		return luaL_error(L, "Bad params, use: key_def.new({"
-				  "{fieldno = fieldno, type = type"
-				  "[, is_nullable = <boolean>]"
-				  "[, path = <string>]"
-				  "[, collation_id = <number>]"
-				  "[, collation = <string>]}, ...}");
+				     "{fieldno = fieldno, type = type"
+				     "[, is_nullable = <boolean>]"
+				     "[, path = <string>]"
+				     "[, collation_id = <number>]"
+				     "[, collation = <string>]}, ...}");
 
 	uint32_t part_count = lua_objlen(L, 1);
 
@@ -478,8 +477,8 @@ lbox_key_def_new(struct lua_State *L)
 	 */
 	key_def_update_optionality(key_def, 0);
 
-	*(struct key_def **) luaL_pushcdata(L,
-				CTID_STRUCT_KEY_DEF_REF) = key_def;
+	*(struct key_def **)luaL_pushcdata(L, CTID_STRUCT_KEY_DEF_REF) =
+		key_def;
 	lua_pushcfunction(L, lbox_key_def_gc);
 	luaL_setcdatagc(L, -2);
 
@@ -494,13 +493,13 @@ luaopen_key_def(struct lua_State *L)
 
 	/* Export C functions to Lua. */
 	static const struct luaL_Reg meta[] = {
-		{"new", lbox_key_def_new},
-		{"extract_key", lbox_key_def_extract_key},
-		{"compare", lbox_key_def_compare},
-		{"compare_with_key", lbox_key_def_compare_with_key},
-		{"merge", lbox_key_def_merge},
-		{"totable", lbox_key_def_to_table},
-		{NULL, NULL}
+		{ "new", lbox_key_def_new },
+		{ "extract_key", lbox_key_def_extract_key },
+		{ "compare", lbox_key_def_compare },
+		{ "compare_with_key", lbox_key_def_compare_with_key },
+		{ "merge", lbox_key_def_merge },
+		{ "totable", lbox_key_def_to_table },
+		{ NULL, NULL }
 	};
 	luaL_register_module(L, "key_def", meta);
 	return 1;

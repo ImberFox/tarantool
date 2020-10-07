@@ -70,7 +70,7 @@ void
 relay_delete(struct relay *relay);
 
 /** Get last relay's diagnostic error */
-struct diag*
+struct diag *
 relay_get_diag(struct relay *relay);
 
 /** Return the current state of relay. */

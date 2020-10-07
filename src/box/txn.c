@@ -45,7 +45,7 @@ double too_long_threshold;
 int64_t txn_last_psn = 0;
 
 /* Txn cache. */
-static struct stailq txn_cache = {NULL, &txn_cache.first};
+static struct stailq txn_cache = { NULL, &txn_cache.first };
 
 static int
 txn_on_stop(struct trigger *trigger, void *event);
@@ -159,7 +159,8 @@ txn_rollback_to_svp(struct txn *txn, struct stailq_entry *svp)
 	struct stailq rollback;
 	stailq_cut_tail(&txn->stmts, svp, &rollback);
 	stailq_reverse(&rollback);
-	stailq_foreach_entry(stmt, &rollback, next) {
+	stailq_foreach_entry(stmt, &rollback, next)
+	{
 		txn_rollback_one_stmt(txn, stmt);
 		if (stmt->row != NULL && stmt->row->replica_id == 0) {
 			assert(txn->n_new_rows > 0);
@@ -213,16 +214,15 @@ inline static void
 txn_free(struct txn *txn)
 {
 	struct tx_read_tracker *tracker, *tmp;
-	rlist_foreach_entry_safe(tracker, &txn->read_set,
-				 in_read_set, tmp) {
+	rlist_foreach_entry_safe(tracker, &txn->read_set, in_read_set, tmp) {
 		rlist_del(&tracker->in_reader_list);
 		rlist_del(&tracker->in_read_set);
 	}
 	assert(rlist_empty(&txn->read_set));
 
 	struct tx_conflict_tracker *entry, *next;
-	rlist_foreach_entry_safe(entry, &txn->conflict_list,
-				 in_conflict_list, next) {
+	rlist_foreach_entry_safe(entry, &txn->conflict_list, in_conflict_list,
+				 next) {
 		rlist_del(&entry->in_conflict_list);
 		rlist_del(&entry->in_conflicted_by_list);
 	}
@@ -237,8 +237,7 @@ txn_free(struct txn *txn)
 	rlist_del(&txn->in_read_view_txs);
 
 	struct txn_stmt *stmt;
-	stailq_foreach_entry(stmt, &txn->stmts, next)
-		txn_stmt_destroy(stmt);
+	stailq_foreach_entry(stmt, &txn->stmts, next) txn_stmt_destroy(stmt);
 
 	/* Truncate region up to struct txn size. */
 	region_truncate(&txn->region, sizeof(struct txn));
@@ -249,7 +248,7 @@ struct txn *
 txn_begin(void)
 {
 	static int64_t tsn = 0;
-	assert(! in_txn());
+	assert(!in_txn());
 	struct txn *txn = txn_new();
 	if (txn == NULL)
 		return NULL;
@@ -419,7 +418,7 @@ txn_commit_stmt(struct txn *txn, struct request *request)
 			stmt->does_require_old_tuple = true;
 
 			int rc = 0;
-			if(!space_is_temporary(stmt->space)) {
+			if (!space_is_temporary(stmt->space)) {
 				rc = trigger_run(&stmt->space->on_replace, txn);
 			} else {
 				/*
@@ -545,7 +544,8 @@ txn_complete(struct txn *txn)
 		if (stop_tm - txn->start_tm > too_long_threshold) {
 			int n_rows = txn->n_new_rows + txn->n_applier_rows;
 			say_warn_ratelimited("too long WAL write: %d rows at "
-					     "LSN %lld: %.3f sec", n_rows,
+					     "LSN %lld: %.3f sec",
+					     n_rows,
 					     txn->signature - n_rows + 1,
 					     stop_tm - txn->start_tm);
 		}
@@ -622,7 +622,8 @@ txn_journal_entry_new(struct txn *txn)
 	struct xrow_header **local_row = req->rows + txn->n_applier_rows;
 	bool is_sync = false;
 
-	stailq_foreach_entry(stmt, &txn->stmts, next) {
+	stailq_foreach_entry(stmt, &txn->stmts, next)
+	{
 		if (stmt->has_triggers) {
 			txn_init_triggers(txn);
 			rlist_splice(&txn->on_commit, &stmt->on_commit);
@@ -737,8 +738,8 @@ txn_prepare(struct txn *txn)
 
 	struct tx_conflict_tracker *entry, *next;
 	/* Handle conflicts. */
-	rlist_foreach_entry_safe(entry, &txn->conflict_list,
-				 in_conflict_list, next) {
+	rlist_foreach_entry_safe(entry, &txn->conflict_list, in_conflict_list,
+				 next) {
 		assert(entry->breaker == txn);
 		memtx_tx_handle_conflict(txn, entry->victim);
 		rlist_del(&entry->in_conflict_list);
@@ -786,12 +787,12 @@ txn_commit_nop(struct txn *txn)
 static int
 txn_limbo_on_rollback(struct trigger *trig, void *event)
 {
-	(void) event;
-	struct txn *txn = (struct txn *) event;
+	(void)event;
+	struct txn *txn = (struct txn *)event;
 	/* Check whether limbo has performed the cleanup. */
 	if (txn->signature != TXN_SIGNATURE_ROLLBACK)
 		return 0;
-	struct txn_limbo_entry *entry = (struct txn_limbo_entry *) trig->data;
+	struct txn_limbo_entry *entry = (struct txn_limbo_entry *)trig->data;
 	txn_limbo_abort(&txn_limbo, entry);
 	return 0;
 }
@@ -861,8 +862,7 @@ txn_commit_async(struct txn *txn)
 		 * Set a trigger to abort waiting for confirm on
 		 * WAL write failure.
 		 */
-		trigger_create(trig, txn_limbo_on_rollback,
-			       limbo_entry, NULL);
+		trigger_create(trig, txn_limbo_on_rollback, limbo_entry, NULL);
 		txn_on_rollback(txn, trig);
 	}
 
@@ -1049,7 +1049,7 @@ box_txn_commit(void)
 	 * Do nothing if transaction is not started,
 	 * it's the same as BEGIN + COMMIT.
 	*/
-	if (! txn)
+	if (!txn)
 		return 0;
 	if (txn->in_sub_stmt) {
 		diag_set(ClientError, ER_COMMIT_IN_SUB_STMT);
@@ -1090,7 +1090,7 @@ box_txn_alloc(size_t size)
 		long l;
 	};
 	return region_aligned_alloc(&txn->region, size,
-	                            alignof(union natural_align));
+				    alignof(union natural_align));
 }
 
 struct txn_savepoint *
@@ -1160,8 +1160,10 @@ box_txn_rollback_to_savepoint(box_txn_savepoint_t *svp)
 		diag_set(ClientError, ER_NO_TRANSACTION);
 		return -1;
 	}
-	struct txn_stmt *stmt = svp->stmt == NULL ? NULL :
-			stailq_entry(svp->stmt, struct txn_stmt, next);
+	struct txn_stmt *stmt =
+		svp->stmt == NULL ?
+			      NULL :
+			      stailq_entry(svp->stmt, struct txn_stmt, next);
 	if (stmt != NULL && stmt->space == NULL && stmt->row == NULL) {
 		/*
 		 * The statement at which this savepoint was
@@ -1188,10 +1190,12 @@ txn_savepoint_release(struct txn_savepoint *svp)
 	struct txn *txn = in_txn();
 	assert(txn != NULL);
 	/* Make sure that savepoint hasn't been released yet. */
-	struct txn_stmt *stmt = svp->stmt == NULL ? NULL :
-				stailq_entry(svp->stmt, struct txn_stmt, next);
+	struct txn_stmt *stmt =
+		svp->stmt == NULL ?
+			      NULL :
+			      stailq_entry(svp->stmt, struct txn_stmt, next);
 	assert(stmt == NULL || (stmt->space != NULL && stmt->row != NULL));
-	(void) stmt;
+	(void)stmt;
 	/*
 	 * Discard current savepoint alongside with all
 	 * created after it savepoints.
@@ -1203,9 +1207,9 @@ txn_savepoint_release(struct txn_savepoint *svp)
 static int
 txn_on_stop(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	(void) event;
-	txn_rollback(in_txn());                 /* doesn't yield or fail */
+	(void)trigger;
+	(void)event;
+	txn_rollback(in_txn()); /* doesn't yield or fail */
 	fiber_gc();
 	return 0;
 }
@@ -1230,8 +1234,8 @@ txn_on_stop(struct trigger *trigger, void *event)
 static int
 txn_on_yield(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	(void) event;
+	(void)trigger;
+	(void)event;
 	struct txn *txn = in_txn();
 	assert(txn != NULL);
 	assert(!txn_has_flag(txn, TXN_CAN_YIELD));

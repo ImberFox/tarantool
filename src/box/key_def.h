@@ -130,38 +130,28 @@ key_part_is_nullable(const struct key_part *part)
 }
 
 /** @copydoc tuple_compare_with_key() */
-typedef int (*tuple_compare_with_key_t)(struct tuple *tuple,
-					hint_t tuple_hint,
-					const char *key,
-					uint32_t part_count,
+typedef int (*tuple_compare_with_key_t)(struct tuple *tuple, hint_t tuple_hint,
+					const char *key, uint32_t part_count,
 					hint_t key_hint,
 					struct key_def *key_def);
 /** @copydoc tuple_compare() */
-typedef int (*tuple_compare_t)(struct tuple *tuple_a,
-			       hint_t tuple_a_hint,
-			       struct tuple *tuple_b,
-			       hint_t tuple_b_hint,
+typedef int (*tuple_compare_t)(struct tuple *tuple_a, hint_t tuple_a_hint,
+			       struct tuple *tuple_b, hint_t tuple_b_hint,
 			       struct key_def *key_def);
 /** @copydoc tuple_extract_key() */
 typedef char *(*tuple_extract_key_t)(struct tuple *tuple,
-				     struct key_def *key_def,
-				     int multikey_idx,
+				     struct key_def *key_def, int multikey_idx,
 				     uint32_t *key_size);
 /** @copydoc tuple_extract_key_raw() */
-typedef char *(*tuple_extract_key_raw_t)(const char *data,
-					 const char *data_end,
+typedef char *(*tuple_extract_key_raw_t)(const char *data, const char *data_end,
 					 struct key_def *key_def,
-					 int multikey_idx,
-					 uint32_t *key_size);
+					 int multikey_idx, uint32_t *key_size);
 /** @copydoc tuple_hash() */
-typedef uint32_t (*tuple_hash_t)(struct tuple *tuple,
-				 struct key_def *key_def);
+typedef uint32_t (*tuple_hash_t)(struct tuple *tuple, struct key_def *key_def);
 /** @copydoc key_hash() */
-typedef uint32_t (*key_hash_t)(const char *key,
-				struct key_def *key_def);
+typedef uint32_t (*key_hash_t)(const char *key, struct key_def *key_def);
 /** @copydoc tuple_hint() */
-typedef hint_t (*tuple_hint_t)(struct tuple *tuple,
-			       struct key_def *key_def);
+typedef hint_t (*tuple_hint_t)(struct tuple *tuple, struct key_def *key_def);
 /** @copydoc key_hint() */
 typedef hint_t (*key_hint_t)(const char *key, uint32_t part_count,
 			     struct key_def *key_def);
@@ -459,8 +449,7 @@ key_def_merge(const struct key_def *first, const struct key_def *second);
  */
 struct key_def *
 key_def_find_pk_in_cmp_def(const struct key_def *cmp_def,
-			   const struct key_def *pk_def,
-			   struct region *region);
+			   const struct key_def *pk_def, struct region *region);
 
 /*
  * Check that parts of the key match with the key definition.
@@ -525,10 +514,11 @@ key_def_has_collation(const struct key_def *key_def)
  * @retval -1 mp_type is invalid.
  */
 static inline int
-key_part_validate(enum field_type key_type, const char *key,
-		  uint32_t field_no, bool is_nullable)
+key_part_validate(enum field_type key_type, const char *key, uint32_t field_no,
+		  bool is_nullable)
 {
-	if (unlikely(!field_mp_type_is_compatible(key_type, key, is_nullable))) {
+	if (unlikely(
+		    !field_mp_type_is_compatible(key_type, key, is_nullable))) {
 		diag_set(ClientError, ER_KEY_PART_TYPE, field_no,
 			 field_type_strs[key_type]);
 		return -1;
@@ -630,9 +620,8 @@ tuple_extract_key_raw(const char *data, const char *data_end,
  * @retval >0 if key_a > key_b
  */
 int
-key_compare(const char *key_a, hint_t key_a_hint,
-	    const char *key_b, hint_t key_b_hint,
-	    struct key_def *key_def);
+key_compare(const char *key_a, hint_t key_a_hint, const char *key_b,
+	    hint_t key_b_hint, struct key_def *key_def);
 
 /**
  * Compare tuples using the key definition and comparison hints.
@@ -646,12 +635,11 @@ key_compare(const char *key_a, hint_t key_a_hint,
  * @retval >0 if key_fields(tuple_a) > key_fields(tuple_b)
  */
 static inline int
-tuple_compare(struct tuple *tuple_a, hint_t tuple_a_hint,
-	      struct tuple *tuple_b, hint_t tuple_b_hint,
-	      struct key_def *key_def)
+tuple_compare(struct tuple *tuple_a, hint_t tuple_a_hint, struct tuple *tuple_b,
+	      hint_t tuple_b_hint, struct key_def *key_def)
 {
-	return key_def->tuple_compare(tuple_a, tuple_a_hint,
-				      tuple_b, tuple_b_hint, key_def);
+	return key_def->tuple_compare(tuple_a, tuple_a_hint, tuple_b,
+				      tuple_b_hint, key_def);
 }
 
 /**
@@ -668,9 +656,9 @@ tuple_compare(struct tuple *tuple_a, hint_t tuple_a_hint,
  * @retval >0 if key_fields(tuple) > parts(key)
  */
 static inline int
-tuple_compare_with_key(struct tuple *tuple, hint_t tuple_hint,
-		       const char *key, uint32_t part_count,
-		       hint_t key_hint, struct key_def *key_def)
+tuple_compare_with_key(struct tuple *tuple, hint_t tuple_hint, const char *key,
+		       uint32_t part_count, hint_t key_hint,
+		       struct key_def *key_def)
 {
 	return key_def->tuple_compare_with_key(tuple, tuple_hint, key,
 					       part_count, key_hint, key_def);
@@ -730,7 +718,7 @@ key_hash(const char *key, struct key_def *key_def)
 	return key_def->key_hash(key, key_def);
 }
 
- /*
+/*
  * Get comparison hint for a tuple.
  * @param tuple - tuple to compute the hint for
  * @param key_def - key_def used for tuple comparison

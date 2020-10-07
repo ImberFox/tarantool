@@ -47,7 +47,7 @@ struct space_opts {
 	 * made to a space are replicated.
 	 */
 	uint32_t group_id;
-        /**
+	/**
 	 * The space is a temporary:
 	 * - it is empty at server start
 	 * - changes are not written to WAL
@@ -171,10 +171,9 @@ space_def_dup(const struct space_def *src);
  */
 struct space_def *
 space_def_new(uint32_t id, uint32_t uid, uint32_t exact_field_count,
-	      const char *name, uint32_t name_len,
-	      const char *engine_name, uint32_t engine_len,
-	      const struct space_opts *opts, const struct field_def *fields,
-	      uint32_t field_count);
+	      const char *name, uint32_t name_len, const char *engine_name,
+	      uint32_t engine_len, const struct space_opts *opts,
+	      const struct field_def *fields, uint32_t field_count);
 
 /**
  * Create a new ephemeral space definition.
@@ -220,10 +219,9 @@ space_def_dup_xc(const struct space_def *src)
 
 static inline struct space_def *
 space_def_new_xc(uint32_t id, uint32_t uid, uint32_t exact_field_count,
-		 const char *name, uint32_t name_len,
-		 const char *engine_name, uint32_t engine_len,
-		 const struct space_opts *opts, const struct field_def *fields,
-		 uint32_t field_count)
+		 const char *name, uint32_t name_len, const char *engine_name,
+		 uint32_t engine_len, const struct space_opts *opts,
+		 const struct field_def *fields, uint32_t field_count)
 {
 	struct space_def *ret = space_def_new(id, uid, exact_field_count, name,
 					      name_len, engine_name, engine_len,

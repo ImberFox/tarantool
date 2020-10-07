@@ -40,7 +40,7 @@
 #include "sql/vdbeInt.h"
 #include "tuple.h"
 
-const char *ck_constraint_language_strs[] = {"SQL"};
+const char *ck_constraint_language_strs[] = { "SQL" };
 
 struct ck_constraint_def *
 ck_constraint_def_new(const char *name, uint32_t name_len, const char *expr_str,
@@ -51,7 +51,7 @@ ck_constraint_def_new(const char *name, uint32_t name_len, const char *expr_str,
 	uint32_t ck_def_sz = ck_constraint_def_sizeof(name_len, expr_str_len,
 						      &expr_str_offset);
 	struct ck_constraint_def *ck_def =
-		(struct ck_constraint_def *) malloc(ck_def_sz);
+		(struct ck_constraint_def *)malloc(ck_def_sz);
 	if (ck_def == NULL) {
 		diag_set(OutOfMemory, ck_def_sz, "malloc", "ck_def");
 		return NULL;
@@ -131,7 +131,8 @@ ck_constraint_program_compile(struct ck_constraint_def *ck_constraint_def,
 	sqlVdbeAddOp2(v, OP_Variable, ++parser.nVar, vdbe_field_ref_reg);
 	/* Generate ck constraint test code. */
 	vdbe_emit_ck_constraint(&parser, expr, ck_constraint_def->name,
-				ck_constraint_def->expr_str, vdbe_field_ref_reg);
+				ck_constraint_def->expr_str,
+				vdbe_field_ref_reg);
 
 	/* Clean-up and restore user-defined sql context. */
 	bool is_error = parser.is_aborted;
@@ -142,10 +143,10 @@ ck_constraint_program_compile(struct ck_constraint_def *ck_constraint_def,
 		diag_set(ClientError, ER_CREATE_CK_CONSTRAINT,
 			 ck_constraint_def->name,
 			 box_error_message(box_error_last()));
-		sql_stmt_finalize((struct sql_stmt *) v);
+		sql_stmt_finalize((struct sql_stmt *)v);
 		return NULL;
 	}
-	return (struct sql_stmt *) v;
+	return (struct sql_stmt *)v;
 }
 
 /**
@@ -167,7 +168,7 @@ ck_constraint_program_run(struct ck_constraint *ck_constraint,
 		return -1;
 	}
 	/* Checks VDBE can't expire, reset expired flag and go. */
-	struct Vdbe *v = (struct Vdbe *) ck_constraint->stmt;
+	struct Vdbe *v = (struct Vdbe *)ck_constraint->stmt;
 	v->expired = 0;
 	sql_step(ck_constraint->stmt);
 	/*
@@ -180,8 +181,8 @@ ck_constraint_program_run(struct ck_constraint *ck_constraint,
 int
 ck_constraint_on_replace_trigger(struct trigger *trigger, void *event)
 {
-	(void) trigger;
-	struct txn *txn = (struct txn *) event;
+	(void)trigger;
+	struct txn *txn = (struct txn *)event;
 	struct txn_stmt *stmt = txn_current_stmt(txn);
 	assert(stmt != NULL);
 	struct tuple *new_tuple = stmt->new_tuple;

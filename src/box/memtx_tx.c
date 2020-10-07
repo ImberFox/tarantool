@@ -59,8 +59,7 @@ memtx_tx_story_key_hash(const struct tuple *a)
 #define MH_SOURCE
 #include "salad/mhash.h"
 
-struct tx_manager
-{
+struct tx_manager {
 	/**
 	 * List of all transactions that are in a read view.
 	 * New transactions are added to the tail of this list,
@@ -83,7 +82,7 @@ enum {
 	 * searching and deleting no more used memtx_tx_stories per creation of
 	 * a new story.
 	 */
-		TX_MANAGER_GC_STEPS_SIZE = 2,
+	TX_MANAGER_GC_STEPS_SIZE = 2,
 };
 
 /** That's a definition, see declaration for description. */
@@ -99,8 +98,8 @@ memtx_tx_manager_init()
 	for (size_t i = 0; i < BOX_INDEX_MAX; i++) {
 		size_t item_size = sizeof(struct memtx_story) +
 				   i * sizeof(struct memtx_story_link);
-		mempool_create(&txm.memtx_tx_story_pool[i],
-			       cord_slab_cache(), item_size);
+		mempool_create(&txm.memtx_tx_story_pool[i], cord_slab_cache(),
+			       item_size);
 	}
 	txm.history = mh_history_new();
 	rlist_create(&txm.all_stories);
@@ -109,8 +108,7 @@ memtx_tx_manager_init()
 
 void
 memtx_tx_manager_free()
-{
-}
+{}
 
 int
 memtx_tx_cause_conflict(struct txn *breaker, struct txn *victim)
@@ -121,12 +119,12 @@ memtx_tx_cause_conflict(struct txn *breaker, struct txn *victim)
 	while (r1 != &breaker->conflict_list &&
 	       r2 != &victim->conflicted_by_list) {
 		tracker = rlist_entry(r1, struct tx_conflict_tracker,
-		in_conflict_list);
+				      in_conflict_list);
 		assert(tracker->breaker == breaker);
 		if (tracker->victim == victim)
 			break;
 		tracker = rlist_entry(r2, struct tx_conflict_tracker,
-		in_conflicted_by_list);
+				      in_conflicted_by_list);
 		assert(tracker->victim == victim);
 		if (tracker->breaker == breaker)
 			break;
@@ -144,8 +142,8 @@ memtx_tx_cause_conflict(struct txn *breaker, struct txn *victim)
 	} else {
 		size_t size;
 		tracker = region_alloc_object(&victim->region,
-		struct tx_conflict_tracker,
-		&size);
+					      struct tx_conflict_tracker,
+					      &size);
 		if (tracker == NULL) {
 			diag_set(OutOfMemory, size, "tx region",
 				 "conflict_tracker");
@@ -196,18 +194,18 @@ memtx_tx_story_new(struct space *space, struct tuple *tuple)
 	uint32_t index_count = space->index_count;
 	assert(index_count < BOX_INDEX_MAX);
 	struct mempool *pool = &txm.memtx_tx_story_pool[index_count];
-	struct memtx_story *story = (struct memtx_story *) mempool_alloc(pool);
+	struct memtx_story *story = (struct memtx_story *)mempool_alloc(pool);
 	if (story == NULL) {
-		size_t item_size = sizeof(struct memtx_story) +
-				   index_count *
-				   sizeof(struct memtx_story_link);
+		size_t item_size =
+			sizeof(struct memtx_story) +
+			index_count * sizeof(struct memtx_story_link);
 		diag_set(OutOfMemory, item_size, "mempool_alloc", "story");
 		return NULL;
 	}
 	story->tuple = tuple;
 
 	const struct memtx_story **put_story =
-		(const struct memtx_story **) &story;
+		(const struct memtx_story **)&story;
 	struct memtx_story **empty = NULL;
 	mh_int_t pos = mh_history_put(txm.history, put_story, &empty, 0);
 	if (pos == mh_end(txm.history)) {
@@ -289,7 +287,6 @@ memtx_tx_story_delete_del_stmt(struct memtx_story *story)
 	memtx_tx_story_delete(story);
 }
 
-
 /**
  * Find a story of a @a tuple. The story expected to be present (assert).
  */
@@ -309,8 +306,8 @@ memtx_tx_story_get(struct tuple *tuple)
 static struct tuple *
 memtx_tx_story_older_tuple(struct memtx_story_link *link)
 {
-	return link->older.is_story ? link->older.story->tuple
-				    : link->older.tuple;
+	return link->older.is_story ? link->older.story->tuple :
+					    link->older.tuple;
 }
 
 /**
@@ -318,8 +315,7 @@ memtx_tx_story_older_tuple(struct memtx_story_link *link)
  */
 static void
 memtx_tx_story_link_story(struct memtx_story *story,
-			  struct memtx_story *older_story,
-			  uint32_t index)
+			  struct memtx_story *older_story, uint32_t index)
 {
 	assert(older_story != NULL);
 	struct memtx_story_link *link = &story->link[index];
@@ -336,8 +332,7 @@ memtx_tx_story_link_story(struct memtx_story *story,
  * dirty -find and link with the corresponding story.
  */
 static void
-memtx_tx_story_link_tuple(struct memtx_story *story,
-			  struct tuple *older_tuple,
+memtx_tx_story_link_tuple(struct memtx_story *story, struct tuple *older_tuple,
 			  uint32_t index)
 {
 	struct memtx_story_link *link = &story->link[index];
@@ -389,16 +384,16 @@ memtx_tx_story_gc_step()
 	/* Lowest read view PSN */
 	int64_t lowest_rv_psm = txn_last_psn;
 	if (!rlist_empty(&txm.read_view_txs)) {
-		struct txn *txn =
-			rlist_first_entry(&txm.read_view_txs, struct txn,
-					  in_read_view_txs);
+		struct txn *txn = rlist_first_entry(&txm.read_view_txs,
+						    struct txn,
+						    in_read_view_txs);
 		assert(txn->rv_psn != 0);
 		lowest_rv_psm = txn->rv_psn;
 	}
 
-	struct memtx_story *story =
-		rlist_entry(txm.traverse_all_stories, struct memtx_story,
-			    in_all_stories);
+	struct memtx_story *story = rlist_entry(txm.traverse_all_stories,
+						struct memtx_story,
+						in_all_stories);
 	txm.traverse_all_stories = txm.traverse_all_stories->next;
 
 	if (story->add_stmt != NULL || story->del_stmt != NULL ||
@@ -511,8 +506,7 @@ memtx_tx_story_is_visible(struct memtx_story *story, struct txn *txn,
 /**
  * Temporary (allocated on region) struct that stores a conflicting TX.
  */
-struct memtx_tx_conflict
-{
+struct memtx_tx_conflict {
 	/* The transaction that will conflict us upon commit. */
 	struct txn *breaker;
 	/* Link in single-linked list. */
@@ -552,12 +546,10 @@ memtx_tx_save_conflict(struct txn *breaker,
  * @return 0 on success, -1 on memory error.
  */
 static int
-memtx_tx_story_find_visible_tuple(struct memtx_story *story,
-				  struct txn_stmt *stmt,
-				  uint32_t index,
-				  struct tuple **visible_replaced,
-				  struct memtx_tx_conflict **collected_conflicts,
-				  struct region *region)
+memtx_tx_story_find_visible_tuple(
+	struct memtx_story *story, struct txn_stmt *stmt, uint32_t index,
+	struct tuple **visible_replaced,
+	struct memtx_tx_conflict **collected_conflicts, struct region *region)
 {
 	while (true) {
 		if (!story->link[index].older.is_story) {
@@ -603,7 +595,6 @@ memtx_tx_story_find_visible_tuple(struct memtx_story *story,
 						   collected_conflicts,
 						   region) != 0)
 				return -1;
-
 		}
 	}
 	return 0;
@@ -647,18 +638,16 @@ memtx_tx_history_add_stmt(struct txn_stmt *stmt, struct tuple *old_tuple,
 			add_story_linked++;
 
 			struct tuple *visible_replaced = NULL;
-			if (memtx_tx_story_find_visible_tuple(add_story, stmt, i,
-							      &visible_replaced,
-							      &collected_conflicts,
-							      region) != 0)
+			if (memtx_tx_story_find_visible_tuple(
+				    add_story, stmt, i, &visible_replaced,
+				    &collected_conflicts, region) != 0)
 				goto fail;
 
 			uint32_t errcode;
 			errcode = replace_check_dup(old_tuple, visible_replaced,
 						    i == 0 ? mode : DUP_INSERT);
 			if (errcode != 0) {
-				diag_set(ClientError, errcode,
-					 index->def->name,
+				diag_set(ClientError, errcode, index->def->name,
 					 space_name(space));
 				goto fail;
 			}
@@ -685,8 +674,8 @@ memtx_tx_history_add_stmt(struct txn_stmt *stmt, struct tuple *old_tuple,
 		if (del_tuple->is_dirty) {
 			del_story = memtx_tx_story_get(del_tuple);
 		} else {
-			del_story = memtx_tx_story_new_del_stmt(del_tuple,
-								stmt);
+			del_story =
+				memtx_tx_story_new_del_stmt(del_tuple, stmt);
 			if (del_story == NULL)
 				goto fail;
 			del_story_created = true;
@@ -729,7 +718,7 @@ memtx_tx_history_add_stmt(struct txn_stmt *stmt, struct tuple *old_tuple,
 		tuple_ref(*result);
 	return 0;
 
-	fail:
+fail:
 	if (add_story != NULL) {
 		while (add_story_linked > 0) {
 			--add_story_linked;
@@ -739,15 +728,14 @@ memtx_tx_history_add_stmt(struct txn_stmt *stmt, struct tuple *old_tuple,
 			struct memtx_story_link *link = &add_story->link[i];
 			struct tuple *was = memtx_tx_story_older_tuple(link);
 			struct tuple *unused;
-			if (index_replace(index, new_tuple, was,
-					  DUP_INSERT, &unused) != 0) {
+			if (index_replace(index, new_tuple, was, DUP_INSERT,
+					  &unused) != 0) {
 				diag_log();
 				unreachable();
 				panic("failed to rollback change");
 			}
 
 			memtx_tx_story_unlink(stmt->add_story, i);
-
 		}
 		memtx_tx_story_delete_add_stmt(stmt->add_story);
 	}
@@ -778,7 +766,8 @@ memtx_tx_history_rollback_stmt(struct txn_stmt *stmt)
 			if (link->newer_story == NULL) {
 				struct tuple *unused;
 				struct index *index = stmt->space->index[i];
-				struct tuple *was = memtx_tx_story_older_tuple(link);
+				struct tuple *was =
+					memtx_tx_story_older_tuple(link);
 				if (index_replace(index, story->tuple, was,
 						  DUP_INSERT, &unused) != 0) {
 					diag_log();
@@ -791,7 +780,8 @@ memtx_tx_history_rollback_stmt(struct txn_stmt *stmt)
 				assert(newer->link[i].older.story == story);
 				memtx_tx_story_unlink(newer, i);
 				if (link->older.is_story) {
-					struct memtx_story *to = link->older.story;
+					struct memtx_story *to =
+						link->older.story;
 					memtx_tx_story_link_story(newer, to, i);
 				} else {
 					struct tuple *to = link->older.tuple;
@@ -834,7 +824,7 @@ memtx_tx_history_prepare_stmt(struct txn_stmt *stmt)
 	 * Note that if stmt->add_story == NULL, the index_count is set to 0,
 	 * and we will not enter the loop.
 	 */
-	for (uint32_t i = 0; i < index_count; ) {
+	for (uint32_t i = 0; i < index_count;) {
 		if (!story->link[i].older.is_story) {
 			/* tuple is old. */
 			i++;
@@ -894,13 +884,11 @@ memtx_tx_history_prepare_stmt(struct txn_stmt *stmt)
 
 		memtx_tx_story_unlink(story, i);
 		if (old_story->link[i].older.is_story) {
-			struct memtx_story *to =
-				old_story->link[i].older.story;
+			struct memtx_story *to = old_story->link[i].older.story;
 			memtx_tx_story_unlink(old_story, i);
 			memtx_tx_story_link_story(story, to, i);
 		} else {
-			struct tuple *to =
-				old_story->link[i].older.tuple;
+			struct tuple *to = old_story->link[i].older.tuple;
 			memtx_tx_story_unlink(old_story, i);
 			memtx_tx_story_link_tuple(story, to, i);
 		}
@@ -1019,10 +1007,9 @@ memtx_tx_on_space_delete(struct space *space)
 {
 	/* Just clear pointer to space, it will be handled in GC. */
 	while (!rlist_empty(&space->memtx_stories)) {
-		struct memtx_story *story
-			= rlist_first_entry(&space->memtx_stories,
-					    struct memtx_story,
-					    in_space_stories);
+		struct memtx_story *story =
+			rlist_first_entry(&space->memtx_stories,
+					  struct memtx_story, in_space_stories);
 		story->space = NULL;
 		rlist_del(&story->in_space_stories);
 	}
@@ -1095,13 +1082,12 @@ memtx_tx_track_read(struct txn *txn, struct space *space, struct tuple *tuple)
 	struct rlist *r1 = story->reader_list.next;
 	struct rlist *r2 = txn->read_set.next;
 	while (r1 != &story->reader_list && r2 != &txn->read_set) {
-		tracker = rlist_entry(r1, struct tx_read_tracker,
-				      in_reader_list);
+		tracker =
+			rlist_entry(r1, struct tx_read_tracker, in_reader_list);
 		assert(tracker->story == story);
 		if (tracker->reader == txn)
 			break;
-		tracker = rlist_entry(r2, struct tx_read_tracker,
-				      in_read_set);
+		tracker = rlist_entry(r2, struct tx_read_tracker, in_read_set);
 		assert(tracker->reader == txn);
 		if (tracker->story == story)
 			break;
@@ -1139,8 +1125,7 @@ memtx_tx_snapshot_cleaner_hash(const struct tuple *a)
 		return u ^ (u >> 32);
 }
 
-struct memtx_tx_snapshot_cleaner_entry
-{
+struct memtx_tx_snapshot_cleaner_entry {
 	struct tuple *from;
 	struct tuple *to;
 };
@@ -1165,8 +1150,8 @@ memtx_tx_snapshot_cleaner_create(struct memtx_tx_snapshot_cleaner *cleaner,
 		return 0;
 	struct mh_snapshot_cleaner_t *ht = mh_snapshot_cleaner_new();
 	if (ht == NULL) {
-		diag_set(OutOfMemory, sizeof(*ht),
-			 index_name, "snapshot cleaner");
+		diag_set(OutOfMemory, sizeof(*ht), index_name,
+			 "snapshot cleaner");
 		free(ht);
 		return -1;
 	}
@@ -1174,19 +1159,19 @@ memtx_tx_snapshot_cleaner_create(struct memtx_tx_snapshot_cleaner *cleaner,
 	struct memtx_story *story;
 	rlist_foreach_entry(story, &space->memtx_stories, in_space_stories) {
 		struct tuple *tuple = story->tuple;
-		struct tuple *clean =
-			memtx_tx_tuple_clarify_slow(NULL, space, tuple, 0, 0,
-						    true);
+		struct tuple *clean = memtx_tx_tuple_clarify_slow(NULL, space,
+								  tuple, 0, 0,
+								  true);
 		if (clean == tuple)
 			continue;
 
 		struct memtx_tx_snapshot_cleaner_entry entry;
 		entry.from = tuple;
 		entry.to = clean;
-		mh_int_t res =  mh_snapshot_cleaner_put(ht,  &entry, NULL, 0);
+		mh_int_t res = mh_snapshot_cleaner_put(ht, &entry, NULL, 0);
 		if (res == mh_end(ht)) {
-			diag_set(OutOfMemory, sizeof(entry),
-				 index_name, "snapshot rollback entry");
+			diag_set(OutOfMemory, sizeof(entry), index_name,
+				 "snapshot rollback entry");
 			mh_snapshot_cleaner_delete(ht);
 			return -1;
 		}
@@ -1204,7 +1189,7 @@ memtx_tx_snapshot_clarify_slow(struct memtx_tx_snapshot_cleaner *cleaner,
 
 	struct mh_snapshot_cleaner_t *ht = cleaner->ht;
 	while (true) {
-		mh_int_t pos =  mh_snapshot_cleaner_find(ht, tuple, 0);
+		mh_int_t pos = mh_snapshot_cleaner_find(ht, tuple, 0);
 		if (pos == mh_end(ht))
 			break;
 		struct memtx_tx_snapshot_cleaner_entry *entry =
@@ -1215,7 +1200,6 @@ memtx_tx_snapshot_clarify_slow(struct memtx_tx_snapshot_cleaner *cleaner,
 
 	return tuple;
 }
-
 
 void
 memtx_tx_snapshot_cleaner_destroy(struct memtx_tx_snapshot_cleaner *cleaner)

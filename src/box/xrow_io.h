@@ -48,7 +48,6 @@ coio_read_xrow_timeout_xc(struct ev_io *coio, struct ibuf *in,
 void
 coio_write_xrow(struct ev_io *coio, const struct xrow_header *row);
 
-
 #if defined(__cplusplus)
 } /* extern "C" */
 #endif

@@ -75,7 +75,8 @@ const uint32_t field_mp_type[] = {
 };
 
 const uint32_t field_ext_type[] = {
-	/* [FIELD_TYPE_ANY]       = */ UINT32_MAX ^ (1U << MP_UNKNOWN_EXTENSION),
+	/* [FIELD_TYPE_ANY]       = */ UINT32_MAX ^
+		(1U << MP_UNKNOWN_EXTENSION),
 	/* [FIELD_TYPE_UNSIGNED]  = */ 0,
 	/* [FIELD_TYPE_STRING]    = */ 0,
 	/* [FIELD_TYPE_NUMBER]    = */ 1U << MP_DECIMAL,
@@ -98,7 +99,7 @@ const char *field_type_strs[] = {
 	/* [FIELD_TYPE_DOUBLE]   = */ "double",
 	/* [FIELD_TYPE_INTEGER]  = */ "integer",
 	/* [FIELD_TYPE_BOOLEAN]  = */ "boolean",
-	/* [FIELD_TYPE_VARBINARY] = */"varbinary",
+	/* [FIELD_TYPE_VARBINARY] = */ "varbinary",
 	/* [FIELD_TYPE_SCALAR]   = */ "scalar",
 	/* [FIELD_TYPE_DECIMAL]  = */ "decimal",
 	/* [FIELD_TYPE_UUID]     = */ "uuid",
@@ -165,21 +166,20 @@ const struct opt_def field_def_reg[] = {
 	OPT_END,
 };
 
-const struct field_def field_def_default = {
-	.type = FIELD_TYPE_ANY,
-	.name = NULL,
-	.is_nullable = false,
-	.nullable_action = ON_CONFLICT_ACTION_DEFAULT,
-	.coll_id = COLL_NONE,
-	.default_value = NULL,
-	.default_value_expr = NULL
-};
+const struct field_def field_def_default = { .type = FIELD_TYPE_ANY,
+					     .name = NULL,
+					     .is_nullable = false,
+					     .nullable_action =
+						     ON_CONFLICT_ACTION_DEFAULT,
+					     .coll_id = COLL_NONE,
+					     .default_value = NULL,
+					     .default_value_expr = NULL };
 
 enum field_type
 field_type_by_name(const char *name, size_t len)
 {
-	enum field_type field_type = strnindex(field_type_strs, name, len,
-					       field_type_MAX);
+	enum field_type field_type =
+		strnindex(field_type_strs, name, len, field_type_MAX);
 	if (field_type != field_type_MAX)
 		return field_type;
 	/* 'num' and 'str' in _index are deprecated since Tarantool 1.7 */

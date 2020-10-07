@@ -57,10 +57,8 @@ identifier_check(const char *str, int str_len)
 		 * Here the `c` symbol printability is determined by comparison
 		 * with unicode category types explicitly.
 		 */
-		if (type == U_UNASSIGNED ||
-		    type == U_LINE_SEPARATOR ||
-		    type == U_CONTROL_CHAR ||
-		    type == U_PARAGRAPH_SEPARATOR)
+		if (type == U_UNASSIGNED || type == U_LINE_SEPARATOR ||
+		    type == U_CONTROL_CHAR || type == U_PARAGRAPH_SEPARATOR)
 			goto error;
 	}
 	return 0;

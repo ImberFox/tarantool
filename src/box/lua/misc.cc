@@ -54,11 +54,11 @@ lbox_encode_tuple_on_gc(lua_State *L, int idx, size_t *p_len)
 	size_t used = region_used(gc);
 	struct mpstream stream;
 	mpstream_init(&stream, gc, region_reserve_cb, region_alloc_cb,
-			luamp_error, L);
+		      luamp_error, L);
 	luamp_encode_tuple(L, luaL_msgpack_default, &stream, idx);
 	mpstream_flush(&stream);
 	*p_len = region_used(gc) - used;
-	return (char *) region_join_xc(gc, *p_len);
+	return (char *)region_join_xc(gc, *p_len);
 }
 
 extern "C" void
@@ -84,9 +84,9 @@ port_c_dump_lua(struct port *base, struct lua_State *L, bool is_flat)
 extern "C" void
 port_msgpack_dump_lua(struct port *base, struct lua_State *L, bool is_flat)
 {
-	(void) is_flat;
+	(void)is_flat;
 	assert(is_flat == true);
-	struct port_msgpack *port = (struct port_msgpack *) base;
+	struct port_msgpack *port = (struct port_msgpack *)base;
 
 	const char *args = port->data;
 	uint32_t arg_count = mp_decode_array(&args);
@@ -102,9 +102,9 @@ static int
 lbox_select(lua_State *L)
 {
 	if (lua_gettop(L) != 6 || !lua_isnumber(L, 1) || !lua_isnumber(L, 2) ||
-		!lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5)) {
+	    !lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5)) {
 		return luaL_error(L, "Usage index:select(iterator, offset, "
-				  "limit, key)");
+				     "limit, key)");
 	}
 
 	uint32_t space_id = lua_tonumber(L, 1);
@@ -117,8 +117,8 @@ lbox_select(lua_State *L)
 	const char *key = lbox_encode_tuple_on_gc(L, 6, &key_len);
 
 	struct port port;
-	if (box_select(space_id, index_id, iterator, offset, limit,
-		       key, key + key_len, &port) != 0) {
+	if (box_select(space_id, index_id, iterator, offset, limit, key,
+		       key + key_len, &port) != 0) {
 		return luaT_error(L);
 	}
 
@@ -147,7 +147,8 @@ lbox_check_tuple_format(struct lua_State *L, int narg)
 	struct tuple_format *format =
 		*(struct tuple_format **)luaL_checkcdata(L, narg, &ctypeid);
 	if (ctypeid != CTID_STRUCT_TUPLE_FORMAT_PTR) {
-		luaL_error(L, "Invalid argument: 'struct tuple_format *' "
+		luaL_error(L,
+			   "Invalid argument: 'struct tuple_format *' "
 			   "expected, got %s)",
 			   lua_typename(L, lua_type(L, narg)));
 	}
@@ -157,7 +158,7 @@ lbox_check_tuple_format(struct lua_State *L, int narg)
 static int
 lbox_tuple_format_gc(struct lua_State *L)
 {
-	struct tuple_format *format =  lbox_check_tuple_format(L, 1);
+	struct tuple_format *format = lbox_check_tuple_format(L, 1);
 	tuple_format_unref(format);
 	return 0;
 }
@@ -188,8 +189,8 @@ lbox_tuple_format_new(struct lua_State *L)
 	size_t size;
 	struct region *region = &fiber()->gc;
 	size_t region_svp = region_used(region);
-	struct field_def *fields = region_alloc_array(region, typeof(fields[0]),
-						      count, &size);
+	struct field_def *fields =
+		region_alloc_array(region, typeof(fields[0]), count, &size);
 	if (fields == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_array", "fields");
 		return luaT_error(L);
@@ -204,7 +205,7 @@ lbox_tuple_format_new(struct lua_State *L)
 
 		lua_pushstring(L, "type");
 		lua_gettable(L, -2);
-		if (! lua_isnil(L, -1)) {
+		if (!lua_isnil(L, -1)) {
 			const char *type_name = lua_tolstring(L, -1, &len);
 			fields[i].type = field_type_by_name(type_name, len);
 			assert(fields[i].type != field_type_MAX);
@@ -213,7 +214,7 @@ lbox_tuple_format_new(struct lua_State *L)
 
 		lua_pushstring(L, "name");
 		lua_gettable(L, -2);
-		assert(! lua_isnil(L, -1));
+		assert(!lua_isnil(L, -1));
 		const char *name = lua_tolstring(L, -1, &len);
 		fields[i].name = (char *)region_alloc(region, len + 1);
 		if (fields == NULL) {
@@ -251,9 +252,9 @@ void
 box_lua_misc_init(struct lua_State *L)
 {
 	static const struct luaL_Reg boxlib_internal[] = {
-		{"select", lbox_select},
-		{"new_tuple_format", lbox_tuple_format_new},
-		{NULL, NULL}
+		{ "select", lbox_select },
+		{ "new_tuple_format", lbox_tuple_format_new },
+		{ NULL, NULL }
 	};
 
 	luaL_register(L, "box.internal", boxlib_internal);
@@ -261,7 +262,7 @@ box_lua_misc_init(struct lua_State *L)
 
 	int rc = luaL_cdef(L, "struct tuple_format;");
 	assert(rc == 0);
-	(void) rc;
+	(void)rc;
 	CTID_STRUCT_TUPLE_FORMAT_PTR = luaL_ctypeid(L, "struct tuple_format *");
 	assert(CTID_STRUCT_TUPLE_FORMAT_PTR != 0);
 }

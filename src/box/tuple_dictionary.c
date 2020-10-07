@@ -52,8 +52,8 @@ struct mh_strnu32_node_t {
 #define mh_arg_t void *
 #define mh_hash(a, arg) ((a)->hash)
 #define mh_hash_key(a, arg) mh_hash(a, arg)
-#define mh_cmp(a, b, arg) ((a)->len != (b)->len || \
-			   memcmp((a)->str, (b)->str, (a)->len))
+#define mh_cmp(a, b, arg) \
+	((a)->len != (b)->len || memcmp((a)->str, (b)->str, (a)->len))
 #define mh_cmp_key(a, b, arg) mh_cmp(a, b, arg)
 #define MH_SOURCE 1
 #include "salad/mhash.h" /* Create mh_strnu32_t hash. */
@@ -100,22 +100,18 @@ tuple_dictionary_set_name(struct tuple_dictionary *dict, const char *name,
 {
 	assert(fieldno < dict->name_count);
 	uint32_t name_hash = field_name_hash(name, name_len);
-	struct mh_strnu32_key_t key = {
-		name, name_len, name_hash
-	};
+	struct mh_strnu32_key_t key = { name, name_len, name_hash };
 	mh_int_t rc = mh_strnu32_find(dict->hash, &key, NULL);
 	if (rc != mh_end(dict->hash)) {
-		diag_set(ClientError, ER_SPACE_FIELD_IS_DUPLICATE,
-			 name);
+		diag_set(ClientError, ER_SPACE_FIELD_IS_DUPLICATE, name);
 		return -1;
 	}
-	struct mh_strnu32_node_t name_node = {
-		name, name_len, name_hash, fieldno
-	};
+	struct mh_strnu32_node_t name_node = { name, name_len, name_hash,
+					       fieldno };
 	rc = mh_strnu32_put(dict->hash, &name_node, NULL, NULL);
 	/* Memory was reserved in new(). */
 	assert(rc != mh_end(dict->hash));
-	(void) rc;
+	(void)rc;
 	return 0;
 }
 
@@ -125,8 +121,7 @@ tuple_dictionary_new(const struct field_def *fields, uint32_t field_count)
 	struct tuple_dictionary *dict =
 		(struct tuple_dictionary *)calloc(1, sizeof(*dict));
 	if (dict == NULL) {
-		diag_set(OutOfMemory, sizeof(*dict), "malloc",
-			 "dict");
+		diag_set(OutOfMemory, sizeof(*dict), "malloc", "dict");
 		return NULL;
 	}
 	dict->refs = 1;
@@ -137,24 +132,24 @@ tuple_dictionary_new(const struct field_def *fields, uint32_t field_count)
 	uint32_t total = names_offset;
 	for (uint32_t i = 0; i < field_count; ++i)
 		total += strlen(fields[i].name) + 1;
-	dict->names = (char **) malloc(total);
+	dict->names = (char **)malloc(total);
 	if (dict->names == NULL) {
 		diag_set(OutOfMemory, total, "malloc", "dict->names");
 		goto err_memory;
 	}
 	dict->hash = mh_strnu32_new();
 	if (dict->hash == NULL) {
-		diag_set(OutOfMemory, sizeof(*dict->hash),
-			 "mh_strnu32_new", "dict->hash");
+		diag_set(OutOfMemory, sizeof(*dict->hash), "mh_strnu32_new",
+			 "dict->hash");
 		goto err_hash;
 	}
 	if (mh_strnu32_reserve(dict->hash, field_count, NULL) != 0) {
-		diag_set(OutOfMemory, field_count *
-			 sizeof(struct mh_strnu32_node_t), "mh_strnu32_reserve",
-			 "dict->hash");
+		diag_set(OutOfMemory,
+			 field_count * sizeof(struct mh_strnu32_node_t),
+			 "mh_strnu32_reserve", "dict->hash");
 		goto err_name;
 	}
-	char *pos = (char *) dict->names + names_offset;
+	char *pos = (char *)dict->names + names_offset;
 	for (uint32_t i = 0; i < field_count; ++i) {
 		int len = strlen(fields[i].name);
 		memcpy(pos, fields[i].name, len);
@@ -208,7 +203,7 @@ tuple_fieldno_by_name(struct tuple_dictionary *dict, const char *name,
 	struct mh_strnu32_t *hash = dict->hash;
 	if (hash == NULL)
 		return -1;
-	struct mh_strnu32_key_t key = {name, name_len, name_hash};
+	struct mh_strnu32_key_t key = { name, name_len, name_hash };
 	mh_int_t rc = mh_strnu32_find(hash, &key, NULL);
 	if (rc == mh_end(hash))
 		return -1;

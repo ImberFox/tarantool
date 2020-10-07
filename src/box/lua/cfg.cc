@@ -40,7 +40,7 @@
 #include "libeio/eio.h"
 
 extern "C" {
-	#include <lua.h>
+#include <lua.h>
 } // extern "C"
 
 static int
@@ -263,7 +263,7 @@ lbox_set_prepared_stmt_cache_size(struct lua_State *L)
 static int
 lbox_cfg_set_worker_pool_threads(struct lua_State *L)
 {
-	(void) L;
+	(void)L;
 	eio_set_min_parallel(cfg_geti("worker_pool_threads"));
 	eio_set_max_parallel(cfg_geti("worker_pool_threads"));
 	return 0;
@@ -378,7 +378,7 @@ lbox_cfg_set_replication_anon(struct lua_State *L)
 static int
 lbox_cfg_set_replication_skip_conflict(struct lua_State *L)
 {
-	(void) L;
+	(void)L;
 	box_set_replication_skip_conflict();
 	return 0;
 }
@@ -387,40 +387,58 @@ void
 box_lua_cfg_init(struct lua_State *L)
 {
 	static const struct luaL_Reg cfglib_internal[] = {
-		{"cfg_check", lbox_cfg_check},
-		{"cfg_load", lbox_cfg_load},
-		{"cfg_set_listen", lbox_cfg_set_listen},
-		{"cfg_set_replication", lbox_cfg_set_replication},
-		{"cfg_set_worker_pool_threads", lbox_cfg_set_worker_pool_threads},
-		{"cfg_set_readahead", lbox_cfg_set_readahead},
-		{"cfg_set_io_collect_interval", lbox_cfg_set_io_collect_interval},
-		{"cfg_set_too_long_threshold", lbox_cfg_set_too_long_threshold},
-		{"cfg_set_snap_io_rate_limit", lbox_cfg_set_snap_io_rate_limit},
-		{"cfg_set_checkpoint_count", lbox_cfg_set_checkpoint_count},
-		{"cfg_set_checkpoint_interval", lbox_cfg_set_checkpoint_interval},
-		{"cfg_set_checkpoint_wal_threshold", lbox_cfg_set_checkpoint_wal_threshold},
-		{"cfg_set_read_only", lbox_cfg_set_read_only},
-		{"cfg_set_memtx_memory", lbox_cfg_set_memtx_memory},
-		{"cfg_set_memtx_max_tuple_size", lbox_cfg_set_memtx_max_tuple_size},
-		{"cfg_set_vinyl_memory", lbox_cfg_set_vinyl_memory},
-		{"cfg_set_vinyl_max_tuple_size", lbox_cfg_set_vinyl_max_tuple_size},
-		{"cfg_set_vinyl_cache", lbox_cfg_set_vinyl_cache},
-		{"cfg_set_vinyl_timeout", lbox_cfg_set_vinyl_timeout},
-		{"cfg_set_election_is_enabled", lbox_cfg_set_election_is_enabled},
-		{"cfg_set_election_is_candidate", lbox_cfg_set_election_is_candidate},
-		{"cfg_set_election_timeout", lbox_cfg_set_election_timeout},
-		{"cfg_set_replication_timeout", lbox_cfg_set_replication_timeout},
-		{"cfg_set_replication_connect_quorum", lbox_cfg_set_replication_connect_quorum},
-		{"cfg_set_replication_connect_timeout", lbox_cfg_set_replication_connect_timeout},
-		{"cfg_set_replication_sync_lag", lbox_cfg_set_replication_sync_lag},
-		{"cfg_set_replication_synchro_quorum", lbox_cfg_set_replication_synchro_quorum},
-		{"cfg_set_replication_synchro_timeout", lbox_cfg_set_replication_synchro_timeout},
-		{"cfg_set_replication_sync_timeout", lbox_cfg_set_replication_sync_timeout},
-		{"cfg_set_replication_skip_conflict", lbox_cfg_set_replication_skip_conflict},
-		{"cfg_set_replication_anon", lbox_cfg_set_replication_anon},
-		{"cfg_set_net_msg_max", lbox_cfg_set_net_msg_max},
-		{"cfg_set_sql_cache_size", lbox_set_prepared_stmt_cache_size},
-		{NULL, NULL}
+		{ "cfg_check", lbox_cfg_check },
+		{ "cfg_load", lbox_cfg_load },
+		{ "cfg_set_listen", lbox_cfg_set_listen },
+		{ "cfg_set_replication", lbox_cfg_set_replication },
+		{ "cfg_set_worker_pool_threads",
+		  lbox_cfg_set_worker_pool_threads },
+		{ "cfg_set_readahead", lbox_cfg_set_readahead },
+		{ "cfg_set_io_collect_interval",
+		  lbox_cfg_set_io_collect_interval },
+		{ "cfg_set_too_long_threshold",
+		  lbox_cfg_set_too_long_threshold },
+		{ "cfg_set_snap_io_rate_limit",
+		  lbox_cfg_set_snap_io_rate_limit },
+		{ "cfg_set_checkpoint_count", lbox_cfg_set_checkpoint_count },
+		{ "cfg_set_checkpoint_interval",
+		  lbox_cfg_set_checkpoint_interval },
+		{ "cfg_set_checkpoint_wal_threshold",
+		  lbox_cfg_set_checkpoint_wal_threshold },
+		{ "cfg_set_read_only", lbox_cfg_set_read_only },
+		{ "cfg_set_memtx_memory", lbox_cfg_set_memtx_memory },
+		{ "cfg_set_memtx_max_tuple_size",
+		  lbox_cfg_set_memtx_max_tuple_size },
+		{ "cfg_set_vinyl_memory", lbox_cfg_set_vinyl_memory },
+		{ "cfg_set_vinyl_max_tuple_size",
+		  lbox_cfg_set_vinyl_max_tuple_size },
+		{ "cfg_set_vinyl_cache", lbox_cfg_set_vinyl_cache },
+		{ "cfg_set_vinyl_timeout", lbox_cfg_set_vinyl_timeout },
+		{ "cfg_set_election_is_enabled",
+		  lbox_cfg_set_election_is_enabled },
+		{ "cfg_set_election_is_candidate",
+		  lbox_cfg_set_election_is_candidate },
+		{ "cfg_set_election_timeout", lbox_cfg_set_election_timeout },
+		{ "cfg_set_replication_timeout",
+		  lbox_cfg_set_replication_timeout },
+		{ "cfg_set_replication_connect_quorum",
+		  lbox_cfg_set_replication_connect_quorum },
+		{ "cfg_set_replication_connect_timeout",
+		  lbox_cfg_set_replication_connect_timeout },
+		{ "cfg_set_replication_sync_lag",
+		  lbox_cfg_set_replication_sync_lag },
+		{ "cfg_set_replication_synchro_quorum",
+		  lbox_cfg_set_replication_synchro_quorum },
+		{ "cfg_set_replication_synchro_timeout",
+		  lbox_cfg_set_replication_synchro_timeout },
+		{ "cfg_set_replication_sync_timeout",
+		  lbox_cfg_set_replication_sync_timeout },
+		{ "cfg_set_replication_skip_conflict",
+		  lbox_cfg_set_replication_skip_conflict },
+		{ "cfg_set_replication_anon", lbox_cfg_set_replication_anon },
+		{ "cfg_set_net_msg_max", lbox_cfg_set_net_msg_max },
+		{ "cfg_set_sql_cache_size", lbox_set_prepared_stmt_cache_size },
+		{ NULL, NULL }
 	};
 
 	luaL_register(L, "box.internal", cfglib_internal);

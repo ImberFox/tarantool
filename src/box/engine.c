@@ -43,7 +43,8 @@ RLIST_HEAD(engines);
 enum { MAX_ENGINE_COUNT = 10 };
 
 /** Register engine instance. */
-void engine_register(struct engine *engine)
+void
+engine_register(struct engine *engine)
 {
 	static int n_engines;
 	rlist_add_tail_entry(&engines, engine, link);
@@ -55,7 +56,8 @@ struct engine *
 engine_by_name(const char *name)
 {
 	struct engine *e;
-	engine_foreach(e) {
+	engine_foreach(e)
+	{
 		if (strcmp(e->name, name) == 0)
 			return e;
 	}
@@ -75,15 +77,15 @@ void
 engine_switch_to_ro(void)
 {
 	struct engine *engine;
-	engine_foreach(engine)
-		engine->vtab->switch_to_ro(engine);
+	engine_foreach(engine) engine->vtab->switch_to_ro(engine);
 }
 
 int
 engine_bootstrap(void)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->bootstrap(engine) != 0)
 			return -1;
 	}
@@ -94,9 +96,10 @@ int
 engine_begin_initial_recovery(const struct vclock *recovery_vclock)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->begin_initial_recovery(engine,
-					recovery_vclock) != 0)
+							 recovery_vclock) != 0)
 			return -1;
 	}
 	return 0;
@@ -106,7 +109,8 @@ int
 engine_begin_final_recovery(void)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->begin_final_recovery(engine) != 0)
 			return -1;
 	}
@@ -121,7 +125,8 @@ engine_end_recovery(void)
 	 * when the primary key is added, enable all keys.
 	 */
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->end_recovery(engine) != 0)
 			return -1;
 	}
@@ -132,7 +137,8 @@ int
 engine_begin_checkpoint(bool is_scheduled)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->begin_checkpoint(engine, is_scheduled) < 0)
 			return -1;
 	}
@@ -143,11 +149,13 @@ int
 engine_commit_checkpoint(const struct vclock *vclock)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->wait_checkpoint(engine, vclock) < 0)
 			return -1;
 	}
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		engine->vtab->commit_checkpoint(engine, vclock);
 	}
 	return 0;
@@ -157,23 +165,22 @@ void
 engine_abort_checkpoint(void)
 {
 	struct engine *engine;
-	engine_foreach(engine)
-		engine->vtab->abort_checkpoint(engine);
+	engine_foreach(engine) engine->vtab->abort_checkpoint(engine);
 }
 
 void
 engine_collect_garbage(const struct vclock *vclock)
 {
 	struct engine *engine;
-	engine_foreach(engine)
-		engine->vtab->collect_garbage(engine, vclock);
+	engine_foreach(engine) engine->vtab->collect_garbage(engine, vclock);
 }
 
 int
 engine_backup(const struct vclock *vclock, engine_backup_cb cb, void *cb_arg)
 {
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->backup(engine, vclock, cb, cb_arg) < 0)
 			return -1;
 	}
@@ -191,7 +198,8 @@ engine_prepare_join(struct engine_join_ctx *ctx)
 	}
 	int i = 0;
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		assert(i < MAX_ENGINE_COUNT);
 		if (engine->vtab->prepare_join(engine, &ctx->array[i]) != 0)
 			goto fail;
@@ -208,7 +216,8 @@ engine_join(struct engine_join_ctx *ctx, struct xstream *stream)
 {
 	int i = 0;
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (engine->vtab->join(engine, ctx->array[i], stream) != 0)
 			return -1;
 		i++;
@@ -221,7 +230,8 @@ engine_complete_join(struct engine_join_ctx *ctx)
 {
 	int i = 0;
 	struct engine *engine;
-	engine_foreach(engine) {
+	engine_foreach(engine)
+	{
 		if (ctx->array[i] != NULL)
 			engine->vtab->complete_join(engine, ctx->array[i]);
 		i++;
@@ -234,16 +244,14 @@ engine_memory_stat(struct engine_memory_stat *stat)
 {
 	memset(stat, 0, sizeof(*stat));
 	struct engine *engine;
-	engine_foreach(engine)
-		engine->vtab->memory_stat(engine, stat);
+	engine_foreach(engine) engine->vtab->memory_stat(engine, stat);
 }
 
 void
 engine_reset_stat(void)
 {
 	struct engine *engine;
-	engine_foreach(engine)
-		engine->vtab->reset_stat(engine);
+	engine_foreach(engine) engine->vtab->reset_stat(engine);
 }
 
 /* {{{ Virtual method stubs */

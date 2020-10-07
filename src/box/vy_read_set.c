@@ -118,8 +118,7 @@ vy_tx_conflict_iterator_next(struct vy_tx_conflict_iterator *it)
 		assert(left == NULL || left->lsm == curr->lsm);
 		assert(right == NULL || right->lsm == curr->lsm);
 
-		int cmp_right = vy_entry_compare(it->key, last->right,
-						 cmp_def);
+		int cmp_right = vy_entry_compare(it->key, last->right, cmp_def);
 		if (cmp_right == 0 && !last->right_belongs)
 			cmp_right = 1;
 
@@ -138,8 +137,8 @@ vy_tx_conflict_iterator_next(struct vy_tx_conflict_iterator *it)
 			/* Optimize comparison out. */
 			cmp_left = cmp_right;
 		} else {
-			cmp_left = vy_entry_compare(it->key, curr->left,
-						    cmp_def);
+			cmp_left =
+				vy_entry_compare(it->key, curr->left, cmp_def);
 			if (cmp_left == 0 && !curr->left_belongs)
 				cmp_left = -1;
 		}
@@ -166,8 +165,8 @@ vy_tx_conflict_iterator_next(struct vy_tx_conflict_iterator *it)
 			/* Optimize comparison out. */
 			cmp_right = cmp_left;
 		} else if (curr != last) {
-			cmp_right = vy_entry_compare(it->key, curr->right,
-						     cmp_def);
+			cmp_right =
+				vy_entry_compare(it->key, curr->right, cmp_def);
 			if (cmp_right == 0 && !curr->right_belongs)
 				cmp_right = 1;
 		}

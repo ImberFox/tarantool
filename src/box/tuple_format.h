@@ -49,7 +49,7 @@ void
 tuple_format_free();
 
 enum { FORMAT_ID_MAX = UINT16_MAX - 1, FORMAT_ID_NIL = UINT16_MAX };
-enum { FORMAT_REF_MAX = INT32_MAX};
+enum { FORMAT_REF_MAX = INT32_MAX };
 
 /*
  * We don't pass TUPLE_INDEX_BASE around dynamically all the time,
@@ -74,29 +74,26 @@ struct tuple_format_vtab {
 	 * Free allocated tuple using engine-specific
 	 * memory allocator.
 	 */
-	void
-	(*tuple_delete)(struct tuple_format *format, struct tuple *tuple);
+	void (*tuple_delete)(struct tuple_format *format, struct tuple *tuple);
 	/**
 	 * Allocates a new tuple on the same allocator
 	 * and with the same format.
 	 */
-	struct tuple*
-	(*tuple_new)(struct tuple_format *format, const char *data,
-	             const char *end);
+	struct tuple *(*tuple_new)(struct tuple_format *format,
+				   const char *data, const char *end);
 	/**
 	 * Free a tuple_chunk allocated for given tuple and
 	 * data.
 	 */
-	void
-	(*tuple_chunk_delete)(struct tuple_format *format,
-			      const char *data);
+	void (*tuple_chunk_delete)(struct tuple_format *format,
+				   const char *data);
 	/**
 	 * Allocate a new tuple_chunk for given tuple and data and
 	 * return a pointer to it's data section.
 	 */
-	const char *
-	(*tuple_chunk_new)(struct tuple_format *format, struct tuple *tuple,
-			   const char *data, uint32_t data_sz);
+	const char *(*tuple_chunk_new)(struct tuple_format *format,
+				       struct tuple *tuple, const char *data,
+				       uint32_t data_sz);
 };
 
 /** Tuple field meta information for tuple_format. */
@@ -272,8 +269,8 @@ tuple_format_field_by_path(struct tuple_format *format, uint32_t fieldno,
 	assert(root != NULL);
 	if (path == NULL)
 		return root;
-	return json_tree_lookup_path_entry(&format->fields, &root->token,
-					   path, path_len, TUPLE_INDEX_BASE,
+	return json_tree_lookup_path_entry(&format->fields, &root->token, path,
+					   path_len, TUPLE_INDEX_BASE,
 					   struct tuple_field, token);
 }
 
@@ -338,7 +335,7 @@ tuple_format_unref(struct tuple_format *format)
  */
 struct tuple_format *
 tuple_format_new(struct tuple_format_vtab *vtab, void *engine,
-		 struct key_def * const *keys, uint16_t key_count,
+		 struct key_def *const *keys, uint16_t key_count,
 		 const struct field_def *space_fields,
 		 uint32_t space_field_count, uint32_t exact_field_count,
 		 struct tuple_dictionary *dict, bool is_temporary,
@@ -370,7 +367,7 @@ tuple_format1_can_store_format2_tuples(struct tuple_format *format1,
  * @retval Minimal field count.
  */
 uint32_t
-tuple_format_min_field_count(struct key_def * const *keys, uint16_t key_count,
+tuple_format_min_field_count(struct key_def *const *keys, uint16_t key_count,
 			     const struct field_def *space_fields,
 			     uint32_t space_field_count);
 
@@ -436,20 +433,19 @@ tuple_field_map_create(struct tuple_format *format, const char *tuple,
 int
 tuple_format_init();
 
-
 /** Tuple format iterator flags to configure parse mode. */
 enum {
 	/**
 	 * This flag is set for iterator that should perform tuple
 	 * validation to conform the specified format.
 	 */
-	TUPLE_FORMAT_ITERATOR_VALIDATE		= 1 << 0,
+	TUPLE_FORMAT_ITERATOR_VALIDATE = 1 << 0,
 	/**
 	 * This flag is set for iterator that should skip the
 	 * tuple fields that are not marked as key_parts in
 	 * format::fields tree.
 	 */
-	TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY 	= 1 << 1,
+	TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY = 1 << 1,
 };
 
 /**

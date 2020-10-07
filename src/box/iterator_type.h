@@ -61,18 +61,19 @@ extern "C" {
  */
 enum iterator_type {
 	/* ITER_EQ must be the first member for request_create  */
-	ITER_EQ               =  0, /* key == x ASC order                  */
-	ITER_REQ              =  1, /* key == x DESC order                 */
-	ITER_ALL              =  2, /* all tuples                          */
-	ITER_LT               =  3, /* key <  x                            */
-	ITER_LE               =  4, /* key <= x                            */
-	ITER_GE               =  5, /* key >= x                            */
-	ITER_GT               =  6, /* key >  x                            */
-	ITER_BITS_ALL_SET     =  7, /* all bits from x are set in key      */
-	ITER_BITS_ANY_SET     =  8, /* at least one x's bit is set         */
-	ITER_BITS_ALL_NOT_SET =  9, /* all bits are not set                */
-	ITER_OVERLAPS         = 10, /* key overlaps x                      */
-	ITER_NEIGHBOR         = 11, /* tuples in distance ascending order from specified point */
+	ITER_EQ = 0,		   /* key == x ASC order                  */
+	ITER_REQ = 1,		   /* key == x DESC order                 */
+	ITER_ALL = 2,		   /* all tuples                          */
+	ITER_LT = 3,		   /* key <  x                            */
+	ITER_LE = 4,		   /* key <= x                            */
+	ITER_GE = 5,		   /* key >= x                            */
+	ITER_GT = 6,		   /* key >  x                            */
+	ITER_BITS_ALL_SET = 7,	   /* all bits from x are set in key      */
+	ITER_BITS_ANY_SET = 8,	   /* at least one x's bit is set         */
+	ITER_BITS_ALL_NOT_SET = 9, /* all bits are not set                */
+	ITER_OVERLAPS = 10,	   /* key overlaps x                      */
+	ITER_NEIGHBOR =
+		11, /* tuples in distance ascending order from specified point */
 	iterator_type_MAX
 };
 
@@ -87,8 +88,8 @@ extern const char *iterator_type_strs[];
 static inline int
 iterator_direction(enum iterator_type type)
 {
-	const unsigned reverse =
-		(1u << ITER_REQ) | (1u << ITER_LT) | (1u << ITER_LE);
+	const unsigned reverse = (1u << ITER_REQ) | (1u << ITER_LT) |
+				 (1u << ITER_LE);
 	return (reverse & (1u << type)) ? -1 : 1;
 }
 

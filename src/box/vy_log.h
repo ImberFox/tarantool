@@ -69,22 +69,22 @@ enum vy_log_record_type {
 	 * After rotation, it also stores space_id, index_id, group_id,
 	 * key_def, create_lsn, modify_lsn, dump_lsn.
 	 */
-	VY_LOG_CREATE_LSM		= 0,
+	VY_LOG_CREATE_LSM = 0,
 	/**
 	 * Drop an LSM tree.
 	 * Requires vy_log_record::lsm_id, drop_lsn.
 	 */
-	VY_LOG_DROP_LSM			= 1,
+	VY_LOG_DROP_LSM = 1,
 	/**
 	 * Insert a new range into an LSM tree.
 	 * Requires vy_log_record::lsm_id, range_id, begin, end.
 	 */
-	VY_LOG_INSERT_RANGE		= 2,
+	VY_LOG_INSERT_RANGE = 2,
 	/**
 	 * Delete a vinyl range and all its runs.
 	 * Requires vy_log_record::range_id.
 	 */
-	VY_LOG_DELETE_RANGE		= 3,
+	VY_LOG_DELETE_RANGE = 3,
 	/**
 	 * Prepare a vinyl run file.
 	 * Requires vy_log_record::lsm_id, run_id.
@@ -93,14 +93,14 @@ enum vy_log_record_type {
 	 * It is needed to keep track of unfinished due to errors run
 	 * files so that we could remove them after recovery.
 	 */
-	VY_LOG_PREPARE_RUN		= 4,
+	VY_LOG_PREPARE_RUN = 4,
 	/**
 	 * Commit a vinyl run file creation.
 	 * Requires vy_log_record::lsm_id, run_id, dump_lsn, dump_count.
 	 *
 	 * Written after a run file was successfully created.
 	 */
-	VY_LOG_CREATE_RUN		= 5,
+	VY_LOG_CREATE_RUN = 5,
 	/**
 	 * Drop a vinyl run.
 	 * Requires vy_log_record::run_id, gc_lsn.
@@ -113,7 +113,7 @@ enum vy_log_record_type {
 	 * deleted, but not "forgotten" are not expunged from the log
 	 * on rotation.
 	 */
-	VY_LOG_DROP_RUN			= 6,
+	VY_LOG_DROP_RUN = 6,
 	/**
 	 * Forget a vinyl run.
 	 * Requires vy_log_record::run_id.
@@ -124,22 +124,22 @@ enum vy_log_record_type {
 	 * run. Information about "forgotten" runs is not included in
 	 * the new log on rotation.
 	 */
-	VY_LOG_FORGET_RUN		= 7,
+	VY_LOG_FORGET_RUN = 7,
 	/**
 	 * Insert a run slice into a range.
 	 * Requires vy_log_record::range_id, run_id, slice_id, begin, end.
 	 */
-	VY_LOG_INSERT_SLICE		= 8,
+	VY_LOG_INSERT_SLICE = 8,
 	/**
 	 * Delete a run slice.
 	 * Requires vy_log_record::slice_id.
 	 */
-	VY_LOG_DELETE_SLICE		= 9,
+	VY_LOG_DELETE_SLICE = 9,
 	/**
 	 * Log LSM tree dump. Used to update max LSN stored on disk.
 	 * Requires vy_log_record::lsm_id, dump_lsn.
 	 */
-	VY_LOG_DUMP_LSM			= 10,
+	VY_LOG_DUMP_LSM = 10,
 	/**
 	 * We don't split vylog into snapshot and log - all records
 	 * are written to the same file. Since we need to load a
@@ -150,7 +150,7 @@ enum vy_log_record_type {
 	 *
 	 * See also: @only_checkpoint argument of vy_recovery_new().
 	 */
-	VY_LOG_SNAPSHOT			= 11,
+	VY_LOG_SNAPSHOT = 11,
 	/**
 	 * When we used LSN for identifying LSM trees in vylog, we
 	 * couldn't simply recreate an LSM tree on space truncation,
@@ -164,12 +164,12 @@ enum vy_log_record_type {
 	 * 'truncate' records - this will result in replay of all
 	 * WAL records written after truncation.
 	 */
-	VY_LOG_TRUNCATE_LSM		= 12,
+	VY_LOG_TRUNCATE_LSM = 12,
 	/**
 	 * Modify key definition of an LSM tree.
 	 * Requires vy_log_record::lsm_id, key_def, modify_lsn.
 	 */
-	VY_LOG_MODIFY_LSM		= 13,
+	VY_LOG_MODIFY_LSM = 13,
 	/**
 	 * Forget an LSM tree.
 	 * Requires vy_log_record::lsm_id.
@@ -179,7 +179,7 @@ enum vy_log_record_type {
 	 * so the LSM tree is not needed any longer and can be removed
 	 * from vylog on the next rotation.
 	 */
-	VY_LOG_FORGET_LSM		= 14,
+	VY_LOG_FORGET_LSM = 14,
 	/**
 	 * Prepare a new LSM tree for building.
 	 * Requires vy_log_record::lsm_id, index_id, space_id, group_id,
@@ -195,7 +195,7 @@ enum vy_log_record_type {
 	 * for building. Once the index has been built, we write
 	 * a VY_LOG_CREATE_LSM record to commit it.
 	 */
-	VY_LOG_PREPARE_LSM		= 15,
+	VY_LOG_PREPARE_LSM = 15,
 	/**
 	 * This record denotes the beginning of a rebootstrap section.
 	 * A rebootstrap section ends either by another record of this
@@ -211,12 +211,12 @@ enum vy_log_record_type {
 	 * record as dropped in the rotated vylog. If rebootstrap fails,
 	 * we write VY_LOG_ABORT_REBOOTSTRAP on recovery.
 	 */
-	VY_LOG_REBOOTSTRAP		= 16,
+	VY_LOG_REBOOTSTRAP = 16,
 	/**
 	 * This record is written on recovery if rebootstrap failed.
 	 * See also VY_LOG_REBOOTSTRAP.
 	 */
-	VY_LOG_ABORT_REBOOTSTRAP	= 17,
+	VY_LOG_ABORT_REBOOTSTRAP = 17,
 
 	vy_log_record_type_MAX
 };
@@ -577,12 +577,12 @@ enum vy_recovery_flag {
 	 * i.e. get a consistent view of vinyl database at the time
 	 * of the last checkpoint.
 	 */
-	VY_RECOVERY_LOAD_CHECKPOINT	= 1 << 0,
+	VY_RECOVERY_LOAD_CHECKPOINT = 1 << 0,
 	/**
 	 * Consider the last attempt to rebootstrap aborted even if
 	 * there's no VY_LOG_ABORT_REBOOTSTRAP record.
 	 */
-	VY_RECOVERY_ABORT_REBOOTSTRAP	= 1 << 1,
+	VY_RECOVERY_ABORT_REBOOTSTRAP = 1 << 1,
 };
 
 /**
@@ -608,8 +608,8 @@ vy_recovery_delete(struct vy_recovery *recovery);
  * Returns NULL if the LSM tree was not found.
  */
 struct vy_lsm_recovery_info *
-vy_recovery_lsm_by_index_id(struct vy_recovery *recovery,
-			    uint32_t space_id, uint32_t index_id);
+vy_recovery_lsm_by_index_id(struct vy_recovery *recovery, uint32_t space_id,
+			    uint32_t index_id);
 
 /**
  * Initialize a log record with default values.
@@ -688,8 +688,8 @@ vy_log_drop_lsm(int64_t id, int64_t drop_lsn)
 
 /** Helper to log a vinyl range insertion. */
 static inline void
-vy_log_insert_range(int64_t lsm_id, int64_t range_id,
-		    const char *begin, const char *end)
+vy_log_insert_range(int64_t lsm_id, int64_t range_id, const char *begin,
+		    const char *end)
 {
 	struct vy_log_record record;
 	vy_log_record_init(&record);
@@ -726,8 +726,8 @@ vy_log_prepare_run(int64_t lsm_id, int64_t run_id)
 
 /** Helper to log a vinyl run creation. */
 static inline void
-vy_log_create_run(int64_t lsm_id, int64_t run_id,
-		  int64_t dump_lsn, uint32_t dump_count)
+vy_log_create_run(int64_t lsm_id, int64_t run_id, int64_t dump_lsn,
+		  uint32_t dump_count)
 {
 	struct vy_log_record record;
 	vy_log_record_init(&record);

@@ -42,15 +42,13 @@
 
 const char *sort_order_strs[] = { "asc", "desc", "undef" };
 
-const struct key_part_def key_part_def_default = {
-	0,
-	field_type_MAX,
-	COLL_NONE,
-	false,
-	ON_CONFLICT_ACTION_DEFAULT,
-	SORT_ORDER_ASC,
-	NULL
-};
+const struct key_part_def key_part_def_default = { 0,
+						   field_type_MAX,
+						   COLL_NONE,
+						   false,
+						   ON_CONFLICT_ACTION_DEFAULT,
+						   SORT_ORDER_ASC,
+						   NULL };
 
 static int64_t
 part_type_by_name_wrapper(const char *str, uint32_t len)
@@ -58,13 +56,13 @@ part_type_by_name_wrapper(const char *str, uint32_t len)
 	return field_type_by_name(str, len);
 }
 
-#define PART_OPT_TYPE		 "type"
-#define PART_OPT_FIELD		 "field"
-#define PART_OPT_COLLATION	 "collation"
-#define PART_OPT_NULLABILITY	 "is_nullable"
+#define PART_OPT_TYPE "type"
+#define PART_OPT_FIELD "field"
+#define PART_OPT_COLLATION "collation"
+#define PART_OPT_NULLABILITY "is_nullable"
 #define PART_OPT_NULLABLE_ACTION "nullable_action"
-#define PART_OPT_SORT_ORDER	 "sort_order"
-#define PART_OPT_PATH		 "path"
+#define PART_OPT_SORT_ORDER "sort_order"
+#define PART_OPT_PATH "path"
 
 const struct opt_def part_def_reg[] = {
 	OPT_DEF_ENUM(PART_OPT_TYPE, field_type, struct key_part_def, type,
@@ -177,7 +175,7 @@ key_def_set_part_path(struct key_def *def, uint32_t part_no, const char *path,
 	 */
 	int multikey_path_len =
 		json_path_multikey_offset(path, path_len, TUPLE_INDEX_BASE);
-	if ((uint32_t) multikey_path_len == path_len)
+	if ((uint32_t)multikey_path_len == path_len)
 		return 0;
 
 	/*
@@ -192,7 +190,7 @@ key_def_set_part_path(struct key_def *def, uint32_t part_no, const char *path,
 		 */
 		def->multikey_path = part->path;
 		def->multikey_fieldno = part->fieldno;
-		def->multikey_path_len = (uint32_t) multikey_path_len;
+		def->multikey_path_len = (uint32_t)multikey_path_len;
 		def->is_multikey = true;
 	} else if (def->multikey_fieldno != part->fieldno ||
 		   json_path_cmp(path, multikey_path_len, def->multikey_path,
@@ -278,7 +276,8 @@ key_def_new(const struct key_part_def *parts, uint32_t part_count,
 			struct coll_id *coll_id = coll_by_id(part->coll_id);
 			if (coll_id == NULL) {
 				diag_set(ClientError, ER_WRONG_INDEX_OPTIONS,
-					 i + 1, "collation was not found by ID");
+					 i + 1,
+					 "collation was not found by ID");
 				goto error;
 			}
 			coll = coll_id->coll;
@@ -287,8 +286,7 @@ key_def_new(const struct key_part_def *parts, uint32_t part_count,
 		if (key_def_set_part(def, i, part->fieldno, part->type,
 				     part->nullable_action, coll, part->coll_id,
 				     part->sort_order, part->path, path_len,
-				     &path_pool, TUPLE_OFFSET_SLOT_NIL,
-				     0) != 0)
+				     &path_pool, TUPLE_OFFSET_SLOT_NIL, 0) != 0)
 			goto error;
 	}
 	if (for_func_index) {
@@ -297,7 +295,7 @@ key_def_new(const struct key_part_def *parts, uint32_t part_count,
 				 "Functional index", "json paths");
 			goto error;
 		}
-		if(!key_def_is_sequential(def) || parts->fieldno != 0) {
+		if (!key_def_is_sequential(def) || parts->fieldno != 0) {
 			diag_set(ClientError, ER_FUNC_INDEX_PARTS,
 				 "key part numbers must be sequential and "
 				 "first part number must be 1");
@@ -386,9 +384,8 @@ box_tuple_compare_with_key(box_tuple_t *tuple_a, const char *key_b,
 			   box_key_def_t *key_def)
 {
 	uint32_t part_count = mp_decode_array(&key_b);
-	return tuple_compare_with_key(tuple_a, HINT_NONE, key_b,
-				      part_count, HINT_NONE, key_def);
-
+	return tuple_compare_with_key(tuple_a, HINT_NONE, key_b, part_count,
+				      HINT_NONE, key_def);
 }
 
 int
@@ -402,16 +399,19 @@ key_part_cmp(const struct key_part *parts1, uint32_t part_count1,
 	for (; part1 != end; part1++, part2++) {
 		if (part1->fieldno != part2->fieldno)
 			return part1->fieldno < part2->fieldno ? -1 : 1;
-		if ((int) part1->type != (int) part2->type)
-			return (int) part1->type < (int) part2->type ? -1 : 1;
+		if ((int)part1->type != (int)part2->type)
+			return (int)part1->type < (int)part2->type ? -1 : 1;
 		if (part1->coll != part2->coll)
-			return (uintptr_t) part1->coll <
-			       (uintptr_t) part2->coll ? -1 : 1;
+			return (uintptr_t)part1->coll < (uintptr_t)part2->coll ?
+					     -1 :
+					     1;
 		if (part1->sort_order != part2->sort_order)
 			return part1->sort_order < part2->sort_order ? -1 : 1;
 		if (key_part_is_nullable(part1) != key_part_is_nullable(part2))
 			return key_part_is_nullable(part1) <
-			       key_part_is_nullable(part2) ? -1 : 1;
+					       key_part_is_nullable(part2) ?
+					     -1 :
+					     1;
 		int rc = json_path_cmp(part1->path, part1->path_len,
 				       part2->path, part2->path_len,
 				       TUPLE_INDEX_BASE);
@@ -429,7 +429,8 @@ key_def_update_optionality(struct key_def *def, uint32_t min_field_count)
 		struct key_part *part = &def->parts[i];
 		def->has_optional_parts |=
 			(min_field_count < part->fieldno + 1 ||
-			 part->path != NULL) && key_part_is_nullable(part);
+			 part->path != NULL) &&
+			key_part_is_nullable(part);
 		/*
 		 * One optional part is enough to switch to new
 		 * comparators.
@@ -577,7 +578,7 @@ key_def_decode_parts_166(struct key_part_def *parts, uint32_t part_count,
 			return -1;
 		}
 		*part = key_part_def_default;
-		part->fieldno = (uint32_t) mp_decode_uint(data);
+		part->fieldno = (uint32_t)mp_decode_uint(data);
 		if (mp_typeof(**data) != MP_STR) {
 			diag_set(ClientError, ER_WRONG_INDEX_PARTS,
 				 "field type must be a string");
@@ -594,8 +595,8 @@ key_def_decode_parts_166(struct key_part_def *parts, uint32_t part_count,
 			return -1;
 		}
 		part->is_nullable = (part->fieldno < field_count ?
-				     fields[part->fieldno].is_nullable :
-				     key_part_def_default.is_nullable);
+						   fields[part->fieldno].is_nullable :
+						   key_part_def_default.is_nullable);
 		part->coll_id = COLL_NONE;
 		part->path = NULL;
 	}
@@ -608,8 +609,8 @@ key_def_decode_parts(struct key_part_def *parts, uint32_t part_count,
 		     uint32_t field_count, struct region *region)
 {
 	if (mp_typeof(**data) == MP_ARRAY) {
-		return key_def_decode_parts_166(parts, part_count, data,
-						fields, field_count);
+		return key_def_decode_parts_166(parts, part_count, data, fields,
+						field_count);
 	}
 	for (uint32_t i = 0; i < part_count; i++) {
 		struct key_part_def *part = &parts[i];
@@ -622,7 +623,7 @@ key_def_decode_parts(struct key_part_def *parts, uint32_t part_count,
 		int opts_count = mp_decode_map(data);
 		*part = key_part_def_default;
 		bool is_action_missing = true;
-		uint32_t  action_literal_len = strlen("nullable_action");
+		uint32_t action_literal_len = strlen("nullable_action");
 		for (int j = 0; j < opts_count; ++j) {
 			if (mp_typeof(**data) != MP_STR) {
 				diag_set(ClientError, ER_WRONG_INDEX_OPTIONS,
@@ -632,8 +633,8 @@ key_def_decode_parts(struct key_part_def *parts, uint32_t part_count,
 			}
 			uint32_t key_len;
 			const char *key = mp_decode_str(data, &key_len);
-			if (opts_parse_key(part, part_def_reg, key, key_len, data,
-					   ER_WRONG_INDEX_OPTIONS,
+			if (opts_parse_key(part, part_def_reg, key, key_len,
+					   data, ER_WRONG_INDEX_OPTIONS,
 					   i + TUPLE_INDEX_BASE, region,
 					   false) != 0)
 				return -1;
@@ -644,9 +645,9 @@ key_def_decode_parts(struct key_part_def *parts, uint32_t part_count,
 				is_action_missing = false;
 		}
 		if (is_action_missing) {
-			part->nullable_action = part->is_nullable ?
-				ON_CONFLICT_ACTION_NONE
-				: ON_CONFLICT_ACTION_DEFAULT;
+			part->nullable_action =
+				part->is_nullable ? ON_CONFLICT_ACTION_NONE :
+							  ON_CONFLICT_ACTION_DEFAULT;
 		}
 		if (part->type == field_type_MAX) {
 			diag_set(ClientError, ER_WRONG_INDEX_OPTIONS,
@@ -657,17 +658,15 @@ key_def_decode_parts(struct key_part_def *parts, uint32_t part_count,
 		if (part->coll_id != COLL_NONE &&
 		    part->type != FIELD_TYPE_STRING &&
 		    part->type != FIELD_TYPE_SCALAR) {
-			diag_set(ClientError, ER_WRONG_INDEX_OPTIONS,
-				 i + 1,
+			diag_set(ClientError, ER_WRONG_INDEX_OPTIONS, i + 1,
 				 "collation is reasonable only for "
 				 "string and scalar parts");
 			return -1;
 		}
-		if (!((part->is_nullable && part->nullable_action ==
-		       ON_CONFLICT_ACTION_NONE)
-		      || (!part->is_nullable
-			  && part->nullable_action !=
-			  ON_CONFLICT_ACTION_NONE))) {
+		if (!((part->is_nullable &&
+		       part->nullable_action == ON_CONFLICT_ACTION_NONE) ||
+		      (!part->is_nullable &&
+		       part->nullable_action != ON_CONFLICT_ACTION_NONE))) {
 			diag_set(ClientError, ER_WRONG_INDEX_OPTIONS,
 				 i + TUPLE_INDEX_BASE,
 				 "index part: conflicting nullability and "
@@ -707,9 +706,8 @@ key_def_find(const struct key_def *key_def, const struct key_part *to_find)
 	const struct key_part *end = part + key_def->part_count;
 	for (; part != end; part++) {
 		if (part->fieldno == to_find->fieldno &&
-		    json_path_cmp(part->path, part->path_len,
-				  to_find->path, to_find->path_len,
-				  TUPLE_INDEX_BASE) == 0)
+		    json_path_cmp(part->path, part->path_len, to_find->path,
+				  to_find->path_len, TUPLE_INDEX_BASE) == 0)
 			return part;
 	}
 	return NULL;
@@ -840,8 +838,7 @@ key_def_merge(const struct key_def *first, const struct key_def *second)
 
 struct key_def *
 key_def_find_pk_in_cmp_def(const struct key_def *cmp_def,
-			   const struct key_def *pk_def,
-			   struct region *region)
+			   const struct key_def *pk_def, struct region *region)
 {
 	struct key_def *extracted_def = NULL;
 	size_t region_svp = region_used(region);
@@ -862,8 +859,8 @@ key_def_find_pk_in_cmp_def(const struct key_def *cmp_def,
 	 * parts in a secondary key.
 	 */
 	for (uint32_t i = 0; i < pk_def->part_count; i++) {
-		const struct key_part *part = key_def_find(cmp_def,
-							   &pk_def->parts[i]);
+		const struct key_part *part =
+			key_def_find(cmp_def, &pk_def->parts[i]);
 		assert(part != NULL);
 		parts[i].fieldno = part - cmp_def->parts;
 		parts[i].path = NULL;
@@ -885,7 +882,7 @@ key_validate_parts(const struct key_def *key_def, const char *key,
 		const struct key_part *part = &key_def->parts[i];
 		if (key_part_validate(part->type, key, i,
 				      key_part_is_nullable(part) &&
-				      allow_nullable))
+					      allow_nullable))
 			return -1;
 		mp_next(&key);
 	}

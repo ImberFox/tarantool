@@ -116,8 +116,7 @@ sql_bind_decode(struct sql_bind *bind, int i, const char **packet);
  * @retval -1 SQL error.
  */
 int
-sql_bind_column(struct sql_stmt *stmt, const struct sql_bind *p,
-		uint32_t pos);
+sql_bind_column(struct sql_stmt *stmt, const struct sql_bind *p, uint32_t pos);
 
 /**
  * Bind parameter values to the prepared statement.

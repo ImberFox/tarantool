@@ -55,8 +55,8 @@ struct checkpoint_schedule {
  * @interval is the configured interval between checkpoints.
  */
 void
-checkpoint_schedule_cfg(struct checkpoint_schedule *sched,
-			double now, double interval);
+checkpoint_schedule_cfg(struct checkpoint_schedule *sched, double now,
+			double interval);
 
 /**
  * Reset a checkpoint schedule.

@@ -60,7 +60,8 @@ static void
 runtime_tuple_delete(struct tuple_format *format, struct tuple *tuple);
 
 static struct tuple *
-runtime_tuple_new(struct tuple_format *format, const char *data, const char *end);
+runtime_tuple_new(struct tuple_format *format, const char *data,
+		  const char *end);
 
 /** A virtual method table for tuple_format_runtime */
 static struct tuple_format_vtab tuple_format_runtime_vtab = {
@@ -71,9 +72,11 @@ static struct tuple_format_vtab tuple_format_runtime_vtab = {
 };
 
 static struct tuple *
-runtime_tuple_new(struct tuple_format *format, const char *data, const char *end)
+runtime_tuple_new(struct tuple_format *format, const char *data,
+		  const char *end)
 {
-	assert(format->vtab.tuple_delete == tuple_format_runtime_vtab.tuple_delete);
+	assert(format->vtab.tuple_delete ==
+	       tuple_format_runtime_vtab.tuple_delete);
 
 	mp_tuple_assert(data, end);
 	struct tuple *tuple = NULL;
@@ -93,10 +96,9 @@ runtime_tuple_new(struct tuple_format *format, const char *data, const char *end
 
 	size_t data_len = end - data;
 	size_t total = sizeof(struct tuple) + field_map_size + data_len;
-	tuple = (struct tuple *) smalloc(&runtime_alloc, total);
+	tuple = (struct tuple *)smalloc(&runtime_alloc, total);
 	if (tuple == NULL) {
-		diag_set(OutOfMemory, (unsigned) total,
-			 "malloc", "tuple");
+		diag_set(OutOfMemory, (unsigned)total, "malloc", "tuple");
 		goto end;
 	}
 
@@ -106,7 +108,7 @@ runtime_tuple_new(struct tuple_format *format, const char *data, const char *end
 	tuple_format_ref(format);
 	tuple->data_offset = data_offset;
 	tuple->is_dirty = false;
-	char *raw = (char *) tuple + data_offset;
+	char *raw = (char *)tuple + data_offset;
 	field_map_build(&builder, raw - field_map_size);
 	memcpy(raw, data, data_len);
 	say_debug("%s(%zu) = %p", __func__, data_len, tuple);
@@ -118,7 +120,8 @@ end:
 static void
 runtime_tuple_delete(struct tuple_format *format, struct tuple *tuple)
 {
-	assert(format->vtab.tuple_delete == tuple_format_runtime_vtab.tuple_delete);
+	assert(format->vtab.tuple_delete ==
+	       tuple_format_runtime_vtab.tuple_delete);
 	say_debug("%s(%p)", __func__, tuple);
 	assert(tuple->refs == 0);
 	size_t total = tuple_size(tuple);
@@ -239,10 +242,11 @@ bigref_list_increase_capacity(void)
 		capacity = MIN(capacity * BIGREF_FACTOR, BIGREF_MAX_CAPACITY);
 	else
 		panic("Too many big references");
-	refs = (uint32_t *) realloc(refs, capacity * sizeof(*refs));
+	refs = (uint32_t *)realloc(refs, capacity * sizeof(*refs));
 	if (refs == NULL) {
-		panic("failed to reallocate %zu bytes: Cannot allocate "\
-		      "memory.", capacity * sizeof(*refs));
+		panic("failed to reallocate %zu bytes: Cannot allocate "
+		      "memory.",
+		      capacity * sizeof(*refs));
 	}
 	for (uint16_t i = bigref_list.capacity; i < capacity; ++i)
 		refs[i] = i + 1;
@@ -269,7 +273,7 @@ void
 tuple_ref_slow(struct tuple *tuple)
 {
 	assert(tuple->is_bigref || tuple->refs == TUPLE_REF_MAX);
-	if (! tuple->is_bigref) {
+	if (!tuple->is_bigref) {
 		tuple->ref_index = bigref_list_new_index();
 		tuple->is_bigref = true;
 		bigref_list.refs[tuple->ref_index] = TUPLE_REF_MAX;
@@ -284,7 +288,7 @@ tuple_unref_slow(struct tuple *tuple)
 {
 	assert(tuple->is_bigref &&
 	       bigref_list.refs[tuple->ref_index] > TUPLE_REF_MAX);
-	if(--bigref_list.refs[tuple->ref_index] == TUPLE_REF_MAX) {
+	if (--bigref_list.refs[tuple->ref_index] == TUPLE_REF_MAX) {
 		bigref_list.refs[tuple->ref_index] = bigref_list.vacant_index;
 		bigref_list.vacant_index = tuple->ref_index;
 		tuple->ref_index = TUPLE_REF_MAX;
@@ -304,9 +308,9 @@ tuple_init(field_name_hash_f hash)
 	/*
 	 * Create a format for runtime tuples
 	 */
-	tuple_format_runtime = tuple_format_new(&tuple_format_runtime_vtab, NULL,
-						NULL, 0, NULL, 0, 0, NULL, false,
-						false);
+	tuple_format_runtime = tuple_format_new(&tuple_format_runtime_vtab,
+						NULL, NULL, 0, NULL, 0, 0, NULL,
+						false, false);
 	if (tuple_format_runtime == NULL)
 		return -1;
 
@@ -331,8 +335,8 @@ tuple_init(field_name_hash_f hash)
 
 void
 tuple_arena_create(struct slab_arena *arena, struct quota *quota,
-		   uint64_t arena_max_size, uint32_t slab_size,
-		   bool dontdump, const char *arena_name)
+		   uint64_t arena_max_size, uint32_t slab_size, bool dontdump,
+		   const char *arena_name)
 {
 	/*
 	 * Ensure that quota is a multiple of slab_size, to
@@ -340,24 +344,25 @@ tuple_arena_create(struct slab_arena *arena, struct quota *quota,
 	 */
 	size_t prealloc = small_align(arena_max_size, slab_size);
 
-        /*
+	/*
          * Skip from coredump if requested.
          */
-        int flags = SLAB_ARENA_PRIVATE;
-        if (dontdump)
-                flags |= SLAB_ARENA_DONTDUMP;
+	int flags = SLAB_ARENA_PRIVATE;
+	if (dontdump)
+		flags |= SLAB_ARENA_DONTDUMP;
 
 	say_info("mapping %zu bytes for %s tuple arena...", prealloc,
 		 arena_name);
 
 	if (slab_arena_create(arena, quota, prealloc, slab_size, flags) != 0) {
 		if (errno == ENOMEM) {
-			panic("failed to preallocate %zu bytes: Cannot "\
-			      "allocate memory, check option '%s_memory' in box.cfg(..)", prealloc,
-			      arena_name);
+			panic("failed to preallocate %zu bytes: Cannot "
+			      "allocate memory, check option '%s_memory' in box.cfg(..)",
+			      prealloc, arena_name);
 		} else {
-			panic_syserror("failed to preallocate %zu bytes for %s"\
-				       " tuple arena", prealloc, arena_name);
+			panic_syserror("failed to preallocate %zu bytes for %s"
+				       " tuple arena",
+				       prealloc, arena_name);
 		}
 	}
 
@@ -506,7 +511,7 @@ tuple_field_raw_by_full_path(struct tuple_format *format, const char *tuple,
 	json_lexer_create(&lexer, path, path_len, TUPLE_INDEX_BASE);
 	if (json_lexer_next_token(&lexer, &token) != 0)
 		return NULL;
-	switch(token.type) {
+	switch (token.type) {
 	case JSON_TOKEN_NUM: {
 		fieldno = token.num;
 		break;
@@ -514,7 +519,7 @@ tuple_field_raw_by_full_path(struct tuple_format *format, const char *tuple,
 	case JSON_TOKEN_STR: {
 		/* First part of a path is a field name. */
 		uint32_t name_hash;
-		if (path_len == (uint32_t) token.len) {
+		if (path_len == (uint32_t)token.len) {
 			name_hash = path_hash;
 		} else {
 			/*
@@ -537,22 +542,21 @@ tuple_field_raw_by_full_path(struct tuple_format *format, const char *tuple,
 	}
 	return tuple_field_raw_by_path(format, tuple, field_map, fieldno,
 				       path + lexer.offset,
-				       path_len - lexer.offset,
-				       NULL, MULTIKEY_NONE);
+				       path_len - lexer.offset, NULL,
+				       MULTIKEY_NONE);
 }
 
 uint32_t
 tuple_raw_multikey_count(struct tuple_format *format, const char *data,
-			       const uint32_t *field_map,
-			       struct key_def *key_def)
+			 const uint32_t *field_map, struct key_def *key_def)
 {
 	assert(key_def->is_multikey);
 	const char *array_raw =
 		tuple_field_raw_by_path(format, data, field_map,
 					key_def->multikey_fieldno,
 					key_def->multikey_path,
-					key_def->multikey_path_len,
-					NULL, MULTIKEY_NONE);
+					key_def->multikey_path_len, NULL,
+					MULTIKEY_NONE);
 	if (array_raw == NULL)
 		return 0;
 	enum mp_type type = mp_typeof(*array_raw);
@@ -576,9 +580,8 @@ box_tuple_format_t *
 box_tuple_format_new(struct key_def **keys, uint16_t key_count)
 {
 	box_tuple_format_t *format =
-		tuple_format_new(&tuple_format_runtime_vtab, NULL,
-				 keys, key_count, NULL, 0, 0, NULL, false,
-				 false);
+		tuple_format_new(&tuple_format_runtime_vtab, NULL, keys,
+				 key_count, NULL, 0, 0, NULL, false, false);
 	if (format != NULL)
 		tuple_format_ref(format);
 	return format;
@@ -651,11 +654,11 @@ box_tuple_iterator_t *
 box_tuple_iterator(box_tuple_t *tuple)
 {
 	assert(tuple != NULL);
-	struct tuple_iterator *it = (struct tuple_iterator *)
-		mempool_alloc(&tuple_iterator_pool);
+	struct tuple_iterator *it =
+		(struct tuple_iterator *)mempool_alloc(&tuple_iterator_pool);
 	if (it == NULL) {
-		diag_set(OutOfMemory, tuple_iterator_pool.objsize,
-			 "mempool", "new slab");
+		diag_set(OutOfMemory, tuple_iterator_pool.objsize, "mempool",
+			 "new slab");
 		return NULL;
 	}
 	tuple_ref(tuple);
@@ -702,9 +705,9 @@ box_tuple_update(box_tuple_t *tuple, const char *expr, const char *expr_end)
 	struct region *region = &fiber()->gc;
 	size_t used = region_used(region);
 	struct tuple_format *format = tuple_format(tuple);
-	const char *new_data =
-		xrow_update_execute(expr, expr_end, old_data, old_data + bsize,
-				    format, &new_size, 1, NULL);
+	const char *new_data = xrow_update_execute(expr, expr_end, old_data,
+						   old_data + bsize, format,
+						   &new_size, 1, NULL);
 	if (new_data == NULL) {
 		region_truncate(region, used);
 		return NULL;
@@ -724,9 +727,9 @@ box_tuple_upsert(box_tuple_t *tuple, const char *expr, const char *expr_end)
 	struct region *region = &fiber()->gc;
 	size_t used = region_used(region);
 	struct tuple_format *format = tuple_format(tuple);
-	const char *new_data =
-		xrow_upsert_execute(expr, expr_end, old_data, old_data + bsize,
-				    format, &new_size, 1, false, NULL);
+	const char *new_data = xrow_upsert_execute(expr, expr_end, old_data,
+						   old_data + bsize, format,
+						   &new_size, 1, false, NULL);
 	if (new_data == NULL) {
 		region_truncate(region, used);
 		return NULL;

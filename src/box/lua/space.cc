@@ -37,9 +37,9 @@
 #include "lua/trigger.h"
 
 extern "C" {
-	#include <lua.h>
-	#include <lauxlib.h>
-	#include <lualib.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 } /* extern "C" */
 
 #include "box/func.h"
@@ -61,7 +61,7 @@ extern "C" {
 static int
 lbox_push_txn_stmt(struct lua_State *L, void *event)
 {
-	struct txn_stmt *stmt = txn_current_stmt((struct txn *) event);
+	struct txn_stmt *stmt = txn_current_stmt((struct txn *)event);
 
 	if (stmt->old_tuple) {
 		luaT_pushtuple(L, stmt->old_tuple);
@@ -84,7 +84,7 @@ lbox_push_txn_stmt(struct lua_State *L, void *event)
 static int
 lbox_pop_txn_stmt(struct lua_State *L, int nret, void *event)
 {
-	struct txn_stmt *stmt = txn_current_stmt((struct txn *) event);
+	struct txn_stmt *stmt = txn_current_stmt((struct txn *)event);
 
 	if (nret < 1) {
 		/* No return value - nothing to do. */
@@ -117,16 +117,17 @@ lbox_space_on_replace(struct lua_State *L)
 	int top = lua_gettop(L);
 
 	if (top < 1 || !lua_istable(L, 1)) {
-		luaL_error(L,
-	   "usage: space:on_replace(function | nil, [function | nil])");
+		luaL_error(
+			L,
+			"usage: space:on_replace(function | nil, [function | nil])");
 	}
 	lua_getfield(L, 1, "id"); /* Get space id. */
 	uint32_t id = lua_tonumber(L, lua_gettop(L));
 	struct space *space = space_cache_find_xc(id);
 	lua_pop(L, 1);
 
-	return lbox_trigger_reset(L, 3, &space->on_replace,
-				  lbox_push_txn_stmt, NULL);
+	return lbox_trigger_reset(L, 3, &space->on_replace, lbox_push_txn_stmt,
+				  NULL);
 }
 
 /**
@@ -138,8 +139,9 @@ lbox_space_before_replace(struct lua_State *L)
 	int top = lua_gettop(L);
 
 	if (top < 1 || !lua_istable(L, 1)) {
-		luaL_error(L,
-	   "usage: space:before_replace(function | nil, [function | nil])");
+		luaL_error(
+			L,
+			"usage: space:before_replace(function | nil, [function | nil])");
 	}
 	lua_getfield(L, 1, "id"); /* Get space id. */
 	uint32_t id = lua_tonumber(L, lua_gettop(L));
@@ -176,7 +178,8 @@ lbox_push_ck_constraint(struct lua_State *L, struct space *space, int i)
 			 * deleted.
 			 */
 			if (space_ck_constraint_by_name(space, name,
-					(uint32_t)name_len) == NULL) {
+							(uint32_t)name_len) ==
+			    NULL) {
 				lua_pushlstring(L, name, name_len);
 				lua_pushnil(L);
 				lua_settable(L, -5);
@@ -262,16 +265,15 @@ lbox_fillspace(struct lua_State *L, struct space *space, int i)
 	lua_pushboolean(L, space_index(space, 0) != 0);
 	lua_settable(L, i);
 
+	/* space:on_replace */
+	lua_pushstring(L, "on_replace");
+	lua_pushcfunction(L, lbox_space_on_replace);
+	lua_settable(L, i);
 
-        /* space:on_replace */
-        lua_pushstring(L, "on_replace");
-        lua_pushcfunction(L, lbox_space_on_replace);
-        lua_settable(L, i);
-
-        /* space:before_replace */
-        lua_pushstring(L, "before_replace");
-        lua_pushcfunction(L, lbox_space_before_replace);
-        lua_settable(L, i);
+	/* space:before_replace */
+	lua_pushstring(L, "before_replace");
+	lua_pushcfunction(L, lbox_space_before_replace);
+	lua_settable(L, i);
 
 	lua_getfield(L, i, "index");
 	if (lua_isnil(L, -1)) {
@@ -279,13 +281,13 @@ lbox_fillspace(struct lua_State *L, struct space *space, int i)
 		/* space.index */
 		lua_pushstring(L, "index");
 		lua_newtable(L);
-		lua_settable(L, i);	/* push space.index */
+		lua_settable(L, i); /* push space.index */
 		lua_getfield(L, i, "index");
 	} else {
 		lua_pushnil(L);
 		while (lua_next(L, -2) != 0) {
 			if (lua_isnumber(L, -2)) {
-				uint32_t iid = (uint32_t) lua_tonumber(L, -2);
+				uint32_t iid = (uint32_t)lua_tonumber(L, -2);
 				/*
 				 * Remove index only if it was deleted.
 				 * If an existing index was
@@ -334,7 +336,7 @@ lbox_fillspace(struct lua_State *L, struct space *space, int i)
 			lua_newtable(L);
 			lua_settable(L, -3);
 			lua_rawgeti(L, -1, index_def->iid);
-			assert(! lua_isnil(L, -1));
+			assert(!lua_isnil(L, -1));
 		}
 
 		if (index_def->type == HASH || index_def->type == TREE) {
@@ -399,7 +401,7 @@ lbox_fillspace(struct lua_State *L, struct space *space, int i)
 		lua_pushstring(L, "sequence_fieldno");
 		if (k == 0 && space->sequence != NULL)
 			lua_pushnumber(L, space->sequence_fieldno +
-				       TUPLE_INDEX_BASE);
+						  TUPLE_INDEX_BASE);
 		else
 			lua_pushnil(L);
 		lua_rawset(L, -3);
@@ -449,9 +451,9 @@ lbox_fillspace(struct lua_State *L, struct space *space, int i)
 	lua_pushstring(L, "bless");
 	lua_gettable(L, -2);
 
-	lua_pushvalue(L, i);	/* space */
+	lua_pushvalue(L, i); /* space */
 	lua_call(L, 1, 0);
-	lua_pop(L, 3);	/* cleanup stack - box, schema, space */
+	lua_pop(L, 3); /* cleanup stack - box, schema, space */
 }
 
 /** Export a space to Lua */
@@ -511,8 +513,8 @@ box_lua_space_delete(struct lua_State *L, uint32_t id)
 static int
 box_lua_space_new_or_delete(struct trigger *trigger, void *event)
 {
-	struct lua_State *L = (struct lua_State *) trigger->data;
-	struct space *space = (struct space *) event;
+	struct lua_State *L = (struct lua_State *)trigger->data;
+	struct space *space = (struct space *)event;
 
 	if (space_by_id(space->def->id) != NULL) {
 		box_lua_space_new(L, space);
@@ -522,9 +524,9 @@ box_lua_space_new_or_delete(struct trigger *trigger, void *event)
 	return 0;
 }
 
-static struct trigger on_alter_space_in_lua = {
-	RLIST_LINK_INITIALIZER, box_lua_space_new_or_delete, NULL, NULL
-};
+static struct trigger on_alter_space_in_lua = { RLIST_LINK_INITIALIZER,
+						box_lua_space_new_or_delete,
+						NULL, NULL };
 
 /**
  * Make a tuple or a table Lua object by map.
@@ -561,8 +563,9 @@ lbox_space_frommap(struct lua_State *L)
 	space = space_by_id(id);
 	if (space == NULL) {
 		lua_pushnil(L);
-		lua_pushstring(L, tt_sprintf("Space with id '%d' "\
-					     "doesn't exist", id));
+		lua_pushstring(L, tt_sprintf("Space with id '%d' "
+					     "doesn't exist",
+					     id));
 		return 2;
 	}
 	assert(space->format != NULL);
@@ -579,11 +582,11 @@ lbox_space_frommap(struct lua_State *L)
 		if (tuple_fieldno_by_name(dict, key, key_len, key_hash,
 					  &fieldno)) {
 			lua_pushnil(L);
-			lua_pushstring(L, tt_sprintf("Unknown field '%s'",
-						     key));
+			lua_pushstring(L,
+				       tt_sprintf("Unknown field '%s'", key));
 			return 2;
 		}
-		lua_rawseti(L, -3, fieldno+1);
+		lua_rawseti(L, -3, fieldno + 1);
 	}
 
 	lua_replace(L, 1);
@@ -701,8 +704,7 @@ box_lua_space_init(struct lua_State *L)
 	lua_pop(L, 2); /* box, schema */
 
 	static const struct luaL_Reg space_internal_lib[] = {
-		{"frommap", lbox_space_frommap},
-		{NULL, NULL}
+		{ "frommap", lbox_space_frommap }, { NULL, NULL }
 	};
 	luaL_register(L, "box.internal.space", space_internal_lib);
 	lua_pop(L, 1);

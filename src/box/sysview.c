@@ -74,7 +74,7 @@ struct sysview_iterator {
 static inline struct sysview_iterator *
 sysview_iterator(struct iterator *ptr)
 {
-	return (struct sysview_iterator *) ptr;
+	return (struct sysview_iterator *)ptr;
 }
 
 static void
@@ -150,8 +150,8 @@ sysview_index_create_iterator(struct index *base, enum iterator_type type,
 }
 
 static int
-sysview_index_get(struct index *base, const char *key,
-		  uint32_t part_count, struct tuple **result)
+sysview_index_get(struct index *base, const char *key, uint32_t part_count,
+		  struct tuple **result)
 {
 	struct sysview_index *index = (struct sysview_index *)base;
 	struct space *source = space_cache_find(index->source_space_id);
@@ -185,7 +185,7 @@ static const struct index_vtab sysview_index_vtab = {
 	/* .update_def = */ generic_index_update_def,
 	/* .depends_on_pk = */ generic_index_depends_on_pk,
 	/* .def_change_requires_rebuild = */
-		generic_index_def_change_requires_rebuild,
+	generic_index_def_change_requires_rebuild,
 	/* .size = */ generic_index_size,
 	/* .bsize = */ generic_index_bsize,
 	/* .min = */ generic_index_min,
@@ -196,7 +196,7 @@ static const struct index_vtab sysview_index_vtab = {
 	/* .replace = */ generic_index_replace,
 	/* .create_iterator = */ sysview_index_create_iterator,
 	/* .create_snapshot_iterator = */
-		generic_index_create_snapshot_iterator,
+	generic_index_create_snapshot_iterator,
 	/* .stat = */ generic_index_stat,
 	/* .compact = */ generic_index_compact,
 	/* .reset_stat = */ generic_index_reset_stat,
@@ -295,8 +295,7 @@ vspace_filter(struct space *source, struct tuple *tuple)
 	 * Allow access for space owners and users with any
 	 * privilege for the space.
 	 */
-	return (PRIV_WRDA & effective ||
-	       space->def->uid == cr->uid);
+	return (PRIV_WRDA & effective || space->def->uid == cr->uid);
 }
 
 static bool
@@ -363,15 +362,14 @@ vfunc_filter(struct space *source, struct tuple *tuple)
 		return true; /* read access to _func space */
 
 	uint32_t name_len;
-	const char *name = tuple_field_str(tuple, BOX_FUNC_FIELD_NAME,
-					   &name_len);
+	const char *name =
+		tuple_field_str(tuple, BOX_FUNC_FIELD_NAME, &name_len);
 	if (name == NULL)
 		return false;
 	struct func *func = func_by_name(name, name_len);
 	assert(func != NULL);
 	user_access_t effective = func->access[cr->auth_token].effective;
-	return func->def->uid == cr->uid ||
-	       ((PRIV_WRDA | PRIV_X) & effective);
+	return func->def->uid == cr->uid || ((PRIV_WRDA | PRIV_X) & effective);
 }
 
 static bool
@@ -405,8 +403,8 @@ vsequence_filter(struct space *source, struct tuple *tuple)
 static bool
 vcollation_filter(struct space *source, struct tuple *tuple)
 {
-	(void) source;
-	(void) tuple;
+	(void)source;
+	(void)tuple;
 	return true;
 }
 
@@ -462,17 +460,16 @@ sysview_space_create_index(struct space *space, struct index_def *def)
 		filter = vcollation_filter;
 		break;
 	default:
-		diag_set(ClientError, ER_MODIFY_INDEX,
-			 def->name, space_name(space),
-			 "unknown space for system view");
+		diag_set(ClientError, ER_MODIFY_INDEX, def->name,
+			 space_name(space), "unknown space for system view");
 		return NULL;
 	}
 
 	struct sysview_index *index =
 		(struct sysview_index *)calloc(1, sizeof(*index));
 	if (index == NULL) {
-		diag_set(OutOfMemory, sizeof(*index),
-			 "malloc", "struct sysview_index");
+		diag_set(OutOfMemory, sizeof(*index), "malloc",
+			 "struct sysview_index");
 		return NULL;
 	}
 	if (index_create(&index->base, (struct engine *)sysview,
@@ -525,8 +522,7 @@ sysview_engine_create_space(struct engine *engine, struct space_def *def,
 {
 	struct space *space = (struct space *)calloc(1, sizeof(*space));
 	if (space == NULL) {
-		diag_set(OutOfMemory, sizeof(*space),
-			 "malloc", "struct space");
+		diag_set(OutOfMemory, sizeof(*space), "malloc", "struct space");
 		return NULL;
 	}
 	int key_count = 0;
@@ -552,8 +548,8 @@ sysview_engine_create_space(struct engine *engine, struct space_def *def,
 		return NULL;
 	}
 	tuple_format_ref(format);
-	if (space_create(space, engine, &sysview_space_vtab,
-			 def, key_list, format) != 0) {
+	if (space_create(space, engine, &sysview_space_vtab, def, key_list,
+			 format) != 0) {
 		free(space);
 		return NULL;
 	}
@@ -595,8 +591,8 @@ sysview_engine_new(void)
 {
 	struct sysview_engine *sysview = calloc(1, sizeof(*sysview));
 	if (sysview == NULL) {
-		diag_set(OutOfMemory, sizeof(*sysview),
-			 "malloc", "struct sysview_engine");
+		diag_set(OutOfMemory, sizeof(*sysview), "malloc",
+			 "struct sysview_engine");
 		return NULL;
 	}
 

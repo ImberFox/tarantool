@@ -111,8 +111,8 @@ struct module_find_ctx {
 static int
 luaT_module_find(lua_State *L)
 {
-	struct module_find_ctx *ctx = (struct module_find_ctx *)
-		lua_topointer(L, 1);
+	struct module_find_ctx *ctx =
+		(struct module_find_ctx *)lua_topointer(L, 1);
 
 	/*
 	 * Call package.searchpath(name, package.cpath) and use
@@ -156,7 +156,7 @@ module_find(const char *package, const char *package_end, char *path,
 	lua_State *L = tarantool_L;
 	int top = lua_gettop(L);
 	if (luaT_cpcall(L, luaT_module_find, &ctx) != 0) {
-		int package_len = (int) (package_end - package);
+		int package_len = (int)(package_end - package);
 		diag_set(ClientError, ER_LOAD_MODULE, package_len, package,
 			 lua_tostring(L, -1));
 		lua_settop(L, top);
@@ -177,7 +177,7 @@ module_init(void)
 	modules = mh_strnptr_new();
 	if (modules == NULL) {
 		diag_set(OutOfMemory, sizeof(*modules), "malloc",
-			  "modules hash table");
+			 "modules hash table");
 		return -1;
 	}
 	return 0;
@@ -189,7 +189,7 @@ module_free(void)
 	while (mh_size(modules) > 0) {
 		mh_int_t i = mh_first(modules);
 		struct module *module =
-			(struct module *) mh_strnptr_node(modules, i)->val;
+			(struct module *)mh_strnptr_node(modules, i)->val;
 		/* Can't delete modules if they have active calls */
 		module_gc(module);
 	}
@@ -216,8 +216,8 @@ module_cache_put(struct module *module)
 {
 	size_t package_len = strlen(module->package);
 	uint32_t name_hash = mh_strn_hash(module->package, package_len);
-	const struct mh_strnptr_node_t strnode = {
-		module->package, package_len, name_hash, module};
+	const struct mh_strnptr_node_t strnode = { module->package, package_len,
+						   name_hash, module };
 
 	if (mh_strnptr_put(modules, &strnode, NULL, NULL) == mh_end(modules)) {
 		diag_set(OutOfMemory, sizeof(strnode), "malloc", "modules");
@@ -252,8 +252,8 @@ module_load(const char *package, const char *package_end)
 		return NULL;
 
 	int package_len = package_end - package;
-	struct module *module = (struct module *)
-		malloc(sizeof(*module) + package_len + 1);
+	struct module *module =
+		(struct module *)malloc(sizeof(*module) + package_len + 1);
 	if (module == NULL) {
 		diag_set(OutOfMemory, sizeof(struct module) + package_len + 1,
 			 "malloc", "struct module");
@@ -269,7 +269,7 @@ module_load(const char *package, const char *package_end)
 		tmpdir = "/tmp";
 	char dir_name[PATH_MAX];
 	int rc = snprintf(dir_name, sizeof(dir_name), "%s/tntXXXXXX", tmpdir);
-	if (rc < 0 || (size_t) rc >= sizeof(dir_name)) {
+	if (rc < 0 || (size_t)rc >= sizeof(dir_name)) {
 		diag_set(SystemError, "failed to generate path to tmp dir");
 		goto error;
 	}
@@ -282,7 +282,7 @@ module_load(const char *package, const char *package_end)
 	char load_name[PATH_MAX];
 	rc = snprintf(load_name, sizeof(load_name), "%s/%.*s." TARANTOOL_LIBEXT,
 		      dir_name, package_len, package);
-	if (rc < 0 || (size_t) rc >= sizeof(dir_name)) {
+	if (rc < 0 || (size_t)rc >= sizeof(dir_name)) {
 		diag_set(SystemError, "failed to generate path to DSO");
 		goto error;
 	}
@@ -295,11 +295,13 @@ module_load(const char *package, const char *package_end)
 
 	int source_fd = open(path, O_RDONLY);
 	if (source_fd < 0) {
-		diag_set(SystemError, "failed to open module %s file for" \
-			 " reading", path);
+		diag_set(SystemError,
+			 "failed to open module %s file for"
+			 " reading",
+			 path);
 		goto error;
 	}
-	int dest_fd = open(load_name, O_WRONLY|O_CREAT|O_TRUNC,
+	int dest_fd = open(load_name, O_WRONLY | O_CREAT | O_TRUNC,
 			   st.st_mode & 0777);
 	if (dest_fd < 0) {
 		diag_set(SystemError, "failed to open file %s for writing ",
@@ -312,8 +314,8 @@ module_load(const char *package, const char *package_end)
 	close(source_fd);
 	close(dest_fd);
 	if (ret != st.st_size) {
-		diag_set(SystemError, "failed to copy DSO %s to %s",
-			 path, load_name);
+		diag_set(SystemError, "failed to copy DSO %s to %s", path,
+			 load_name);
 		goto error;
 	}
 
@@ -323,8 +325,8 @@ module_load(const char *package, const char *package_end)
 	if (rmdir(dir_name) != 0)
 		say_warn("failed to delete temporary dir %s", dir_name);
 	if (module->handle == NULL) {
-		diag_set(ClientError, ER_LOAD_MODULE, package_len,
-			  package, dlerror());
+		diag_set(ClientError, ER_LOAD_MODULE, package_len, package,
+			 dlerror());
 		goto error;
 	}
 	struct errinj *e = errinj(ERRINJ_DYN_MODULE_COUNT, ERRINJ_INT);
@@ -372,7 +374,8 @@ module_sym(struct module *module, const char *name)
 }
 
 int
-module_reload(const char *package, const char *package_end, struct module **module)
+module_reload(const char *package, const char *package_end,
+	      struct module **module)
 {
 	struct module *old_module = module_cache_find(package, package_end);
 	if (old_module == NULL) {
@@ -420,8 +423,8 @@ restore:
 		}
 		func->module = old_module;
 		rlist_move(&old_module->funcs, &func->item);
-	} while (func != rlist_first_entry(&old_module->funcs,
-					   struct func_c, item));
+	} while (func !=
+		 rlist_first_entry(&old_module->funcs, struct func_c, item));
 	assert(rlist_empty(&new_module->funcs));
 	module_delete(new_module);
 	return -1;
@@ -478,7 +481,7 @@ func_c_new(MAYBE_UNUSED struct func_def *def)
 {
 	assert(def->language == FUNC_LANGUAGE_C);
 	assert(def->body == NULL && !def->is_sandboxed);
-	struct func_c *func = (struct func_c *) malloc(sizeof(struct func_c));
+	struct func_c *func = (struct func_c *)malloc(sizeof(struct func_c));
 	if (func == NULL) {
 		diag_set(OutOfMemory, sizeof(*func), "malloc", "func");
 		return NULL;
@@ -510,7 +513,7 @@ func_c_destroy(struct func *base)
 {
 	assert(base->vtab == &func_c_vtab);
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_C);
-	struct func_c *func = (struct func_c *) base;
+	struct func_c *func = (struct func_c *)base;
 	func_c_unload(func);
 	TRASH(base);
 	free(func);
@@ -528,8 +531,8 @@ func_c_load(struct func_c *func)
 	struct func_name name;
 	func_split_name(func->base.def->name, &name);
 
-	struct module *module = module_cache_find(name.package,
-						  name.package_end);
+	struct module *module =
+		module_cache_find(name.package, name.package_end);
 	if (module == NULL) {
 		/* Try to find loaded module in the cache */
 		module = module_load(name.package, name.package_end);
@@ -554,7 +557,7 @@ func_c_call(struct func *base, struct port *args, struct port *ret)
 {
 	assert(base->vtab == &func_c_vtab);
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_C);
-	struct func_c *func = (struct func_c *) base;
+	struct func_c *func = (struct func_c *)base;
 	if (func->func == NULL) {
 		if (func_c_load(func) != 0)
 			return -1;
@@ -618,7 +621,8 @@ func_access_check(struct func *func)
 		return 0;
 	user_access_t access = PRIV_X | PRIV_U;
 	/* Check access for all functions. */
-	access &= ~entity_access_get(SC_FUNCTION)[credentials->auth_token].effective;
+	access &= ~entity_access_get(SC_FUNCTION)[credentials->auth_token]
+			   .effective;
 	user_access_t func_access = access & ~credentials->universal_access;
 	if ((func_access & PRIV_U) != 0 ||
 	    (func->def->uid != credentials->uid &&

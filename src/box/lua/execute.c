@@ -99,7 +99,7 @@ lbox_execute_prepared(struct lua_State *L)
 {
 	int top = lua_gettop(L);
 
-	if ((top != 1 && top != 2) || ! lua_istable(L, 1))
+	if ((top != 1 && top != 2) || !lua_istable(L, 1))
 		return luaL_error(L, "Usage: statement:execute([, params])");
 	lua_getfield(L, 1, "stmt_id");
 	if (!lua_isnumber(L, -1))
@@ -138,15 +138,15 @@ lbox_unprepare(struct lua_State *L)
 {
 	int top = lua_gettop(L);
 
-	if (top != 1 || (! lua_istable(L, 1) && ! lua_isnumber(L, 1))) {
-		return luaL_error(L, "Usage: statement:unprepare() or "\
+	if (top != 1 || (!lua_istable(L, 1) && !lua_isnumber(L, 1))) {
+		return luaL_error(L, "Usage: statement:unprepare() or "
 				     "box.unprepare(stmt_id)");
 	}
 	lua_Integer stmt_id;
 	if (lua_istable(L, 1)) {
 		lua_getfield(L, -1, "stmt_id");
-		if (! lua_isnumber(L, -1)) {
-			return luaL_error(L, "Statement id is expected "\
+		if (!lua_isnumber(L, -1)) {
+			return luaL_error(L, "Statement id is expected "
 					     "to be numeric");
 		}
 		stmt_id = lua_tointeger(L, -1);
@@ -156,7 +156,7 @@ lbox_unprepare(struct lua_State *L)
 	}
 	if (stmt_id < 0)
 		return luaL_error(L, "Statement id can't be negative");
-	if (sql_unprepare((uint32_t) stmt_id) != 0)
+	if (sql_unprepare((uint32_t)stmt_id) != 0)
 		return luaT_push_nil_and_error(L);
 	return 0;
 }
@@ -164,7 +164,7 @@ lbox_unprepare(struct lua_State *L)
 void
 port_sql_dump_lua(struct port *port, struct lua_State *L, bool is_flat)
 {
-	(void) is_flat;
+	(void)is_flat;
 	assert(is_flat == false);
 	assert(port->vtab == &port_sql_vtab);
 	struct sql *db = sql_get();
@@ -180,9 +180,9 @@ port_sql_dump_lua(struct port *port, struct lua_State *L, bool is_flat)
 		break;
 	}
 	case DML_EXECUTE: {
-		assert(((struct port_c *) port)->size == 0);
+		assert(((struct port_c *)port)->size == 0);
 		struct stailq *autoinc_id_list =
-			vdbe_autoinc_id_list((struct Vdbe *) stmt);
+			vdbe_autoinc_id_list((struct Vdbe *)stmt);
 		lua_createtable(L, 0, stailq_empty(autoinc_id_list) ? 1 : 2);
 
 		luaL_pushuint64(L, db->nChange);
@@ -192,7 +192,8 @@ port_sql_dump_lua(struct port *port, struct lua_State *L, bool is_flat)
 			lua_newtable(L);
 			int i = 1;
 			struct autoinc_id_entry *id_entry;
-			stailq_foreach_entry(id_entry, autoinc_id_list, link) {
+			stailq_foreach_entry(id_entry, autoinc_id_list, link)
+			{
 				if (id_entry->id >= 0)
 					luaL_pushuint64(L, id_entry->id);
 				else
@@ -236,8 +237,8 @@ port_sql_dump_lua(struct port *port, struct lua_State *L, bool is_flat)
 		lua_setfield(L, -2, "unprepare");
 		break;
 	}
-	case DML_PREPARE : {
-		assert(((struct port_c *) port)->size == 0);
+	case DML_PREPARE: {
+		assert(((struct port_c *)port)->size == 0);
 		/* Format is following:
 		 * stmt_id,
 		 * param_count,
@@ -264,7 +265,7 @@ port_sql_dump_lua(struct port *port, struct lua_State *L, bool is_flat)
 		lua_setfield(L, -2, "unprepare");
 		break;
 	}
-	default:{
+	default: {
 		unreachable();
 	}
 	}
@@ -296,16 +297,18 @@ lua_sql_bind_decode(struct lua_State *L, struct sql_bind *bind, int idx, int i)
 		 */
 		lua_pushnil(L);
 		lua_next(L, -2);
-		if (! lua_isstring(L, -2)) {
-			diag_set(ClientError, ER_ILLEGAL_PARAMS, "name of the "\
+		if (!lua_isstring(L, -2)) {
+			diag_set(ClientError, ER_ILLEGAL_PARAMS,
+				 "name of the "
 				 "parameter should be a string.");
 			return -1;
 		}
 		/* Check that the table is one-row sized. */
 		lua_pushvalue(L, -2);
 		if (lua_next(L, -4) != 0) {
-			diag_set(ClientError, ER_ILLEGAL_PARAMS, "SQL bind "\
-				 "named parameter should be a table with "\
+			diag_set(ClientError, ER_ILLEGAL_PARAMS,
+				 "SQL bind "
+				 "named parameter should be a table with "
 				 "one key - {name = value}");
 			return -1;
 		}
@@ -399,7 +402,7 @@ lua_sql_bind_list_decode(struct lua_State *L, struct sql_bind **out_bind,
 		return 0;
 	if (bind_count > SQL_BIND_PARAMETER_MAX) {
 		diag_set(ClientError, ER_SQL_BIND_PARAMETER_MAX,
-			 (int) bind_count);
+			 (int)bind_count);
 		return -1;
 	}
 	struct region *region = &fiber()->gc;
@@ -410,8 +413,8 @@ lua_sql_bind_list_decode(struct lua_State *L, struct sql_bind **out_bind,
 	 * sql_stmt_finalize() or in txn_commit()/txn_rollback() if
 	 * there is an active transaction.
 	 */
-	struct sql_bind *bind = region_alloc_array(region, typeof(bind[0]),
-						   bind_count, &size);
+	struct sql_bind *bind =
+		region_alloc_array(region, typeof(bind[0]), bind_count, &size);
 	if (bind == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_array", "bind");
 		return -1;
@@ -435,12 +438,12 @@ lbox_execute(struct lua_State *L)
 	struct port port;
 	int top = lua_gettop(L);
 
-	if ((top != 1 && top != 2) || ! lua_isstring(L, 1))
+	if ((top != 1 && top != 2) || !lua_isstring(L, 1))
 		return luaL_error(L, "Usage: box.execute(sqlstring[, params]) "
-				  "or box.execute(stmt_id[, params])");
+				     "or box.execute(stmt_id[, params])");
 
 	if (top == 2) {
-		if (! lua_istable(L, 2))
+		if (!lua_istable(L, 2))
 			return luaL_error(L, "Second argument must be a table");
 		bind_count = lua_sql_bind_list_decode(L, &bind, 2);
 		if (bind_count < 0)
@@ -452,8 +455,8 @@ lbox_execute(struct lua_State *L)
 	 */
 	if (lua_type(L, 1) == LUA_TSTRING) {
 		const char *sql = lua_tolstring(L, 1, &length);
-		if (sql_prepare_and_execute(sql, length, bind, bind_count, &port,
-					    &fiber()->gc) != 0)
+		if (sql_prepare_and_execute(sql, length, bind, bind_count,
+					    &port, &fiber()->gc) != 0)
 			return luaT_push_nil_and_error(L);
 	} else {
 		assert(lua_type(L, 1) == LUA_TNUMBER);
@@ -479,7 +482,7 @@ lbox_prepare(struct lua_State *L)
 	struct port port;
 	int top = lua_gettop(L);
 
-	if ((top != 1 && top != 2) || ! lua_isstring(L, 1))
+	if ((top != 1 && top != 2) || !lua_isstring(L, 1))
 		return luaL_error(L, "Usage: box.prepare(sqlstring)");
 
 	const char *sql = lua_tolstring(L, 1, &length);

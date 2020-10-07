@@ -170,7 +170,6 @@ console_completion_handler(const char *text, int start, int end)
 	if (lua_pcall(readline_L, 3, 1, 0) != 0 ||
 	    !lua_istable(readline_L, -1) ||
 	    (n = lua_objlen(readline_L, -1)) == 0) {
-
 		lua_pop(readline_L, 1);
 		return NULL;
 	}
@@ -281,8 +280,8 @@ lbox_console_readline(struct lua_State *L)
 	rl_callback_handler_install(prompt, console_push_line);
 	top = lua_gettop(L);
 	while (top == lua_gettop(L)) {
-		while (coio_wait(STDIN_FILENO, COIO_READ,
-				 TIMEOUT_INFINITY) == 0) {
+		while (coio_wait(STDIN_FILENO, COIO_READ, TIMEOUT_INFINITY) ==
+		       0) {
 			/*
 			 * Make sure the user of interactive
 			 * console has not hanged us, otherwise
@@ -336,8 +335,8 @@ lbox_console_completion_handler(struct lua_State *L)
 	lua_pushcfunction(L, console_completion_helper);
 	lua_pushlightuserdata(L, &res);
 
-	res = lua_rl_complete(L, lua_tostring(L, 1),
-			      lua_tointeger(L, 2), lua_tointeger(L, 3));
+	res = lua_rl_complete(L, lua_tostring(L, 1), lua_tointeger(L, 2),
+			      lua_tointeger(L, 3));
 
 	if (res == NULL) {
 		return 0;
@@ -387,7 +386,8 @@ lbox_console_add_history(struct lua_State *L)
 
 	const char *s = lua_tostring(L, 1);
 	if (*s) {
-		HIST_ENTRY *hist_ent = history_get(history_length - 1 + history_base);
+		HIST_ENTRY *hist_ent =
+			history_get(history_length - 1 + history_base);
 		const char *prev_s = hist_ent ? hist_ent->line : "";
 		if (strcmp(prev_s, s) != 0)
 			add_history(s);
@@ -480,7 +480,7 @@ console_dump_plain(struct lua_State *L, uint32_t *size)
 	assert(lua_isstring(L, -1));
 	size_t len;
 	const char *result = lua_tolstring(L, -1, &len);
-	*size = (uint32_t) len;
+	*size = (uint32_t)len;
 	return result;
 }
 
@@ -526,14 +526,14 @@ port_msgpack_dump_plain_via_lua(struct lua_State *L)
 		port_msgpack_set_plain((struct port *)port, data, *size);
 	}
 	return 0;
- }
+}
 
 /** Plain text converter for raw MessagePack. */
 const char *
 port_msgpack_dump_plain(struct port *base, uint32_t *size)
 {
 	struct lua_State *L = tarantool_L;
-	void *ctx[2] = {(void *)base, (void *)size};
+	void *ctx[2] = { (void *)base, (void *)size };
 	/*
 	 * lua_cpcall() protects from errors thrown from Lua which
 	 * may break a caller, not knowing about Lua and not
@@ -587,12 +587,12 @@ lua_serpent_init(struct lua_State *L)
 	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
 	modfile = lua_pushfstring(L, "@builtin/%s.lua", modname);
 	if (luaL_loadbuffer(L, serpent_lua, strlen(serpent_lua), modfile)) {
-		panic("Error loading Lua module %s...: %s",
-		      modname, lua_tostring(L, -1));
+		panic("Error loading Lua module %s...: %s", modname,
+		      lua_tostring(L, -1));
 	}
 
 	lua_call(L, 0, 1);
-	lua_setfield(L, -3, modname);  /* _LOADED[modname] = new table */
+	lua_setfield(L, -3, modname); /* _LOADED[modname] = new table */
 	lua_pop(L, 2);
 }
 
@@ -600,13 +600,13 @@ void
 tarantool_lua_console_init(struct lua_State *L)
 {
 	static const struct luaL_Reg consolelib[] = {
-		{"load_history",	lbox_console_load_history},
-		{"save_history",	lbox_console_save_history},
-		{"add_history",		lbox_console_add_history},
-		{"completion_handler",	lbox_console_completion_handler},
-		{"format_yaml",		lbox_console_format_yaml},
-		{"format_lua",		lbox_console_format_lua},
-		{NULL, NULL}
+		{ "load_history", lbox_console_load_history },
+		{ "save_history", lbox_console_save_history },
+		{ "add_history", lbox_console_add_history },
+		{ "completion_handler", lbox_console_completion_handler },
+		{ "format_yaml", lbox_console_format_yaml },
+		{ "format_lua", lbox_console_format_lua },
+		{ NULL, NULL }
 	};
 	luaL_register_module(L, "console", consolelib);
 
@@ -641,11 +641,11 @@ tarantool_lua_console_init(struct lua_State *L)
 	};
 
 	serializer_lua = luaL_newserializer(L, NULL, lualib);
-	serializer_lua->has_compact		= 1;
-	serializer_lua->encode_invalid_numbers	= 1;
-	serializer_lua->encode_load_metatables	= 1;
-	serializer_lua->encode_use_tostring	= 1;
-	serializer_lua->encode_invalid_as_nil	= 1;
+	serializer_lua->has_compact = 1;
+	serializer_lua->encode_invalid_numbers = 1;
+	serializer_lua->encode_load_metatables = 1;
+	serializer_lua->encode_use_tostring = 1;
+	serializer_lua->encode_invalid_as_nil = 1;
 
 	/*
 	 * Keep a reference to this module so it
@@ -657,9 +657,9 @@ tarantool_lua_console_init(struct lua_State *L)
 	lua_serializer_init(L);
 
 	struct session_vtab console_session_vtab = {
-		.push	= console_session_push,
-		.fd	= console_session_fd,
-		.sync	= generic_session_sync,
+		.push = console_session_push,
+		.fd = console_session_fd,
+		.sync = generic_session_sync,
 	};
 	session_vtab_registry[SESSION_TYPE_CONSOLE] = console_session_vtab;
 	session_vtab_registry[SESSION_TYPE_REPL] = console_session_vtab;
@@ -696,19 +696,21 @@ enum {
 };
 
 /* goto intentionally omited */
-static const char *
-const lua_rl_keywords[] = {
-	"and", "break", "do", "else", "elseif", "end", "false",
-	"for", "function", "if", "in", "local", "nil", "not", "or",
-	"repeat", "return", "then", "true", "until", "while", NULL
+static const char *const lua_rl_keywords[] = {
+	"and",	 "break", "do",	      "else",	"elseif", "end",
+	"false", "for",	  "function", "if",	"in",	  "local",
+	"nil",	 "not",	  "or",	      "repeat", "return", "then",
+	"true",	 "until", "while",    NULL
 };
 
 static int
 valid_identifier(const char *s)
 {
-	if (!(isalpha(*s) || *s == '_')) return 0;
+	if (!(isalpha(*s) || *s == '_'))
+		return 0;
 	for (s++; *s; s++)
-		if (!(isalpha(*s) || isdigit(*s) || *s == '_')) return 0;
+		if (!(isalpha(*s) || isdigit(*s) || *s == '_'))
+			return 0;
 	return 1;
 }
 
@@ -746,10 +748,10 @@ lua_rl_dmadd(dmlist *ml, const char *p, size_t pn, const char *s, int suf)
 {
 	char *t = NULL;
 
-	if (ml->idx+1 >= ml->allocated) {
+	if (ml->idx + 1 >= ml->allocated) {
 		char **new_list;
-		new_list = realloc(
-			ml->list, sizeof(char *)*(ml->allocated += 32));
+		new_list = realloc(ml->list,
+				   sizeof(char *) * (ml->allocated += 32));
 		if (!new_list)
 			return -1;
 		ml->list = new_list;
@@ -757,20 +759,23 @@ lua_rl_dmadd(dmlist *ml, const char *p, size_t pn, const char *s, int suf)
 
 	if (s) {
 		size_t n = strlen(s);
-		if (!(t = (char *)malloc(sizeof(char)*(pn + n + 2))))
+		if (!(t = (char *)malloc(sizeof(char) * (pn + n + 2))))
 			return 1;
 		memcpy(t, p, pn);
 		memcpy(t + pn, s, n);
 		n += pn;
 		t[n] = suf;
-		if (suf) t[++n] = '\0';
+		if (suf)
+			t[++n] = '\0';
 
 		if (ml->idx == 0) {
 			ml->matchlen = n;
 		} else {
 			size_t i;
 			for (i = 0; i < ml->matchlen && i < n &&
-			     ml->list[1][i] == t[i]; i++) ;
+				    ml->list[1][i] == t[i];
+			     i++)
+				;
 			/* Set matchlen to common prefix. */
 			ml->matchlen = i;
 		}
@@ -797,7 +802,7 @@ lua_rl_getmetaindex(lua_State *L)
 	}
 	lua_replace(L, -2);
 	return 1;
-}	 /* 1: obj -- val, 0: obj -- */
+} /* 1: obj -- val, 0: obj -- */
 
 /* Get field from object on top of stack. Avoid calling metamethods. */
 static int
@@ -820,7 +825,7 @@ lua_rl_getfield(lua_State *L, const char *s, size_t n)
 		}
 	} while (lua_rl_getmetaindex(L));
 	return 0;
-}	 /* 1: obj -- val, 0: obj -- */
+} /* 1: obj -- val, 0: obj -- */
 
 static char **
 lua_rl_complete(lua_State *L, const char *text, int start, int end)
@@ -838,12 +843,12 @@ lua_rl_complete(lua_State *L, const char *text, int start, int end)
 
 	savetop = lua_gettop(L);
 	lua_pushglobaltable(L);
-	for (n = (size_t)(end-start), i = dot = 0; i < n; i++) {
+	for (n = (size_t)(end - start), i = dot = 0; i < n; i++) {
 		if (text[i] == '.' || text[i] == ':') {
 			is_method_ref = (text[i] == ':');
-			if (!lua_rl_getfield(L, text+dot, i-dot))
+			if (!lua_rl_getfield(L, text + dot, i - dot))
 				goto error; /* Invalid prefix. */
-			dot = i+1;
+			dot = i + 1;
 			/* Points to first char after dot/colon. */
 		}
 	}
@@ -851,10 +856,8 @@ lua_rl_complete(lua_State *L, const char *text, int start, int end)
 	/* Add all matches against keywords if there is no dot/colon. */
 	if (dot == 0) {
 		for (i = 0; (s = lua_rl_keywords[i]) != NULL; i++) {
-			if (n >= KEYWORD_MATCH_MIN &&
-			    !strncmp(s, text, n) &&
+			if (n >= KEYWORD_MATCH_MIN && !strncmp(s, text, n) &&
 			    lua_rl_dmadd(&ml, NULL, 0, s, ' ')) {
-
 				goto error;
 			}
 		}
@@ -871,7 +874,6 @@ lua_rl_complete(lua_State *L, const char *text, int start, int end)
 			continue;
 
 		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-
 			/* Beware huge tables */
 			if (++items_checked > ITEMS_CHECKED_MAX)
 				break;
@@ -884,9 +886,10 @@ lua_rl_complete(lua_State *L, const char *text, int start, int end)
 			 * Only match names starting with '_'
 			 * if explicitly requested.
 			 */
-			if (strncmp(s, text+dot, n-dot) ||
+			if (strncmp(s, text + dot, n - dot) ||
 			    !valid_identifier(s) ||
-			    (*s == '_' && text[dot] != '_')) continue;
+			    (*s == '_' && text[dot] != '_'))
+				continue;
 
 			int suf = 0; /* Omit suffix by default. */
 			int type = lua_type(L, -1);
@@ -929,7 +932,7 @@ lua_rl_complete(lua_State *L, const char *text, int start, int end)
 	lua_pop(L, 1);
 
 	if (ml.idx == 0) {
-error:
+	error:
 		lua_rl_dmfree(&ml);
 		lua_settop(L, savetop);
 		return NULL;
@@ -937,13 +940,14 @@ error:
 		/* list[0] holds the common prefix of all matches (may
 		 * be ""). If there is only one match, list[0] and
 		 * list[1] will be the same. */
-		ml.list[0] = malloc(sizeof(char)*(ml.matchlen+1));
+		ml.list[0] = malloc(sizeof(char) * (ml.matchlen + 1));
 		if (!ml.list[0])
 			goto error;
 		memcpy(ml.list[0], ml.list[1], ml.matchlen);
 		ml.list[0][ml.matchlen] = '\0';
 		/* Add the NULL list terminator. */
-		if (lua_rl_dmadd(&ml, NULL, 0, NULL, 0)) goto error;
+		if (lua_rl_dmadd(&ml, NULL, 0, NULL, 0))
+			goto error;
 	}
 
 	lua_settop(L, savetop);

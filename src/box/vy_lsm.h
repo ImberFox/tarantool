@@ -61,8 +61,8 @@ struct vy_recovery;
 struct vy_run;
 struct vy_run_env;
 
-typedef void
-(*vy_upsert_thresh_cb)(struct vy_lsm *lsm, struct vy_entry entry, void *arg);
+typedef void (*vy_upsert_thresh_cb)(struct vy_lsm *lsm, struct vy_entry entry,
+				    void *arg);
 
 /** Common LSM tree environment. */
 struct vy_lsm_env {
@@ -442,8 +442,8 @@ vy_lsm_create(struct vy_lsm *lsm);
  */
 int
 vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
-		 struct vy_run_env *run_env, int64_t lsn,
-		 bool is_checkpoint_recovery, bool force_recovery);
+	       struct vy_run_env *run_env, int64_t lsn,
+	       bool is_checkpoint_recovery, bool force_recovery);
 
 /**
  * Return generation of in-memory data stored in an LSM tree
@@ -547,9 +547,9 @@ vy_lsm_delete_mem(struct vy_lsm *lsm, struct vy_mem *mem);
  * On memory allocation error returns -1 and sets diag.
  */
 int
-vy_lsm_find_range_intersection(struct vy_lsm *lsm,
-		const char *min_key, const char *max_key,
-		struct vy_range **begin, struct vy_range **end);
+vy_lsm_find_range_intersection(struct vy_lsm *lsm, const char *min_key,
+			       const char *max_key, struct vy_range **begin,
+			       struct vy_range **end);
 
 /**
  * Split a range if it has grown too big, return true if the range
@@ -597,8 +597,8 @@ vy_lsm_force_compaction(struct vy_lsm *lsm);
  * @retval -1 Memory error.
  */
 int
-vy_lsm_set(struct vy_lsm *lsm, struct vy_mem *mem,
-	   struct vy_entry entry, struct tuple **region_stmt);
+vy_lsm_set(struct vy_lsm *lsm, struct vy_mem *mem, struct vy_entry entry,
+	   struct tuple **region_stmt);
 
 /**
  * Confirm that the statement stays in the in-memory index of

@@ -56,7 +56,8 @@ tuple_format1_field_by_format2_field(struct tuple_format *format1,
 	struct region *region = &fiber()->gc;
 	size_t region_svp = region_used(region);
 	uint32_t path_len = json_tree_snprint_path(NULL, 0,
-				&format2_field->token, TUPLE_INDEX_BASE);
+						   &format2_field->token,
+						   TUPLE_INDEX_BASE);
 	char *path = region_alloc(region, path_len + 1);
 	if (path == NULL)
 		panic("Can not allocate memory for path");
@@ -84,7 +85,8 @@ tuple_format_cmp(const struct tuple_format *format1,
 
 	struct tuple_field *field_a;
 	json_tree_foreach_entry_preorder(field_a, &a->fields.root,
-					 struct tuple_field, token) {
+					 struct tuple_field, token)
+	{
 		struct tuple_field *field_b =
 			tuple_format1_field_by_format2_field(b, field_a);
 		if (field_a->type != field_b->type)
@@ -93,10 +95,10 @@ tuple_format_cmp(const struct tuple_format *format1,
 			return (int)field_a->coll_id - (int)field_b->coll_id;
 		if (field_a->nullable_action != field_b->nullable_action)
 			return (int)field_a->nullable_action -
-				(int)field_b->nullable_action;
+			       (int)field_b->nullable_action;
 		if (field_a->is_key_part != field_b->is_key_part)
 			return (int)field_a->is_key_part -
-				(int)field_b->is_key_part;
+			       (int)field_b->is_key_part;
 	}
 
 	return 0;
@@ -105,9 +107,8 @@ tuple_format_cmp(const struct tuple_format *format1,
 static uint32_t
 tuple_format_hash(struct tuple_format *format)
 {
-#define TUPLE_FIELD_MEMBER_HASH(field, member, h, carry, size) \
-	PMurHash32_Process(&h, &carry, &field->member, \
-			   sizeof(field->member)); \
+#define TUPLE_FIELD_MEMBER_HASH(field, member, h, carry, size)                 \
+	PMurHash32_Process(&h, &carry, &field->member, sizeof(field->member)); \
 	size += sizeof(field->member);
 
 	uint32_t h = 13;
@@ -115,7 +116,8 @@ tuple_format_hash(struct tuple_format *format)
 	uint32_t size = 0;
 	struct tuple_field *f;
 	json_tree_foreach_entry_preorder(f, &format->fields.root,
-					 struct tuple_field, token) {
+					 struct tuple_field, token)
+	{
 		TUPLE_FIELD_MEMBER_HASH(f, type, h, carry, size)
 		TUPLE_FIELD_MEMBER_HASH(f, coll_id, h, carry, size)
 		TUPLE_FIELD_MEMBER_HASH(f, nullable_action, h, carry, size)
@@ -190,7 +192,8 @@ tuple_format_field_by_id(struct tuple_format *format, uint32_t id)
 {
 	struct tuple_field *field;
 	json_tree_foreach_entry_preorder(field, &format->fields.root,
-					 struct tuple_field, token) {
+					 struct tuple_field, token)
+	{
 		if (field->id == id)
 			return field;
 	}
@@ -205,9 +208,9 @@ static int
 tuple_field_ensure_child_compatibility(struct tuple_field *parent,
 				       struct tuple_field *child)
 {
-	enum field_type expected_type =
-		child->token.type == JSON_TOKEN_STR ?
-		FIELD_TYPE_MAP : FIELD_TYPE_ARRAY;
+	enum field_type expected_type = child->token.type == JSON_TOKEN_STR ?
+						      FIELD_TYPE_MAP :
+						      FIELD_TYPE_ARRAY;
 	if (field_type1_contains_type2(parent->type, expected_type)) {
 		parent->type = expected_type;
 	} else {
@@ -398,11 +401,9 @@ tuple_format_use_key_part(struct tuple_format *format, uint32_t field_count,
 	 * with field's one, then the part type is more strict
 	 * and the part type must be used in tuple_format.
 	 */
-	if (field_type1_contains_type2(field->type,
-					part->type)) {
+	if (field_type1_contains_type2(field->type, part->type)) {
 		field->type = part->type;
-	} else if (!field_type1_contains_type2(part->type,
-					       field->type)) {
+	} else if (!field_type1_contains_type2(part->type, field->type)) {
 		int errcode;
 		if (!field->is_key_part)
 			errcode = ER_FORMAT_MISMATCH_INDEX_PART;
@@ -422,13 +423,13 @@ tuple_format_use_key_part(struct tuple_format *format, uint32_t field_count,
  * definitions.
  */
 static int
-tuple_format_create(struct tuple_format *format, struct key_def * const *keys,
+tuple_format_create(struct tuple_format *format, struct key_def *const *keys,
 		    uint16_t key_count, const struct field_def *fields,
 		    uint32_t field_count)
 {
-	format->min_field_count =
-		tuple_format_min_field_count(keys, key_count, fields,
-					     field_count);
+	format->min_field_count = tuple_format_min_field_count(keys, key_count,
+							       fields,
+							       field_count);
 	if (tuple_format_field_count(format) == 0) {
 		format->field_map_size = 0;
 		return 0;
@@ -443,8 +444,9 @@ tuple_format_create(struct tuple_format *format, struct key_def * const *keys,
 		if (cid != COLL_NONE) {
 			struct coll_id *coll_id = coll_by_id(cid);
 			if (coll_id == NULL) {
-				diag_set(ClientError,ER_WRONG_COLLATION_OPTIONS,
-					 i + 1, "collation was not found by ID");
+				diag_set(ClientError,
+					 ER_WRONG_COLLATION_OPTIONS, i + 1,
+					 "collation was not found by ID");
 				return -1;
 			}
 			coll = coll_id->coll;
@@ -478,8 +480,9 @@ tuple_format_create(struct tuple_format *format, struct key_def * const *keys,
 		}
 	}
 
-	assert(tuple_format_field(format, 0)->offset_slot == TUPLE_OFFSET_SLOT_NIL
-	       || json_token_is_multikey(&tuple_format_field(format, 0)->token));
+	assert(tuple_format_field(format, 0)->offset_slot ==
+		       TUPLE_OFFSET_SLOT_NIL ||
+	       json_token_is_multikey(&tuple_format_field(format, 0)->token));
 	size_t field_map_size = -current_slot * sizeof(uint32_t);
 	if (field_map_size > INT16_MAX) {
 		/** tuple->data_offset is 15 bits */
@@ -492,14 +495,15 @@ tuple_format_create(struct tuple_format *format, struct key_def * const *keys,
 	size_t required_fields_sz = bitmap_size(format->total_field_count);
 	format->required_fields = calloc(1, required_fields_sz);
 	if (format->required_fields == NULL) {
-		diag_set(OutOfMemory, required_fields_sz,
-			 "malloc", "required field bitmap");
+		diag_set(OutOfMemory, required_fields_sz, "malloc",
+			 "required field bitmap");
 		return -1;
 	}
 	struct tuple_field *field;
 	uint32_t *required_fields = format->required_fields;
 	json_tree_foreach_entry_preorder(field, &format->fields.root,
-					 struct tuple_field, token) {
+					 struct tuple_field, token)
+	{
 		/*
 		 * In the case of the multikey index,
 		 * required_fields is overridden with local for
@@ -521,7 +525,7 @@ tuple_format_create(struct tuple_format *format, struct key_def * const *keys,
 				calloc(1, required_fields_sz);
 			if (multikey_required_fields == NULL) {
 				diag_set(OutOfMemory, required_fields_sz,
-					"malloc", "required field bitmap");
+					 "malloc", "required field bitmap");
 				return -1;
 			}
 			field->multikey_required_fields =
@@ -545,17 +549,18 @@ static int
 tuple_format_register(struct tuple_format *format)
 {
 	if (recycled_format_ids != FORMAT_ID_NIL) {
-
-		format->id = (uint16_t) recycled_format_ids;
-		recycled_format_ids = (intptr_t) tuple_formats[recycled_format_ids];
+		format->id = (uint16_t)recycled_format_ids;
+		recycled_format_ids =
+			(intptr_t)tuple_formats[recycled_format_ids];
 	} else {
 		if (formats_size == formats_capacity) {
-			uint32_t new_capacity = formats_capacity ?
-						formats_capacity * 2 : 16;
+			uint32_t new_capacity =
+				formats_capacity ? formats_capacity * 2 : 16;
 			struct tuple_format **formats;
 			formats = (struct tuple_format **)
-				realloc(tuple_formats, new_capacity *
-						       sizeof(tuple_formats[0]));
+				realloc(tuple_formats,
+					new_capacity *
+						sizeof(tuple_formats[0]));
 			if (formats == NULL) {
 				diag_set(OutOfMemory,
 					 sizeof(struct tuple_format), "malloc",
@@ -567,13 +572,13 @@ tuple_format_register(struct tuple_format *format)
 			tuple_formats = formats;
 		}
 		uint32_t formats_size_max = FORMAT_ID_MAX + 1;
-		struct errinj *inj = errinj(ERRINJ_TUPLE_FORMAT_COUNT,
-					    ERRINJ_INT);
+		struct errinj *inj =
+			errinj(ERRINJ_TUPLE_FORMAT_COUNT, ERRINJ_INT);
 		if (inj != NULL && inj->iparam > 0)
 			formats_size_max = inj->iparam;
 		if (formats_size >= formats_size_max) {
 			diag_set(ClientError, ER_TUPLE_FORMAT_LIMIT,
-				 (unsigned) formats_capacity);
+				 (unsigned)formats_capacity);
 			return -1;
 		}
 		format->id = formats_size++;
@@ -587,7 +592,7 @@ tuple_format_deregister(struct tuple_format *format)
 {
 	if (format->id == FORMAT_ID_NIL)
 		return;
-	tuple_formats[format->id] = (struct tuple_format *) recycled_format_ids;
+	tuple_formats[format->id] = (struct tuple_format *)recycled_format_ids;
 	recycled_format_ids = format->id;
 	format->id = FORMAT_ID_NIL;
 }
@@ -601,7 +606,8 @@ tuple_format_destroy_fields(struct tuple_format *format)
 {
 	struct tuple_field *field, *tmp;
 	json_tree_foreach_entry_safe(field, &format->fields.root,
-				     struct tuple_field, token, tmp) {
+				     struct tuple_field, token, tmp)
+	{
 		json_tree_del(&format->fields, &field->token);
 		tuple_field_delete(field);
 	}
@@ -609,7 +615,7 @@ tuple_format_destroy_fields(struct tuple_format *format)
 }
 
 static struct tuple_format *
-tuple_format_alloc(struct key_def * const *keys, uint16_t key_count,
+tuple_format_alloc(struct key_def *const *keys, uint16_t key_count,
 		   uint32_t space_field_count, struct tuple_dictionary *dict)
 {
 	/* Size of area to store JSON paths data. */
@@ -623,8 +629,8 @@ tuple_format_alloc(struct key_def * const *keys, uint16_t key_count,
 		const struct key_part *part = key_def->parts;
 		const struct key_part *pend = part + key_def->part_count;
 		for (; part < pend; part++) {
-			index_field_count = MAX(index_field_count,
-						part->fieldno + 1);
+			index_field_count =
+				MAX(index_field_count, part->fieldno + 1);
 			path_pool_size += part->path_len;
 		}
 	}
@@ -717,11 +723,10 @@ tuple_format_reuse(struct tuple_format **p_format)
 	struct tuple_format *format = *p_format;
 	assert(format->is_ephemeral);
 	assert(format->is_temporary);
-	mh_int_t key = mh_tuple_format_find(tuple_formats_hash, format,
-					    NULL);
+	mh_int_t key = mh_tuple_format_find(tuple_formats_hash, format, NULL);
 	if (key != mh_end(tuple_formats_hash)) {
-		struct tuple_format **entry = mh_tuple_format_node(
-			tuple_formats_hash, key);
+		struct tuple_format **entry =
+			mh_tuple_format_node(tuple_formats_hash, key);
 		tuple_format_destroy(format);
 		free(format);
 		*p_format = *entry;
@@ -741,9 +746,10 @@ tuple_format_add_to_hash(struct tuple_format *format)
 {
 	assert(format->is_ephemeral);
 	assert(format->is_temporary);
-	mh_int_t key = mh_tuple_format_put(tuple_formats_hash,
-					   (const struct tuple_format **)&format,
-					   NULL, NULL);
+	mh_int_t key =
+		mh_tuple_format_put(tuple_formats_hash,
+				    (const struct tuple_format **)&format, NULL,
+				    NULL);
 	if (key == mh_end(tuple_formats_hash)) {
 		diag_set(OutOfMemory, 0, "tuple_format_add_to_hash",
 			 "tuple formats hash entry");
@@ -771,7 +777,7 @@ tuple_format_delete(struct tuple_format *format)
 
 struct tuple_format *
 tuple_format_new(struct tuple_format_vtab *vtab, void *engine,
-		 struct key_def * const *keys, uint16_t key_count,
+		 struct key_def *const *keys, uint16_t key_count,
 		 const struct field_def *space_fields,
 		 uint32_t space_field_count, uint32_t exact_field_count,
 		 struct tuple_dictionary *dict, bool is_temporary,
@@ -816,7 +822,8 @@ tuple_format1_can_store_format2_tuples(struct tuple_format *format1,
 		return false;
 	struct tuple_field *field1;
 	json_tree_foreach_entry_preorder(field1, &format1->fields.root,
-					 struct tuple_field, token) {
+					 struct tuple_field, token)
+	{
 		struct tuple_field *field2 =
 			tuple_format1_field_by_format2_field(format2, field1);
 		/*
@@ -839,7 +846,7 @@ tuple_format1_can_store_format2_tuples(struct tuple_format *format1,
 			else
 				return false;
 		}
-		if (! field_type1_contains_type2(field1->type, field2->type))
+		if (!field_type1_contains_type2(field1->type, field2->type))
 			return false;
 		/*
 		 * Do not allow transition from nullable to non-nullable:
@@ -858,8 +865,8 @@ tuple_field_map_create(struct tuple_format *format, const char *tuple,
 		       bool validate, struct field_map_builder *builder)
 {
 	struct region *region = &fiber()->gc;
-	if (field_map_builder_create(builder, format->field_map_size,
-				     region) != 0)
+	if (field_map_builder_create(builder, format->field_map_size, region) !=
+	    0)
 		return -1;
 	if (tuple_format_field_count(format) == 0)
 		return 0; /* Nothing to initialize */
@@ -876,22 +883,25 @@ tuple_field_map_create(struct tuple_format *format, const char *tuple,
 		if (entry.field == NULL)
 			continue;
 		if (entry.field->offset_slot != TUPLE_OFFSET_SLOT_NIL &&
-		    field_map_builder_set_slot(builder, entry.field->offset_slot,
-					entry.data - tuple, entry.multikey_idx,
-					entry.multikey_count, region) != 0)
+		    field_map_builder_set_slot(builder,
+					       entry.field->offset_slot,
+					       entry.data - tuple,
+					       entry.multikey_idx,
+					       entry.multikey_count,
+					       region) != 0)
 			return -1;
 	}
 	return entry.data == NULL ? 0 : -1;
 }
 
 uint32_t
-tuple_format_min_field_count(struct key_def * const *keys, uint16_t key_count,
+tuple_format_min_field_count(struct key_def *const *keys, uint16_t key_count,
 			     const struct field_def *space_fields,
 			     uint32_t space_field_count)
 {
 	uint32_t min_field_count = 0;
 	for (uint32_t i = 0; i < space_field_count; ++i) {
-		if (! space_fields[i].is_nullable)
+		if (!space_fields[i].is_nullable)
 			min_field_count = i + 1;
 	}
 	for (uint32_t i = 0; i < key_count; ++i) {
@@ -911,8 +921,8 @@ tuple_format_init()
 {
 	tuple_formats_hash = mh_tuple_format_new();
 	if (tuple_formats_hash == NULL) {
-		diag_set(OutOfMemory, sizeof(struct mh_tuple_format_t), "malloc",
-			 "tuple format hash");
+		diag_set(OutOfMemory, sizeof(struct mh_tuple_format_t),
+			 "malloc", "tuple format hash");
 		return -1;
 	}
 	return 0;
@@ -924,8 +934,8 @@ tuple_format_free()
 {
 	/* Clear recycled ids. */
 	while (recycled_format_ids != FORMAT_ID_NIL) {
-		uint16_t id = (uint16_t) recycled_format_ids;
-		recycled_format_ids = (intptr_t) tuple_formats[id];
+		uint16_t id = (uint16_t)recycled_format_ids;
+		recycled_format_ids = (intptr_t)tuple_formats[id];
 		tuple_formats[id] = NULL;
 	}
 	for (struct tuple_format **format = tuple_formats;
@@ -964,8 +974,8 @@ tuple_format_iterator_create(struct tuple_format_iterator *it,
 	if (validate && format->exact_field_count > 0 &&
 	    format->exact_field_count != *defined_field_count) {
 		diag_set(ClientError, ER_EXACT_FIELD_COUNT,
-			 (unsigned) *defined_field_count,
-			 (unsigned) format->exact_field_count);
+			 (unsigned)*defined_field_count,
+			 (unsigned)format->exact_field_count);
 		return -1;
 	}
 	it->parent = &format->fields.root;
@@ -981,19 +991,20 @@ tuple_format_iterator_create(struct tuple_format_iterator *it,
 	if (validate)
 		it->required_fields_sz = bitmap_size(format->total_field_count);
 	uint32_t total_sz = frames_sz + 2 * it->required_fields_sz;
-	struct mp_frame *frames = region_aligned_alloc(region, total_sz,
-						       alignof(frames[0]));
+	struct mp_frame *frames =
+		region_aligned_alloc(region, total_sz, alignof(frames[0]));
 	if (frames == NULL) {
 		diag_set(OutOfMemory, total_sz, "region",
 			 "tuple_format_iterator");
 		return -1;
 	}
 	mp_stack_create(&it->stack, format->fields_depth, frames);
-	bool key_parts_only =
-		(flags & TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY) != 0;
-	*defined_field_count = MIN(*defined_field_count, key_parts_only ?
-				   format->index_field_count :
-				   tuple_format_field_count(format));
+	bool key_parts_only = (flags & TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY) !=
+			      0;
+	*defined_field_count = MIN(*defined_field_count,
+				   key_parts_only ?
+						 format->index_field_count :
+						 tuple_format_field_count(format));
 	mp_stack_push(&it->stack, MP_ARRAY, *defined_field_count);
 
 	if (validate) {
@@ -1066,15 +1077,16 @@ tuple_format_iterator_next(struct tuple_format_iterator *it,
 			 * all required fields are present.
 			 */
 			if (it->flags & TUPLE_FORMAT_ITERATOR_VALIDATE &&
-			    tuple_format_required_fields_validate(it->format,
-						it->multikey_required_fields,
-						it->required_fields_sz) != 0)
+			    tuple_format_required_fields_validate(
+				    it->format, it->multikey_required_fields,
+				    it->required_fields_sz) != 0)
 				return -1;
 		}
 	}
 	entry->parent =
 		it->parent != &it->format->fields.root ?
-		json_tree_entry(it->parent, struct tuple_field, token) : NULL;
+			      json_tree_entry(it->parent, struct tuple_field, token) :
+			      NULL;
 	/*
 	 * Use the top frame of the stack and the
 	 * current data offset to prepare the JSON token
@@ -1105,8 +1117,8 @@ tuple_format_iterator_next(struct tuple_format_iterator *it,
 	struct tuple_field *field =
 		json_tree_lookup_entry(&it->format->fields, it->parent, &token,
 				       struct tuple_field, token);
-	if (it->flags & TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY &&
-	    field != NULL && !field->is_key_part)
+	if (it->flags & TUPLE_FORMAT_ITERATOR_KEY_PARTS_ONLY && field != NULL &&
+	    !field->is_key_part)
 		field = NULL;
 	entry->field = field;
 	entry->data = it->pos;
@@ -1127,9 +1139,8 @@ tuple_format_iterator_next(struct tuple_format_iterator *it,
 	enum mp_type type = mp_typeof(*it->pos);
 	if ((type == MP_ARRAY || type == MP_MAP) &&
 	    !mp_stack_is_full(&it->stack) && field != NULL) {
-		uint32_t size = type == MP_ARRAY ?
-				mp_decode_array(&it->pos) :
-				mp_decode_map(&it->pos);
+		uint32_t size = type == MP_ARRAY ? mp_decode_array(&it->pos) :
+							 mp_decode_map(&it->pos);
 		entry->count = size;
 		mp_stack_push(&it->stack, type, size);
 		if (json_token_is_multikey(&field->token)) {
@@ -1169,19 +1180,21 @@ tuple_format_iterator_next(struct tuple_format_iterator *it,
 	 * defined in format.
 	 */
 	bool is_nullable = tuple_field_is_nullable(field);
-	if (!field_mp_type_is_compatible(field->type, entry->data, is_nullable) != 0) {
-		diag_set(ClientError, ER_FIELD_TYPE,
-			 tuple_field_path(field),
+	if (!field_mp_type_is_compatible(field->type, entry->data,
+					 is_nullable) != 0) {
+		diag_set(ClientError, ER_FIELD_TYPE, tuple_field_path(field),
 			 field_type_strs[field->type]);
 		return -1;
 	}
-	bit_clear(it->multikey_frame != NULL ?
-		  it->multikey_required_fields : it->required_fields, field->id);
+	bit_clear(it->multikey_frame != NULL ? it->multikey_required_fields :
+						     it->required_fields,
+		  field->id);
 	return 0;
 eof:
 	if (it->flags & TUPLE_FORMAT_ITERATOR_VALIDATE &&
 	    tuple_format_required_fields_validate(it->format,
-			it->required_fields, it->required_fields_sz) != 0)
+						  it->required_fields,
+						  it->required_fields_sz) != 0)
 		return -1;
 	entry->data = NULL;
 	return 0;

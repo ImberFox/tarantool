@@ -97,8 +97,8 @@ vy_history_is_terminal(struct vy_history *history)
 {
 	if (rlist_empty(&history->stmts))
 		return false;
-	struct vy_history_node *node = rlist_last_entry(&history->stmts,
-					struct vy_history_node, link);
+	struct vy_history_node *node =
+		rlist_last_entry(&history->stmts, struct vy_history_node, link);
 	assert(vy_stmt_type(node->entry.stmt) == IPROTO_REPLACE ||
 	       vy_stmt_type(node->entry.stmt) == IPROTO_DELETE ||
 	       vy_stmt_type(node->entry.stmt) == IPROTO_INSERT ||
@@ -117,7 +117,8 @@ vy_history_last_stmt(struct vy_history *history)
 		return vy_entry_none();
 	/* Newest statement is at the head of the list. */
 	struct vy_history_node *node = rlist_first_entry(&history->stmts,
-					struct vy_history_node, link);
+							 struct vy_history_node,
+							 link);
 	return node->entry;
 }
 

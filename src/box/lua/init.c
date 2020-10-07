@@ -70,41 +70,28 @@
 
 static uint32_t CTID_STRUCT_TXN_SAVEPOINT_PTR = 0;
 
-extern char session_lua[],
-	tuple_lua[],
-	key_def_lua[],
-	schema_lua[],
-	load_cfg_lua[],
-	xlog_lua[],
+extern char session_lua[], tuple_lua[], key_def_lua[], schema_lua[],
+	load_cfg_lua[], xlog_lua[],
 #if ENABLE_FEEDBACK_DAEMON
 	feedback_daemon_lua[],
 #endif
-	net_box_lua[],
-	upgrade_lua[],
-	console_lua[],
-	merger_lua[];
+	net_box_lua[], upgrade_lua[], console_lua[], merger_lua[];
 
-static const char *lua_sources[] = {
-	"box/session", session_lua,
-	"box/tuple", tuple_lua,
-	"box/schema", schema_lua,
+static const char *lua_sources[] = { "box/session", session_lua, "box/tuple",
+				     tuple_lua, "box/schema", schema_lua,
 #if ENABLE_FEEDBACK_DAEMON
-	/*
+				     /*
 	 * It is important to initialize the daemon before
 	 * load_cfg, because the latter picks up some values
 	 * from the feedback daemon.
 	 */
-	"box/feedback_daemon", feedback_daemon_lua,
+				     "box/feedback_daemon", feedback_daemon_lua,
 #endif
-	"box/upgrade", upgrade_lua,
-	"box/net_box", net_box_lua,
-	"box/console", console_lua,
-	"box/load_cfg", load_cfg_lua,
-	"box/xlog", xlog_lua,
-	"box/key_def", key_def_lua,
-	"box/merger", merger_lua,
-	NULL
-};
+				     "box/upgrade", upgrade_lua, "box/net_box",
+				     net_box_lua, "box/console", console_lua,
+				     "box/load_cfg", load_cfg_lua, "box/xlog",
+				     xlog_lua, "box/key_def", key_def_lua,
+				     "box/merger", merger_lua, NULL };
 
 static int
 lbox_commit(lua_State *L)
@@ -194,7 +181,7 @@ lbox_rollback_to_savepoint(struct lua_State *L)
 	if (lua_gettop(L) != 1 ||
 	    (svp = luaT_check_txn_savepoint(L, 1, &svp_txn_id)) == NULL)
 		return luaL_error(L,
-			"Usage: box.rollback_to_savepoint(savepoint)");
+				  "Usage: box.rollback_to_savepoint(savepoint)");
 
 	/*
 	 * Verify that we're in a transaction and that it is the
@@ -242,7 +229,7 @@ lbox_txn_iterator_next(struct lua_State *L)
 		return luaT_error(L);
 	}
 	struct txn_stmt *stmt =
-		(struct txn_stmt *) lua_topointer(L, lua_upvalueindex(2));
+		(struct txn_stmt *)lua_topointer(L, lua_upvalueindex(2));
 	if (stmt == NULL)
 		return 0;
 	while (stmt->row == NULL) {
@@ -302,7 +289,7 @@ lbox_txn_pairs(struct lua_State *L)
 static int
 lbox_push_txn(struct lua_State *L, void *event)
 {
-	struct txn *txn = (struct txn *) event;
+	struct txn *txn = (struct txn *)event;
 	luaL_pushint64(L, txn->id);
 	lua_pushcclosure(L, lbox_txn_pairs, 1);
 	return 1;
@@ -313,18 +300,20 @@ lbox_push_txn(struct lua_State *L, void *event)
  * @sa lbox_trigger_reset.
  */
 #define LBOX_TXN_TRIGGER(name)                                                 \
-static int                                                                     \
-lbox_on_##name(struct lua_State *L) {                                          \
-	struct txn *txn = in_txn();                                            \
-	int top = lua_gettop(L);                                               \
-	if (top > 2 || txn == NULL) {                                          \
-		return luaL_error(L, "Usage inside a transaction: "            \
-				  "box.on_" #name "([function | nil, "         \
-				  "[function | nil]])");                       \
-	}                                                                      \
-	txn_init_triggers(txn);                                                \
-	return lbox_trigger_reset(L, 2, &txn->on_##name, lbox_push_txn, NULL); \
-}
+	static int lbox_on_##name(struct lua_State *L)                         \
+	{                                                                      \
+		struct txn *txn = in_txn();                                    \
+		int top = lua_gettop(L);                                       \
+		if (top > 2 || txn == NULL) {                                  \
+			return luaL_error(L,                                   \
+					  "Usage inside a transaction: "       \
+					  "box.on_" #name "([function | nil, " \
+					  "[function | nil]])");               \
+		}                                                              \
+		txn_init_triggers(txn);                                        \
+		return lbox_trigger_reset(L, 2, &txn->on_##name,               \
+					  lbox_push_txn, NULL);                \
+	}
 
 LBOX_TXN_TRIGGER(commit)
 LBOX_TXN_TRIGGER(rollback)
@@ -384,21 +373,18 @@ lbox_backup_stop(struct lua_State *L)
 	return 0;
 }
 
-static const struct luaL_Reg boxlib[] = {
-	{"commit", lbox_commit},
-	{"rollback", lbox_rollback},
-	{"on_commit", lbox_on_commit},
-	{"on_rollback", lbox_on_rollback},
-	{"snapshot", lbox_snapshot},
-	{"rollback_to_savepoint", lbox_rollback_to_savepoint},
-	{NULL, NULL}
-};
+static const struct luaL_Reg boxlib[] = { { "commit", lbox_commit },
+					  { "rollback", lbox_rollback },
+					  { "on_commit", lbox_on_commit },
+					  { "on_rollback", lbox_on_rollback },
+					  { "snapshot", lbox_snapshot },
+					  { "rollback_to_savepoint",
+					    lbox_rollback_to_savepoint },
+					  { NULL, NULL } };
 
-static const struct luaL_Reg boxlib_backup[] = {
-	{"start", lbox_backup_start},
-	{"stop", lbox_backup_stop},
-	{NULL, NULL}
-};
+static const struct luaL_Reg boxlib_backup[] = { { "start", lbox_backup_start },
+						 { "stop", lbox_backup_stop },
+						 { NULL, NULL } };
 
 /**
  * A MsgPack extensions handler, for types defined in box.
@@ -452,8 +438,8 @@ void
 box_lua_init(struct lua_State *L)
 {
 	luaL_cdef(L, "struct txn_savepoint;");
-	CTID_STRUCT_TXN_SAVEPOINT_PTR = luaL_ctypeid(L,
-						     "struct txn_savepoint*");
+	CTID_STRUCT_TXN_SAVEPOINT_PTR =
+		luaL_ctypeid(L, "struct txn_savepoint*");
 
 	/* Use luaL_register() to set _G.box */
 	luaL_register(L, "box", boxlib);
@@ -493,12 +479,12 @@ box_lua_init(struct lua_State *L)
 	for (const char **s = lua_sources; *s; s += 2) {
 		const char *modname = *s;
 		const char *modsrc = *(s + 1);
-		const char *modfile = lua_pushfstring(L,
-			"@builtin/%s.lua", modname);
+		const char *modfile =
+			lua_pushfstring(L, "@builtin/%s.lua", modname);
 		if (luaL_loadbuffer(L, modsrc, strlen(modsrc), modfile) != 0 ||
 		    lua_pcall(L, 0, 0, 0) != 0)
-			panic("Error loading Lua module %s...: %s",
-			      modname, lua_tostring(L, -1));
+			panic("Error loading Lua module %s...: %s", modname,
+			      lua_tostring(L, -1));
 		lua_pop(L, 1); /* modfile */
 	}
 

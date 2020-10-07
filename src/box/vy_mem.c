@@ -53,8 +53,8 @@ vy_mem_env_create(struct vy_mem_env *env, size_t memory)
 {
 	/* Vinyl memory is limited by vy_quota. */
 	quota_init(&env->quota, QUOTA_MAX);
-	tuple_arena_create(&env->arena, &env->quota, memory,
-			   SLAB_SIZE, false, "vinyl");
+	tuple_arena_create(&env->arena, &env->quota, memory, SLAB_SIZE, false,
+			   "vinyl");
 	lsregion_create(&env->allocator, &env->arena);
 	env->tree_extent_size = 0;
 }
@@ -73,7 +73,7 @@ vy_mem_env_destroy(struct vy_mem_env *env)
 static void *
 vy_mem_tree_extent_alloc(void *ctx)
 {
-	struct vy_mem *mem = (struct vy_mem *) ctx;
+	struct vy_mem *mem = (struct vy_mem *)ctx;
 	struct vy_mem_env *env = mem->env;
 	void *ret = lsregion_aligned_alloc(&env->allocator,
 					   VY_MEM_TREE_EXTENT_SIZE,
@@ -103,8 +103,8 @@ vy_mem_new(struct vy_mem_env *env, struct key_def *cmp_def,
 {
 	struct vy_mem *index = calloc(1, sizeof(*index));
 	if (!index) {
-		diag_set(OutOfMemory, sizeof(*index),
-			 "malloc", "struct vy_mem");
+		diag_set(OutOfMemory, sizeof(*index), "malloc",
+			 "struct vy_mem");
 		return NULL;
 	}
 	index->env = env;
@@ -114,8 +114,7 @@ vy_mem_new(struct vy_mem_env *env, struct key_def *cmp_def,
 	index->space_cache_version = space_cache_version;
 	index->format = format;
 	tuple_format_ref(format);
-	vy_mem_tree_create(&index->tree, cmp_def,
-			   vy_mem_tree_extent_alloc,
+	vy_mem_tree_create(&index->tree, cmp_def, vy_mem_tree_extent_alloc,
 			   vy_mem_tree_extent_free, index);
 	rlist_create(&index->in_sealed);
 	fiber_cond_create(&index->pin_cond);
@@ -166,9 +165,10 @@ vy_mem_insert_upsert(struct vy_mem *mem, struct vy_entry entry)
 	if (vy_mem_tree_insert_get_iterator(&mem->tree, entry, &replaced,
 					    &inserted) != 0)
 		return -1;
-	assert(! vy_mem_tree_iterator_is_invalid(&inserted));
+	assert(!vy_mem_tree_iterator_is_invalid(&inserted));
 	assert(vy_entry_is_equal(entry,
-		*vy_mem_tree_iterator_get_elem(&mem->tree, &inserted)));
+				 *vy_mem_tree_iterator_get_elem(&mem->tree,
+								&inserted)));
 	if (replaced.stmt == NULL)
 		mem->count.rows++;
 	mem->count.bytes += size;
@@ -194,8 +194,8 @@ vy_mem_insert_upsert(struct vy_mem *mem, struct vy_entry entry)
 	 * UPSERTs subsequence.
 	 */
 	vy_mem_tree_iterator_next(&mem->tree, &inserted);
-	struct vy_entry *older = vy_mem_tree_iterator_get_elem(&mem->tree,
-							       &inserted);
+	struct vy_entry *older =
+		vy_mem_tree_iterator_get_elem(&mem->tree, &inserted);
 	if (older == NULL || vy_stmt_type(older->stmt) != IPROTO_UPSERT ||
 	    vy_entry_compare(entry, *older, mem->cmp_def) != 0)
 		return 0;
@@ -265,7 +265,7 @@ vy_mem_rollback_stmt(struct vy_mem *mem, struct vy_entry entry)
 	assert(!vy_stmt_is_refable(entry.stmt));
 	int rc = vy_mem_tree_delete(&mem->tree, entry);
 	assert(rc == 0);
-	(void) rc;
+	(void)rc;
 	/* We can't free memory in case of rollback. */
 	mem->count.rows--;
 	mem->version++;
@@ -289,8 +289,8 @@ vy_mem_iterator_step(struct vy_mem_iterator *itr)
 		vy_mem_tree_iterator_next(&itr->mem->tree, &itr->curr_pos);
 	if (vy_mem_tree_iterator_is_invalid(&itr->curr_pos))
 		return 1;
-	itr->curr = *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-						   &itr->curr_pos);
+	itr->curr =
+		*vy_mem_tree_iterator_get_elem(&itr->mem->tree, &itr->curr_pos);
 	return 0;
 }
 
@@ -307,9 +307,9 @@ vy_mem_iterator_find_lsn(struct vy_mem_iterator *itr)
 {
 	/* Skip to the first statement visible in the read view. */
 	assert(!vy_mem_tree_iterator_is_invalid(&itr->curr_pos));
-	assert(vy_entry_is_equal(itr->curr,
-		*vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-					       &itr->curr_pos)));
+	assert(vy_entry_is_equal(
+		itr->curr, *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
+							  &itr->curr_pos)));
 	struct key_def *cmp_def = itr->mem->cmp_def;
 	while (vy_stmt_lsn(itr->curr.stmt) > (**itr->read_view).vlsn ||
 	       vy_stmt_flags(itr->curr.stmt) & VY_STMT_SKIP_READ) {
@@ -353,11 +353,11 @@ vy_mem_iterator_find_lsn(struct vy_mem_iterator *itr)
 	struct vy_mem_tree_key tree_key;
 	tree_key.entry = itr->curr;
 	tree_key.lsn = (**itr->read_view).vlsn;
-	itr->curr_pos = vy_mem_tree_lower_bound(&itr->mem->tree,
-						&tree_key, NULL);
+	itr->curr_pos =
+		vy_mem_tree_lower_bound(&itr->mem->tree, &tree_key, NULL);
 	assert(!vy_mem_tree_iterator_is_invalid(&itr->curr_pos));
-	itr->curr = *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-						   &itr->curr_pos);
+	itr->curr =
+		*vy_mem_tree_iterator_get_elem(&itr->mem->tree, &itr->curr_pos);
 
 	/* Skip VY_STMT_SKIP_READ statements, if any. */
 	while (vy_stmt_flags(itr->curr.stmt) & VY_STMT_SKIP_READ) {
@@ -390,7 +390,8 @@ vy_mem_iterator_seek(struct vy_mem_iterator *itr, struct vy_entry last)
 	if (last.stmt != NULL) {
 		key = last;
 		iterator_type = iterator_direction(itr->iterator_type) > 0 ?
-				ITER_GT : ITER_LT;
+					      ITER_GT :
+					      ITER_LT;
 	}
 
 	bool exact = false;
@@ -400,16 +401,16 @@ vy_mem_iterator_seek(struct vy_mem_iterator *itr, struct vy_entry last)
 	tree_key.lsn = INT64_MAX - 1;
 	if (!vy_stmt_is_empty_key(key.stmt)) {
 		if (iterator_type == ITER_LE || iterator_type == ITER_GT) {
-			itr->curr_pos =
-				vy_mem_tree_upper_bound(&itr->mem->tree,
-							&tree_key, &exact);
+			itr->curr_pos = vy_mem_tree_upper_bound(&itr->mem->tree,
+								&tree_key,
+								&exact);
 		} else {
 			assert(iterator_type == ITER_EQ ||
 			       iterator_type == ITER_GE ||
 			       iterator_type == ITER_LT);
-			itr->curr_pos =
-				vy_mem_tree_lower_bound(&itr->mem->tree,
-							&tree_key, &exact);
+			itr->curr_pos = vy_mem_tree_lower_bound(&itr->mem->tree,
+								&tree_key,
+								&exact);
 		}
 	} else if (iterator_type == ITER_LE) {
 		itr->curr_pos = vy_mem_tree_invalid_iterator();
@@ -422,8 +423,8 @@ vy_mem_iterator_seek(struct vy_mem_iterator *itr, struct vy_entry last)
 		vy_mem_tree_iterator_prev(&itr->mem->tree, &itr->curr_pos);
 	if (vy_mem_tree_iterator_is_invalid(&itr->curr_pos))
 		return 1;
-	itr->curr = *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-						   &itr->curr_pos);
+	itr->curr =
+		*vy_mem_tree_iterator_get_elem(&itr->mem->tree, &itr->curr_pos);
 	if (itr->iterator_type == ITER_EQ &&
 	    ((last.stmt == NULL && !exact) ||
 	     (last.stmt != NULL &&
@@ -439,9 +440,10 @@ vy_mem_iterator_seek(struct vy_mem_iterator *itr, struct vy_entry last)
 /* {{{ vy_mem_iterator API implementation */
 
 void
-vy_mem_iterator_open(struct vy_mem_iterator *itr, struct vy_mem_iterator_stat *stat,
-		     struct vy_mem *mem, enum iterator_type iterator_type,
-		     struct vy_entry key, const struct vy_read_view **rv)
+vy_mem_iterator_open(struct vy_mem_iterator *itr,
+		     struct vy_mem_iterator_stat *stat, struct vy_mem *mem,
+		     enum iterator_type iterator_type, struct vy_entry key,
+		     const struct vy_read_view **rv)
 {
 	itr->stat = stat;
 
@@ -472,9 +474,9 @@ vy_mem_iterator_next_key(struct vy_mem_iterator *itr)
 		return 1;
 	assert(itr->mem->version == itr->version);
 	assert(!vy_mem_tree_iterator_is_invalid(&itr->curr_pos));
-	assert(vy_entry_is_equal(itr->curr,
-		*vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-					       &itr->curr_pos)));
+	assert(vy_entry_is_equal(
+		itr->curr, *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
+							  &itr->curr_pos)));
 	struct key_def *cmp_def = itr->mem->cmp_def;
 
 	struct vy_entry prev = itr->curr;
@@ -512,9 +514,9 @@ vy_mem_iterator_next_lsn(struct vy_mem_iterator *itr)
 		return 1;
 	assert(itr->mem->version == itr->version);
 	assert(!vy_mem_tree_iterator_is_invalid(&itr->curr_pos));
-	assert(vy_entry_is_equal(itr->curr,
-		*vy_mem_tree_iterator_get_elem(&itr->mem->tree,
-					       &itr->curr_pos)));
+	assert(vy_entry_is_equal(
+		itr->curr, *vy_mem_tree_iterator_get_elem(&itr->mem->tree,
+							  &itr->curr_pos)));
 	struct key_def *cmp_def = itr->mem->cmp_def;
 
 	struct vy_mem_tree_iterator next_pos = itr->curr_pos;
@@ -555,8 +557,7 @@ vy_mem_iterator_get_history(struct vy_mem_iterator *itr,
 }
 
 NODISCARD int
-vy_mem_iterator_next(struct vy_mem_iterator *itr,
-		     struct vy_history *history)
+vy_mem_iterator_next(struct vy_mem_iterator *itr, struct vy_history *history)
 {
 	vy_history_cleanup(history);
 	if (vy_mem_iterator_next_key(itr) == 0)
@@ -577,7 +578,9 @@ vy_mem_iterator_skip(struct vy_mem_iterator *itr, struct vy_entry last,
 	if (itr->search_started &&
 	    (itr->curr.stmt == NULL || last.stmt == NULL ||
 	     iterator_direction(itr->iterator_type) *
-	     vy_entry_compare(itr->curr, last, itr->mem->cmp_def) > 0))
+			     vy_entry_compare(itr->curr, last,
+					      itr->mem->cmp_def) >
+		     0))
 		return 0;
 
 	vy_history_cleanup(history);
@@ -614,9 +617,8 @@ vy_mem_stream_next(struct vy_stmt_stream *virt_stream, struct vy_entry *ret)
 	assert(virt_stream->iface->next == vy_mem_stream_next);
 	struct vy_mem_stream *stream = (struct vy_mem_stream *)virt_stream;
 
-	struct vy_entry *res =
-		vy_mem_tree_iterator_get_elem(&stream->mem->tree,
-					      &stream->curr_pos);
+	struct vy_entry *res = vy_mem_tree_iterator_get_elem(&stream->mem->tree,
+							     &stream->curr_pos);
 	if (res == NULL) {
 		*ret = vy_entry_none();
 	} else {

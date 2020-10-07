@@ -215,16 +215,16 @@ struct vy_slice;
  *
  * @sa VY_STMT_DEFERRED_DELETE.
  */
-typedef int
-(*vy_deferred_delete_process_f)(struct vy_deferred_delete_handler *handler,
-				struct tuple *old_stmt, struct tuple *new_stmt);
+typedef int (*vy_deferred_delete_process_f)(
+	struct vy_deferred_delete_handler *handler, struct tuple *old_stmt,
+	struct tuple *new_stmt);
 
 /**
  * Callack invoked by the write iterator to destroy a deferred
  * DELETE handler when the iteration is stopped.
  */
-typedef void
-(*vy_deferred_delete_destroy_f)(struct vy_deferred_delete_handler *handler);
+typedef void (*vy_deferred_delete_destroy_f)(
+	struct vy_deferred_delete_handler *handler);
 
 struct vy_deferred_delete_handler_iface {
 	vy_deferred_delete_process_f process;
@@ -269,4 +269,3 @@ vy_write_iterator_new_slice(struct vy_stmt_stream *stream,
 			    struct tuple_format *disk_format);
 
 #endif /* INCLUDES_TARANTOOL_BOX_VY_WRITE_STREAM_H */
-

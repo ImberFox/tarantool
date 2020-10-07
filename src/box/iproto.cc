@@ -56,7 +56,7 @@
 #include "tuple_convert.h"
 #include "session.h"
 #include "xrow.h"
-#include "schema.h" /* schema_version */
+#include "schema.h"	 /* schema_version */
 #include "replication.h" /* instance_uuid */
 #include "iproto_constants.h"
 #include "rmean.h"
@@ -142,7 +142,7 @@ iproto_bound_address(void)
 {
 	if (iproto_bound_address_len == 0)
 		return NULL;
-	return sio_strfaddr((struct sockaddr *) &iproto_bound_address_storage,
+	return sio_strfaddr((struct sockaddr *)&iproto_bound_address_storage,
 			    iproto_bound_address_len);
 }
 
@@ -180,8 +180,7 @@ iproto_reset_input(struct ibuf *ibuf)
  * from all connections are queued into a single queue
  * and processed in FIFO order.
  */
-struct iproto_msg
-{
+struct iproto_msg {
 	struct cmsg base;
 	struct iproto_connection *connection;
 
@@ -339,11 +338,8 @@ iproto_process_push(struct cmsg *m);
 static void
 tx_end_push(struct cmsg *m);
 
-static const struct cmsg_hop push_route[] = {
-	{ iproto_process_push, &tx_pipe },
-	{ tx_end_push, NULL }
-};
-
+static const struct cmsg_hop push_route[] = { { iproto_process_push, &tx_pipe },
+					      { tx_end_push, NULL } };
 
 /* }}} */
 
@@ -408,8 +404,7 @@ enum iproto_connection_state {
  *     messages are
  *      discarded
  */
-struct iproto_connection
-{
+struct iproto_connection {
 	/**
 	 * Two rotating buffers for input. Input is first read into
 	 * ibuf[0]. As soon as it buffer becomes full, the buffers are
@@ -522,8 +517,8 @@ struct iproto_connection
 	 */
 	struct {
 		alignas(CACHELINE_SIZE)
-		/** Pointer to the current output buffer. */
-		struct obuf *p_obuf;
+			/** Pointer to the current output buffer. */
+			struct obuf *p_obuf;
 		/** True if Kharon is in use/travelling. */
 		bool is_push_sent;
 		/**
@@ -547,14 +542,14 @@ static inline bool
 iproto_check_msg_max(void)
 {
 	size_t request_count = mempool_count(&iproto_msg_pool);
-	return request_count > (size_t) iproto_msg_max;
+	return request_count > (size_t)iproto_msg_max;
 }
 
 static struct iproto_msg *
 iproto_msg_new(struct iproto_connection *con)
 {
 	struct iproto_msg *msg =
-		(struct iproto_msg *) mempool_alloc(&iproto_msg_pool);
+		(struct iproto_msg *)mempool_alloc(&iproto_msg_pool);
 	ERROR_INJECT(ERRINJ_TESTING, {
 		mempool_free(&iproto_msg_pool, msg);
 		msg = NULL;
@@ -562,7 +557,8 @@ iproto_msg_new(struct iproto_connection *con)
 	if (msg == NULL) {
 		diag_set(OutOfMemory, sizeof(*msg), "mempool_alloc", "msg");
 		say_warn("can not allocate memory for a new message, "
-			 "connection %s", sio_socketname(con->input.fd));
+			 "connection %s",
+			 sio_socketname(con->input.fd));
 		return NULL;
 	}
 	msg->connection = con;
@@ -588,8 +584,7 @@ iproto_msg_new(struct iproto_connection *con)
 static inline bool
 iproto_connection_is_idle(struct iproto_connection *con)
 {
-	return con->long_poll_count == 0 &&
-	       ibuf_used(&con->ibuf[0]) == 0 &&
+	return con->long_poll_count == 0 && ibuf_used(&con->ibuf[0]) == 0 &&
 	       ibuf_used(&con->ibuf[1]) == 0;
 }
 
@@ -821,19 +816,18 @@ iproto_enqueue_batch(struct iproto_connection *con, struct ibuf *in)
 		/* Read request length. */
 		if (mp_typeof(*pos) != MP_UINT) {
 			errmsg = "packet length";
-err_msgpack:
+		err_msgpack:
 			cpipe_flush_input(&tx_pipe);
-			diag_set(ClientError, ER_INVALID_MSGPACK,
-				 errmsg);
+			diag_set(ClientError, ER_INVALID_MSGPACK, errmsg);
 			return -1;
 		}
 		if (mp_check_uint(pos, in->wpos) >= 0)
 			break;
 		uint64_t len = mp_decode_uint(&pos);
 		if (len > IPROTO_PACKET_SIZE_MAX) {
-			errmsg = tt_sprintf("too big packet size in the "\
+			errmsg = tt_sprintf("too big packet size in the "
 					    "header: %llu",
-					    (unsigned long long) len);
+					    (unsigned long long)len);
 			goto err_msgpack;
 		}
 		const char *reqend = pos + len;
@@ -862,7 +856,7 @@ err_msgpack:
 		n_requests++;
 		/* Request is parsed */
 		assert(reqend > reqstart);
-		assert(con->parse_size >= (size_t) (reqend - reqstart));
+		assert(con->parse_size >= (size_t)(reqend - reqstart));
 		con->parse_size -= reqend - reqstart;
 	}
 	if (stop_input) {
@@ -908,7 +902,7 @@ err_msgpack:
 static void
 iproto_connection_resume(struct iproto_connection *con)
 {
-	assert(! iproto_check_msg_max());
+	assert(!iproto_check_msg_max());
 	rlist_del(&con->in_stop_list);
 	/*
 	 * Enqueue_batch() stops the connection again, if the
@@ -952,7 +946,7 @@ iproto_connection_on_input(ev_loop *loop, struct ev_io *watcher,
 			   int /* revents */)
 {
 	struct iproto_connection *con =
-		(struct iproto_connection *) watcher->data;
+		(struct iproto_connection *)watcher->data;
 	int fd = con->input.fd;
 	assert(fd >= 0);
 	assert(rlist_empty(&con->in_stop_list));
@@ -976,13 +970,13 @@ iproto_connection_on_input(ev_loop *loop, struct ev_io *watcher,
 		}
 		/* Read input. */
 		int nrd = sio_read(fd, in->wpos, ibuf_unused(in));
-		if (nrd < 0) {                  /* Socket is not ready. */
-			if (! sio_wouldblock(errno))
+		if (nrd < 0) { /* Socket is not ready. */
+			if (!sio_wouldblock(errno))
 				diag_raise();
 			ev_io_start(loop, &con->input);
 			return;
 		}
-		if (nrd == 0) {                 /* EOF */
+		if (nrd == 0) { /* EOF */
 			iproto_connection_close(con);
 			return;
 		}
@@ -1030,7 +1024,7 @@ iproto_flush(struct iproto_connection *con)
 		return 1;
 	}
 	assert(begin->used < end->used);
-	struct iovec iov[SMALL_OBUF_IOV_MAX+1];
+	struct iovec iov[SMALL_OBUF_IOV_MAX + 1];
 	struct iovec *src = obuf->iov;
 	int iovcnt = end->pos - begin->pos + 1;
 	/*
@@ -1040,7 +1034,7 @@ iproto_flush(struct iproto_connection *con)
 	memcpy(iov, src + begin->pos, iovcnt * sizeof(struct iovec));
 	sio_add_to_iov(iov, -begin->iov_len);
 	/* *Overwrite* iov_len of the last pos as it may be garbage. */
-	iov[iovcnt-1].iov_len = end->iov_len - begin->iov_len * (iovcnt == 1);
+	iov[iovcnt - 1].iov_len = end->iov_len - begin->iov_len * (iovcnt == 1);
 
 	ssize_t nwr = sio_writev(fd, iov, iovcnt);
 
@@ -1054,11 +1048,12 @@ iproto_flush(struct iproto_connection *con)
 		size_t offset = 0;
 		int advance = 0;
 		advance = sio_move_iov(iov, nwr, &offset);
-		begin->used += nwr;             /* advance write position */
-		begin->iov_len = advance == 0 ? begin->iov_len + offset: offset;
+		begin->used += nwr; /* advance write position */
+		begin->iov_len = advance == 0 ? begin->iov_len + offset :
+						      offset;
 		begin->pos += advance;
 		assert(begin->pos <= end->pos);
-	} else if (nwr < 0 && ! sio_wouldblock(errno)) {
+	} else if (nwr < 0 && !sio_wouldblock(errno)) {
 		diag_raise();
 	}
 	return -1;
@@ -1068,7 +1063,8 @@ static void
 iproto_connection_on_output(ev_loop *loop, struct ev_io *watcher,
 			    int /* revents */)
 {
-	struct iproto_connection *con = (struct iproto_connection *) watcher->data;
+	struct iproto_connection *con =
+		(struct iproto_connection *)watcher->data;
 
 	try {
 		int rc;
@@ -1077,7 +1073,7 @@ iproto_connection_on_output(ev_loop *loop, struct ev_io *watcher,
 				ev_io_start(loop, &con->output);
 				return;
 			}
-			if (! ev_is_active(&con->input) &&
+			if (!ev_is_active(&con->input) &&
 			    rlist_empty(&con->in_stop_list)) {
 				ev_feed_event(loop, &con->input, EV_READ);
 			}
@@ -1093,8 +1089,9 @@ iproto_connection_on_output(ev_loop *loop, struct ev_io *watcher,
 static struct iproto_connection *
 iproto_connection_new(int fd)
 {
-	struct iproto_connection *con = (struct iproto_connection *)
-		mempool_alloc(&iproto_connection_pool);
+	struct iproto_connection *con =
+		(struct iproto_connection *)mempool_alloc(
+			&iproto_connection_pool);
 	if (con == NULL) {
 		diag_set(OutOfMemory, sizeof(*con), "mempool_alloc", "con");
 		return NULL;
@@ -1140,10 +1137,8 @@ iproto_connection_delete(struct iproto_connection *con)
 	 */
 	ibuf_destroy(&con->ibuf[0]);
 	ibuf_destroy(&con->ibuf[1]);
-	assert(con->obuf[0].pos == 0 &&
-	       con->obuf[0].iov[0].iov_base == NULL);
-	assert(con->obuf[1].pos == 0 &&
-	       con->obuf[1].iov[0].iov_base == NULL);
+	assert(con->obuf[0].pos == 0 && con->obuf[0].iov[0].iov_base == NULL);
+	assert(con->obuf[1].pos == 0 && con->obuf[1].iov[0].iov_base == NULL);
 	mempool_free(&iproto_connection_pool, con);
 }
 
@@ -1213,20 +1208,20 @@ static const struct cmsg_hop sql_route[] = {
 };
 
 static const struct cmsg_hop *dml_route[IPROTO_TYPE_STAT_MAX] = {
-	NULL,                                   /* IPROTO_OK */
-	select_route,                           /* IPROTO_SELECT */
-	process1_route,                         /* IPROTO_INSERT */
-	process1_route,                         /* IPROTO_REPLACE */
-	process1_route,                         /* IPROTO_UPDATE */
-	process1_route,                         /* IPROTO_DELETE */
-	call_route,                             /* IPROTO_CALL_16 */
-	misc_route,                             /* IPROTO_AUTH */
-	call_route,                             /* IPROTO_EVAL */
-	process1_route,                         /* IPROTO_UPSERT */
-	call_route,                             /* IPROTO_CALL */
-	sql_route,                              /* IPROTO_EXECUTE */
-	NULL,                                   /* IPROTO_NOP */
-	sql_route,                              /* IPROTO_PREPARE */
+	NULL,		/* IPROTO_OK */
+	select_route,	/* IPROTO_SELECT */
+	process1_route, /* IPROTO_INSERT */
+	process1_route, /* IPROTO_REPLACE */
+	process1_route, /* IPROTO_UPDATE */
+	process1_route, /* IPROTO_DELETE */
+	call_route,	/* IPROTO_CALL_16 */
+	misc_route,	/* IPROTO_AUTH */
+	call_route,	/* IPROTO_EVAL */
+	process1_route, /* IPROTO_UPSERT */
+	call_route,	/* IPROTO_CALL */
+	sql_route,	/* IPROTO_EXECUTE */
+	NULL,		/* IPROTO_NOP */
+	sql_route,	/* IPROTO_PREPARE */
 };
 
 static const struct cmsg_hop join_route[] = {
@@ -1271,7 +1266,7 @@ iproto_msg_decode(struct iproto_msg *msg, const char **pos, const char *reqend,
 		if (xrow_decode_dml(&msg->header, &msg->dml,
 				    dml_request_key_map(type)))
 			goto error;
-		assert(type < sizeof(dml_route)/sizeof(*dml_route));
+		assert(type < sizeof(dml_route) / sizeof(*dml_route));
 		cmsg_init(&msg->base, dml_route[type]);
 		break;
 	case IPROTO_CALL_16:
@@ -1310,8 +1305,7 @@ iproto_msg_decode(struct iproto_msg *msg, const char **pos, const char *reqend,
 		cmsg_init(&msg->base, misc_route);
 		break;
 	default:
-		diag_set(ClientError, ER_UNKNOWN_REQUEST_TYPE,
-			 (uint32_t) type);
+		diag_set(ClientError, ER_UNKNOWN_REQUEST_TYPE, (uint32_t)type);
 		goto error;
 	}
 	return;
@@ -1354,7 +1348,7 @@ tx_process_disconnect(struct cmsg *m)
 		container_of(m, struct iproto_connection, disconnect_msg);
 	if (con->session != NULL) {
 		session_close(con->session);
-		if (! rlist_empty(&session_on_disconnect)) {
+		if (!rlist_empty(&session_on_disconnect)) {
 			tx_fiber_init(con->session, 0);
 			session_run_on_disconnect_triggers(con->session);
 		}
@@ -1403,7 +1397,6 @@ net_finish_destroy(struct cmsg *m)
 	iproto_connection_delete(con);
 }
 
-
 static int
 tx_check_schema(uint32_t new_schema_version)
 {
@@ -1418,8 +1411,8 @@ tx_check_schema(uint32_t new_schema_version)
 static void
 net_discard_input(struct cmsg *m)
 {
-	struct iproto_msg *msg = container_of(m, struct iproto_msg,
-					      discard_input);
+	struct iproto_msg *msg =
+		container_of(m, struct iproto_msg, discard_input);
 	struct iproto_connection *con = msg->connection;
 	msg->p_ibuf->rpos += msg->len;
 	msg->len = 0;
@@ -1481,7 +1474,7 @@ tx_accept_wpos(struct iproto_connection *con, const struct iproto_wpos *wpos)
 static inline struct iproto_msg *
 tx_accept_msg(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	tx_accept_wpos(msg->connection, &msg->wpos);
 	tx_fiber_init(msg->connection->session, msg->header.sync);
 	return msg;
@@ -1509,8 +1502,8 @@ tx_reply_iproto_error(struct cmsg *m)
 {
 	struct iproto_msg *msg = tx_accept_msg(m);
 	struct obuf *out = msg->connection->tx.p_obuf;
-	iproto_reply_error(out, diag_last_error(&msg->diag),
-			   msg->header.sync, ::schema_version);
+	iproto_reply_error(out, diag_last_error(&msg->diag), msg->header.sync,
+			   ::schema_version);
 	iproto_wpos_create(&msg->wpos, out);
 }
 
@@ -1564,9 +1557,8 @@ tx_process_select(struct cmsg *m)
 		goto error;
 
 	tx_inject_delay();
-	rc = box_select(req->space_id, req->index_id,
-			req->iterator, req->offset, req->limit,
-			req->key, req->key_end, &port);
+	rc = box_select(req->space_id, req->index_id, req->iterator,
+			req->offset, req->limit, req->key, req->key_end, &port);
 	if (rc < 0)
 		goto error;
 
@@ -1585,8 +1577,8 @@ tx_process_select(struct cmsg *m)
 		obuf_rollback_to_svp(out, &svp);
 		goto error;
 	}
-	iproto_reply_select(out, &svp, msg->header.sync,
-			    ::schema_version, count);
+	iproto_reply_select(out, &svp, msg->header.sync, ::schema_version,
+			    count);
 	iproto_wpos_create(&msg->wpos, out);
 	return;
 error:
@@ -1675,8 +1667,8 @@ tx_process_call(struct cmsg *m)
 		goto error;
 	}
 
-	iproto_reply_select(out, &svp, msg->header.sync,
-			    ::schema_version, count);
+	iproto_reply_select(out, &svp, msg->header.sync, ::schema_version,
+			    count);
 	iproto_wpos_create(&msg->wpos, out);
 	return;
 error:
@@ -1868,7 +1860,7 @@ tx_process_replication(struct cmsg *m)
 static void
 net_send_msg(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	struct iproto_connection *con = msg->connection;
 
 	if (msg->len != 0) {
@@ -1882,7 +1874,7 @@ net_send_msg(struct cmsg *m)
 	con->wend = msg->wpos;
 
 	if (evio_has_fd(&con->output)) {
-		if (! ev_is_active(&con->output))
+		if (!ev_is_active(&con->output))
 			ev_feed_event(con->loop, &con->output, EV_WRITE);
 	} else if (iproto_connection_is_idle(con)) {
 		iproto_connection_close(con);
@@ -1897,7 +1889,7 @@ net_send_msg(struct cmsg *m)
 static void
 net_send_error(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	/* Recycle the exception. */
 	diag_move(&msg->diag, &fiber()->diag);
 	net_send_msg(m);
@@ -1906,13 +1898,13 @@ net_send_error(struct cmsg *m)
 static void
 net_end_join(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	struct iproto_connection *con = msg->connection;
 
 	msg->p_ibuf->rpos += msg->len;
 	iproto_msg_delete(msg);
 
-	assert(! ev_is_active(&con->input));
+	assert(!ev_is_active(&con->input));
 	/*
 	 * Enqueue any messages if they are in the readahead
 	 * queue. Will simply start input otherwise.
@@ -1924,13 +1916,13 @@ net_end_join(struct cmsg *m)
 static void
 net_end_subscribe(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	struct iproto_connection *con = msg->connection;
 
 	msg->p_ibuf->rpos += msg->len;
 	iproto_msg_delete(msg);
 
-	assert(! ev_is_active(&con->input));
+	assert(!ev_is_active(&con->input));
 
 	iproto_connection_close(con);
 }
@@ -1943,23 +1935,23 @@ net_end_subscribe(struct cmsg *m)
 static void
 tx_process_connect(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	struct iproto_connection *con = msg->connection;
 	struct obuf *out = msg->connection->tx.p_obuf;
-	try {              /* connect. */
+	try { /* connect. */
 		con->session = session_create(SESSION_TYPE_BINARY);
 		if (con->session == NULL)
 			diag_raise();
 		con->session->meta.connection = con;
 		tx_fiber_init(con->session, 0);
-		char *greeting = (char *) static_alloc(IPROTO_GREETING_SIZE);
+		char *greeting = (char *)static_alloc(IPROTO_GREETING_SIZE);
 		/* TODO: dirty read from tx thread */
 		struct tt_uuid uuid = INSTANCE_UUID;
 		random_bytes(con->salt, IPROTO_SALT_SIZE);
 		greeting_encode(greeting, tarantool_version_id(), &uuid,
 				con->salt, IPROTO_SALT_SIZE);
 		obuf_dup_xc(out, greeting, IPROTO_GREETING_SIZE);
-		if (! rlist_empty(&session_on_connect)) {
+		if (!rlist_empty(&session_on_connect)) {
 			if (session_run_on_connect_triggers(con->session) != 0)
 				diag_raise();
 		}
@@ -1977,17 +1969,17 @@ tx_process_connect(struct cmsg *m)
 static void
 net_send_greeting(struct cmsg *m)
 {
-	struct iproto_msg *msg = (struct iproto_msg *) m;
+	struct iproto_msg *msg = (struct iproto_msg *)m;
 	struct iproto_connection *con = msg->connection;
 	if (msg->close_connection) {
 		struct obuf *out = msg->wpos.obuf;
-		int64_t nwr = sio_writev(con->output.fd, out->iov,
-					 obuf_iovcnt(out));
+		int64_t nwr =
+			sio_writev(con->output.fd, out->iov, obuf_iovcnt(out));
 
 		if (nwr > 0) {
 			/* Count statistics. */
 			rmean_collect(rmean_net, IPROTO_SENT, nwr);
-		} else if (nwr < 0 && ! sio_wouldblock(errno)) {
+		} else if (nwr < 0 && !sio_wouldblock(errno)) {
 			diag_log();
 		}
 		assert(iproto_connection_is_idle(con));
@@ -2021,8 +2013,8 @@ static int
 iproto_on_accept(struct evio_service * /* service */, int fd,
 		 struct sockaddr *addr, socklen_t addrlen)
 {
-	(void) addr;
-	(void) addrlen;
+	(void)addr;
+	(void)addrlen;
 	struct iproto_msg *msg;
 	struct iproto_connection *con = iproto_connection_new(fd);
 	if (con == NULL)
@@ -2051,24 +2043,21 @@ static struct evio_service binary; /* iproto binary listener */
  * The network io thread main function:
  * begin serving the message bus.
  */
-static int
-net_cord_f(va_list /* ap */)
+static int net_cord_f(va_list /* ap */)
 {
 	mempool_create(&iproto_msg_pool, &cord()->slabc,
 		       sizeof(struct iproto_msg));
 	mempool_create(&iproto_connection_pool, &cord()->slabc,
 		       sizeof(struct iproto_connection));
 
-	evio_service_init(loop(), &binary, "binary",
-			  iproto_on_accept, NULL);
-
+	evio_service_init(loop(), &binary, "binary", iproto_on_accept, NULL);
 
 	/* Init statistics counter */
 	rmean_net = rmean_new(rmean_net_strings, IPROTO_LAST);
 
 	if (rmean_net == NULL) {
-		tnt_raise(OutOfMemory, sizeof(struct rmean),
-			  "rmean", "struct rmean");
+		tnt_raise(OutOfMemory, sizeof(struct rmean), "rmean",
+			  "struct rmean");
 	}
 
 	struct cbus_endpoint endpoint;
@@ -2097,14 +2086,14 @@ int
 iproto_session_fd(struct session *session)
 {
 	struct iproto_connection *con =
-		(struct iproto_connection *) session->meta.connection;
+		(struct iproto_connection *)session->meta.connection;
 	return con->output.fd;
 }
 
 int64_t
 iproto_session_sync(struct session *session)
 {
-	(void) session;
+	(void)session;
 	assert(session == fiber()->storage.session);
 	return fiber()->storage.net.sync;
 }
@@ -2114,7 +2103,7 @@ iproto_session_sync(struct session *session)
 static void
 iproto_process_push(struct cmsg *m)
 {
-	struct iproto_kharon *kharon = (struct iproto_kharon *) m;
+	struct iproto_kharon *kharon = (struct iproto_kharon *)m;
 	struct iproto_connection *con =
 		container_of(kharon, struct iproto_connection, kharon);
 	con->wend = kharon->wpos;
@@ -2130,18 +2119,18 @@ iproto_process_push(struct cmsg *m)
 static void
 tx_begin_push(struct iproto_connection *con)
 {
-	assert(! con->tx.is_push_sent);
+	assert(!con->tx.is_push_sent);
 	cmsg_init(&con->kharon.base, push_route);
 	iproto_wpos_create(&con->kharon.wpos, con->tx.p_obuf);
 	con->tx.is_push_pending = false;
 	con->tx.is_push_sent = true;
-	cpipe_push(&net_pipe, (struct cmsg *) &con->kharon);
+	cpipe_push(&net_pipe, (struct cmsg *)&con->kharon);
 }
 
 static void
 tx_end_push(struct cmsg *m)
 {
-	struct iproto_kharon *kharon = (struct iproto_kharon *) m;
+	struct iproto_kharon *kharon = (struct iproto_kharon *)m;
 	struct iproto_connection *con =
 		container_of(kharon, struct iproto_connection, kharon);
 	tx_accept_wpos(con, &kharon->wpos);
@@ -2164,7 +2153,7 @@ static int
 iproto_session_push(struct session *session, struct port *port)
 {
 	struct iproto_connection *con =
-		(struct iproto_connection *) session->meta.connection;
+		(struct iproto_connection *)session->meta.connection;
 	struct obuf_svp svp;
 	if (iproto_prepare_select(con->tx.p_obuf, &svp) != 0)
 		return -1;
@@ -2174,7 +2163,7 @@ iproto_session_push(struct session *session, struct port *port)
 	}
 	iproto_reply_chunk(con->tx.p_obuf, &svp, iproto_session_sync(session),
 			   ::schema_version);
-	if (! con->tx.is_push_sent)
+	if (!con->tx.is_push_sent)
 		tx_begin_push(con);
 	else
 		con->tx.is_push_pending = true;
@@ -2204,10 +2193,7 @@ iproto_init(void)
 }
 
 /** Available iproto configuration changes. */
-enum iproto_cfg_op {
-	IPROTO_CFG_MSG_MAX,
-	IPROTO_CFG_LISTEN
-};
+enum iproto_cfg_op { IPROTO_CFG_MSG_MAX, IPROTO_CFG_LISTEN };
 
 /**
  * Since there is no way to "synchronously" change the
@@ -2215,8 +2201,7 @@ enum iproto_cfg_op {
  * message count in flight send a special message to iproto
  * thread.
  */
-struct iproto_cfg_msg: public cbus_call_msg
-{
+struct iproto_cfg_msg: public cbus_call_msg {
 	/** Operation to execute in iproto thread. */
 	enum iproto_cfg_op op;
 	union {
@@ -2244,7 +2229,7 @@ iproto_cfg_msg_create(struct iproto_cfg_msg *msg, enum iproto_cfg_op op)
 static int
 iproto_do_cfg_f(struct cbus_call_msg *m)
 {
-	struct iproto_cfg_msg *cfg_msg = (struct iproto_cfg_msg *) m;
+	struct iproto_cfg_msg *cfg_msg = (struct iproto_cfg_msg *)m;
 	int old;
 	try {
 		switch (cfg_msg->op) {
@@ -2278,8 +2263,8 @@ iproto_do_cfg_f(struct cbus_call_msg *m)
 static inline void
 iproto_do_cfg(struct iproto_cfg_msg *msg)
 {
-	if (cbus_call(&net_pipe, &tx_pipe, msg, iproto_do_cfg_f,
-		      NULL, TIMEOUT_INFINITY) != 0)
+	if (cbus_call(&net_pipe, &tx_pipe, msg, iproto_do_cfg_f, NULL,
+		      TIMEOUT_INFINITY) != 0)
 		diag_raise();
 }
 

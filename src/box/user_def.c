@@ -36,25 +36,12 @@ const char *
 priv_name(user_access_t access)
 {
 	static const char *priv_name_strs[] = {
-		"Read",
-		"Write",
-		"Execute",
-		"Session",
-		"Usage",
-		"Create",
-		"Drop",
-		"Alter",
-		"Reference",
-		"Trigger",
-		"Insert",
-		"Update",
-		"Delete",
-		"Grant",
-		"Revoke",
+		"Read",	  "Write",  "Execute", "Session",   "Usage",
+		"Create", "Drop",   "Alter",   "Reference", "Trigger",
+		"Insert", "Update", "Delete",  "Grant",	    "Revoke",
 	};
-	int bit_no = __builtin_ffs((int) access);
-	if (bit_no > 0 && bit_no <= (int) lengthof(priv_name_strs))
+	int bit_no = __builtin_ffs((int)access);
+	if (bit_no > 0 && bit_no <= (int)lengthof(priv_name_strs))
 		return priv_name_strs[bit_no - 1];
 	return "Any";
 }
-

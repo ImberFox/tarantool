@@ -39,8 +39,8 @@
 #define HEAP_FORWARD_DECLARATION
 #include "salad/heap.h"
 
-#include "diag.h"             /* diag_set() */
-#include "box/tuple.h"        /* tuple_ref(), tuple_unref(),
+#include "diag.h"	      /* diag_set() */
+#include "box/tuple.h"	      /* tuple_ref(), tuple_unref(),
 				 tuple_validate() */
 #include "box/tuple_format.h" /* box_tuple_format_new(),
 				 tuple_format_*() */
@@ -210,8 +210,8 @@ static int
 merger_set_sources(struct merger *merger, struct merge_source **sources,
 		   uint32_t source_count)
 {
-	const size_t nodes_size = sizeof(struct merger_heap_node) *
-		source_count;
+	const size_t nodes_size =
+		sizeof(struct merger_heap_node) * source_count;
 	struct merger_heap_node *nodes = malloc(nodes_size);
 	if (nodes == NULL) {
 		diag_set(OutOfMemory, nodes_size, "malloc",
@@ -226,7 +226,6 @@ merger_set_sources(struct merger *merger, struct merge_source **sources,
 	merger->nodes = nodes;
 	return 0;
 }
-
 
 struct merge_source *
 merger_new(struct key_def *key_def, struct merge_source **sources,

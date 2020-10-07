@@ -35,10 +35,10 @@
 #include "diag.h"
 
 const char *constraint_type_strs[] = {
-	[CONSTRAINT_TYPE_PK]		= "PRIMARY KEY",
-	[CONSTRAINT_TYPE_UNIQUE]	= "UNIQUE",
-	[CONSTRAINT_TYPE_FK]		= "FOREIGN KEY",
-	[CONSTRAINT_TYPE_CK]		= "CHECK",
+	[CONSTRAINT_TYPE_PK] = "PRIMARY KEY",
+	[CONSTRAINT_TYPE_UNIQUE] = "UNIQUE",
+	[CONSTRAINT_TYPE_FK] = "FOREIGN KEY",
+	[CONSTRAINT_TYPE_CK] = "CHECK",
 };
 
 struct constraint_id *

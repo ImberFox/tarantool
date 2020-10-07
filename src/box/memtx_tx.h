@@ -297,8 +297,8 @@ memtx_tx_track_read(struct txn *txn, struct space *space, struct tuple *tuple);
  */
 static inline struct tuple *
 memtx_tx_tuple_clarify(struct txn *txn, struct space *space,
-		       struct tuple *tuple, uint32_t index,
-		       uint32_t mk_index, bool is_prepared_ok)
+		       struct tuple *tuple, uint32_t index, uint32_t mk_index,
+		       bool is_prepared_ok)
 {
 	if (!memtx_tx_manager_use_mvcc_engine)
 		return tuple;

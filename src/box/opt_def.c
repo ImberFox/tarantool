@@ -60,7 +60,7 @@ opt_set(void *opts, const struct opt_def *def, const char **val,
 	uint32_t str_len;
 	const char *str;
 	char *ptr;
-	char *opt = ((char *) opts) + def->offset;
+	char *opt = ((char *)opts) + def->offset;
 	switch (def->type) {
 	case OPT_BOOL:
 		if (mp_typeof(**val) != MP_BOOL)
@@ -98,7 +98,7 @@ opt_set(void *opts, const struct opt_def *def, const char **val,
 			goto type_mismatch_err;
 		str = mp_decode_str(val, &str_len);
 		if (str_len > 0) {
-			ptr = (char *) region_alloc(region, str_len + 1);
+			ptr = (char *)region_alloc(region, str_len + 1);
 			if (ptr == NULL) {
 				diag_set(OutOfMemory, str_len + 1, "region",
 					 "opt string");
@@ -106,7 +106,7 @@ opt_set(void *opts, const struct opt_def *def, const char **val,
 			}
 			memcpy(ptr, str, str_len);
 			ptr[str_len] = '\0';
-			assert (strlen(ptr) == str_len);
+			assert(strlen(ptr) == str_len);
 		} else {
 			ptr = NULL;
 		}
@@ -122,7 +122,7 @@ opt_set(void *opts, const struct opt_def *def, const char **val,
 		} else {
 			ival = def->to_enum(str, str_len);
 		}
-		switch(def->enum_size) {
+		switch (def->enum_size) {
 		case sizeof(uint8_t):
 			store_u8(opt, (uint8_t)ival);
 			break;
@@ -175,7 +175,7 @@ opts_parse_key(void *opts, const struct opt_def *reg, const char *key,
 
 		return opt_set(opts, def, data, region, errcode, field_no);
 	}
-	if (! skip_unknown_options) {
+	if (!skip_unknown_options) {
 		char *errmsg = tt_static_buf();
 		snprintf(errmsg, TT_STATIC_BUF_LEN, "unexpected option '%.*s'",
 			 key_len, key);

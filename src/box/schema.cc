@@ -81,7 +81,7 @@ bool
 space_is_system(struct space *space)
 {
 	return space->def->id > BOX_SYSTEM_ID_MIN &&
-		space->def->id < BOX_SYSTEM_ID_MAX;
+	       space->def->id < BOX_SYSTEM_ID_MAX;
 }
 
 /** Return space by its number */
@@ -91,15 +91,15 @@ space_by_id(uint32_t id)
 	mh_int_t space = mh_i32ptr_find(spaces, id, NULL);
 	if (space == mh_end(spaces))
 		return NULL;
-	return (struct space *) mh_i32ptr_node(spaces, space)->val;
+	return (struct space *)mh_i32ptr_node(spaces, space)->val;
 }
 
 /** Return space by its name */
 struct space *
 space_by_name(const char *name)
 {
-	mh_int_t space = mh_strnptr_find_inp(spaces_by_name, name,
-					     strlen(name));
+	mh_int_t space =
+		mh_strnptr_find_inp(spaces_by_name, name, strlen(name));
 	if (space == mh_end(spaces_by_name))
 		return NULL;
 	return (struct space *)mh_strnptr_node(spaces_by_name, space)->val;
@@ -133,20 +133,21 @@ space_foreach(int (*func)(struct space *sp, void *udata), void *udata)
 	space = space_by_id(BOX_SPACE_ID);
 	struct index *pk = space ? space_index(space, 0) : NULL;
 	if (pk) {
-		struct iterator *it = index_create_iterator(pk, ITER_GE,
-							    key, 1);
+		struct iterator *it =
+			index_create_iterator(pk, ITER_GE, key, 1);
 		if (it == NULL)
 			return -1;
 		int rc;
 		struct tuple *tuple;
 		while ((rc = iterator_next(it, &tuple)) == 0 && tuple != NULL) {
 			uint32_t id;
-			if (tuple_field_u32(tuple, BOX_SPACE_FIELD_ID, &id) != 0)
+			if (tuple_field_u32(tuple, BOX_SPACE_FIELD_ID, &id) !=
+			    0)
 				continue;
 			space = space_cache_find(id);
 			if (space == NULL)
 				continue;
-			if (! space_is_system(space))
+			if (!space_is_system(space))
 				break;
 			rc = func(space, udata);
 			if (rc != 0)
@@ -157,8 +158,9 @@ space_foreach(int (*func)(struct space *sp, void *udata), void *udata)
 			return -1;
 	}
 
-	mh_foreach(spaces, i) {
-		space = (struct space *) mh_i32ptr_node(spaces, i)->val;
+	mh_foreach(spaces, i)
+	{
+		space = (struct space *)mh_i32ptr_node(spaces, i)->val;
 		if (space_is_system(space))
 			continue;
 		if (func(space, udata) != 0)
@@ -180,14 +182,16 @@ space_cache_replace(struct space *old_space, struct space *new_space)
 		 * don't need to do so for @spaces cache.
 		 */
 		struct space *old_space_by_name = NULL;
-		if (old_space != NULL && strcmp(space_name(old_space),
-						space_name(new_space)) != 0) {
+		if (old_space != NULL &&
+		    strcmp(space_name(old_space), space_name(new_space)) != 0) {
 			const char *name = space_name(old_space);
 			mh_int_t k = mh_strnptr_find_inp(spaces_by_name, name,
 							 strlen(name));
 			assert(k != mh_end(spaces_by_name));
-			old_space_by_name = (struct space *)
-				mh_strnptr_node(spaces_by_name, k)->val;
+			old_space_by_name =
+				(struct space *)mh_strnptr_node(spaces_by_name,
+								k)
+					->val;
 			mh_strnptr_del(spaces_by_name, k, NULL);
 		}
 		/*
@@ -202,8 +206,8 @@ space_cache_replace(struct space *old_space, struct space *new_space)
 			panic_syserror("Out of memory for the data "
 				       "dictionary cache.");
 		}
-		struct space *old_space_by_id = p_old != NULL ?
-				(struct space *)p_old->val : NULL;
+		struct space *old_space_by_id =
+			p_old != NULL ? (struct space *)p_old->val : NULL;
 		assert(old_space_by_id == old_space);
 		(void)old_space_by_id;
 		/*
@@ -213,7 +217,8 @@ space_cache_replace(struct space *old_space, struct space *new_space)
 		uint32_t name_len = strlen(name);
 		uint32_t name_hash = mh_strn_hash(name, name_len);
 		const struct mh_strnptr_node_t node_s = { name, name_len,
-							  name_hash, new_space };
+							  name_hash,
+							  new_space };
 		struct mh_strnptr_node_t old_s, *p_old_s = &old_s;
 		k = mh_strnptr_put(spaces_by_name, &node_s, &p_old_s, NULL);
 		if (k == mh_end(spaces_by_name)) {
@@ -249,8 +254,8 @@ space_cache_replace(struct space *old_space, struct space *new_space)
 	}
 	space_cache_version++;
 
-	if (trigger_run(&on_alter_space, new_space != NULL ?
-					 new_space : old_space) != 0) {
+	if (trigger_run(&on_alter_space,
+			new_space != NULL ? new_space : old_space) != 0) {
 		diag_log();
 		panic("Can't update space cache");
 	}
@@ -261,23 +266,19 @@ space_cache_replace(struct space *old_space, struct space *new_space)
 
 /** A wrapper around space_new() for data dictionary spaces. */
 static void
-sc_space_new(uint32_t id, const char *name,
-	     struct key_part_def *key_parts,
-	     uint32_t key_part_count,
-	     struct trigger *replace_trigger)
+sc_space_new(uint32_t id, const char *name, struct key_part_def *key_parts,
+	     uint32_t key_part_count, struct trigger *replace_trigger)
 {
 	struct key_def *key_def = key_def_new(key_parts, key_part_count, false);
 	if (key_def == NULL)
 		diag_raise();
 	auto key_def_guard =
 		make_scoped_guard([=] { key_def_delete(key_def); });
-	struct index_def *index_def = index_def_new(id, /* space id */
-						    0 /* index id */,
-						    "primary", /* name */
-						    strlen("primary"),
-						    TREE /* index type */,
-						    &index_opts_default,
-						    key_def, NULL);
+	struct index_def *index_def =
+		index_def_new(id,			   /* space id */
+			      0 /* index id */, "primary", /* name */
+			      strlen("primary"), TREE /* index type */,
+			      &index_opts_default, key_def, NULL);
 	if (index_def == NULL)
 		diag_raise();
 	auto index_def_guard =
@@ -307,8 +308,8 @@ sc_space_new(uint32_t id, const char *name,
 }
 
 int
-schema_find_id(uint32_t system_space_id, uint32_t index_id,
-	       const char *name, uint32_t len, uint32_t *object_id)
+schema_find_id(uint32_t system_space_id, uint32_t index_id, const char *name,
+	       uint32_t len, uint32_t *object_id)
 {
 	if (len > BOX_NAME_MAX) {
 		*object_id = BOX_ID_NIL;
@@ -318,8 +319,8 @@ schema_find_id(uint32_t system_space_id, uint32_t index_id,
 	if (space == NULL)
 		return -1;
 	if (!space_is_memtx(space)) {
-		diag_set(ClientError, ER_UNSUPPORTED,
-			 space->engine->name, "system data");
+		diag_set(ClientError, ER_UNSUPPORTED, space->engine->name,
+			 "system data");
 		return -1;
 	}
 	struct index *index = index_find(space, index_id);
@@ -492,9 +493,8 @@ schema_init(void)
 		def = space_def_new_xc(BOX_VINYL_DEFERRED_DELETE_ID, ADMIN, 0,
 				       name, strlen(name), engine,
 				       strlen(engine), &opts, NULL, 0);
-		auto def_guard = make_scoped_guard([=] {
-			space_def_delete(def);
-		});
+		auto def_guard =
+			make_scoped_guard([=] { space_def_delete(def); });
 		RLIST_HEAD(key_list);
 		struct space *space = space_new_xc(def, &key_list);
 		space_cache_replace(NULL, space);
@@ -516,8 +516,8 @@ schema_free(void)
 	while (mh_size(spaces) > 0) {
 		mh_int_t i = mh_first(spaces);
 
-		struct space *space = (struct space *)
-				mh_i32ptr_node(spaces, i)->val;
+		struct space *space =
+			(struct space *)mh_i32ptr_node(spaces, i)->val;
 		space_cache_replace(space, NULL);
 		space_delete(space);
 	}
@@ -526,8 +526,8 @@ schema_free(void)
 	while (mh_size(funcs) > 0) {
 		mh_int_t i = mh_first(funcs);
 
-		struct func *func = ((struct func *)
-				     mh_i32ptr_node(funcs, i)->val);
+		struct func *func =
+			((struct func *)mh_i32ptr_node(funcs, i)->val);
 		func_cache_delete(func->def->fid);
 		func_delete(func);
 	}
@@ -535,8 +535,8 @@ schema_free(void)
 	while (mh_size(sequences) > 0) {
 		mh_int_t i = mh_first(sequences);
 
-		struct sequence *seq = ((struct sequence *)
-					mh_i32ptr_node(sequences, i)->val);
+		struct sequence *seq =
+			((struct sequence *)mh_i32ptr_node(sequences, i)->val);
 		sequence_cache_delete(seq->def->id);
 	}
 	mh_i32ptr_delete(sequences);
@@ -550,14 +550,15 @@ func_cache_insert(struct func *func)
 	const struct mh_i32ptr_node_t node = { func->def->fid, func };
 	mh_int_t k1 = mh_i32ptr_put(funcs, &node, NULL, NULL);
 	if (k1 == mh_end(funcs)) {
-error:
+	error:
 		panic_syserror("Out of memory for the data "
 			       "dictionary cache (stored function).");
 	}
 	size_t def_name_len = strlen(func->def->name);
 	uint32_t name_hash = mh_strn_hash(func->def->name, def_name_len);
-	const struct mh_strnptr_node_t strnode = {
-		func->def->name, def_name_len, name_hash, func };
+	const struct mh_strnptr_node_t strnode = { func->def->name,
+						   def_name_len, name_hash,
+						   func };
 	mh_int_t k2 = mh_strnptr_put(funcs_by_name, &strnode, NULL, NULL);
 	if (k2 == mh_end(funcs_by_name)) {
 		mh_i32ptr_del(funcs, k1, NULL);
@@ -571,8 +572,7 @@ func_cache_delete(uint32_t fid)
 	mh_int_t k = mh_i32ptr_find(funcs, fid, NULL);
 	if (k == mh_end(funcs))
 		return;
-	struct func *func = (struct func *)
-		mh_i32ptr_node(funcs, k)->val;
+	struct func *func = (struct func *)mh_i32ptr_node(funcs, k)->val;
 	mh_i32ptr_del(funcs, k, NULL);
 	k = mh_strnptr_find_inp(funcs_by_name, func->def->name,
 				strlen(func->def->name));
@@ -586,7 +586,7 @@ func_by_id(uint32_t fid)
 	mh_int_t func = mh_i32ptr_find(funcs, fid, NULL);
 	if (func == mh_end(funcs))
 		return NULL;
-	return (struct func *) mh_i32ptr_node(funcs, func)->val;
+	return (struct func *)mh_i32ptr_node(funcs, func)->val;
 }
 
 struct func *
@@ -595,7 +595,7 @@ func_by_name(const char *name, uint32_t name_len)
 	mh_int_t func = mh_strnptr_find_inp(funcs_by_name, name, name_len);
 	if (func == mh_end(funcs_by_name))
 		return NULL;
-	return (struct func *) mh_strnptr_node(funcs_by_name, func)->val;
+	return (struct func *)mh_strnptr_node(funcs_by_name, func)->val;
 }
 
 int
@@ -607,8 +607,8 @@ schema_find_grants(const char *type, uint32_t id, bool *out)
 
 	/** "object" index */
 	if (!space_is_memtx(priv)) {
-		diag_set(ClientError, ER_UNSUPPORTED,
-			 priv->engine->name, "system data");
+		diag_set(ClientError, ER_UNSUPPORTED, priv->engine->name,
+			 "system data");
 		return -1;
 	}
 	struct index *index = index_find(priv, 2);
@@ -638,7 +638,7 @@ sequence_by_id(uint32_t id)
 	mh_int_t k = mh_i32ptr_find(sequences, id, NULL);
 	if (k == mh_end(sequences))
 		return NULL;
-	return (struct sequence *) mh_i32ptr_node(sequences, k)->val;
+	return (struct sequence *)mh_i32ptr_node(sequences, k)->val;
 }
 
 struct sequence *
@@ -682,39 +682,34 @@ schema_find_name(enum schema_object_type type, uint32_t object_id)
 	case SC_ENTITY_ROLE:
 	case SC_ENTITY_USER:
 		return "";
-	case SC_SPACE:
-		{
-			struct space *space = space_by_id(object_id);
-			if (space == NULL)
-				break;
-			return space->def->name;
-		}
-	case SC_FUNCTION:
-		{
-			struct func *func = func_by_id(object_id);
-			if (func == NULL)
-				break;
-			return func->def->name;
-		}
-	case SC_SEQUENCE:
-		{
-			struct sequence *seq = sequence_by_id(object_id);
-			if (seq == NULL)
-				break;
-			return seq->def->name;
-		}
+	case SC_SPACE: {
+		struct space *space = space_by_id(object_id);
+		if (space == NULL)
+			break;
+		return space->def->name;
+	}
+	case SC_FUNCTION: {
+		struct func *func = func_by_id(object_id);
+		if (func == NULL)
+			break;
+		return func->def->name;
+	}
+	case SC_SEQUENCE: {
+		struct sequence *seq = sequence_by_id(object_id);
+		if (seq == NULL)
+			break;
+		return seq->def->name;
+	}
 	case SC_ROLE:
-	case SC_USER:
-		{
-			struct user *role = user_by_id(object_id);
-			if (role == NULL)
-				break;
-			return role->def->name;
-		}
+	case SC_USER: {
+		struct user *role = user_by_id(object_id);
+		if (role == NULL)
+			break;
+		return role->def->name;
+	}
 	default:
 		break;
 	}
 	assert(false);
 	return "(nil)";
 }
-

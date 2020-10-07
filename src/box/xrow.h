@@ -250,8 +250,7 @@ struct PACKED synchro_body_bin {
  * @param req Request parameters.
  */
 void
-xrow_encode_synchro(struct xrow_header *row,
-		    struct synchro_body_bin *body,
+xrow_encode_synchro(struct xrow_header *row, struct synchro_body_bin *body,
 		    const struct synchro_request *req);
 
 /**
@@ -429,8 +428,7 @@ xrow_encode_subscribe(struct xrow_header *row,
 int
 xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 		      struct tt_uuid *instance_uuid, struct vclock *vclock,
-		      uint32_t *version_id, bool *anon,
-		      uint32_t *id_filter);
+		      uint32_t *version_id, bool *anon, uint32_t *id_filter);
 
 /**
  * Encode JOIN command.
@@ -510,8 +508,8 @@ xrow_decode_vclock(struct xrow_header *row, struct vclock *vclock)
  */
 int
 xrow_encode_subscribe_response(struct xrow_header *row,
-			      const struct tt_uuid *replicaset_uuid,
-			      const struct vclock *vclock);
+			       const struct tt_uuid *replicaset_uuid,
+			       const struct vclock *vclock);
 
 /**
  * Decode a response to subscribe request.
@@ -632,8 +630,8 @@ iproto_reply_vclock(struct obuf *out, const struct vclock *vclock,
  * @retval -1 Memory error.
  */
 int
-iproto_reply_vote(struct obuf *out, const struct ballot *ballot,
-		  uint64_t sync, uint32_t schema_version);
+iproto_reply_vote(struct obuf *out, const struct ballot *ballot, uint64_t sync,
+		  uint32_t schema_version);
 
 /**
  * Write an error packet int output buffer. Doesn't throw if out
@@ -781,7 +779,7 @@ xrow_decode_error(struct xrow_header *row);
  * @return Previous LSN value.
  */
 static inline int64_t
-vclock_follow_xrow(struct vclock* vclock, const struct xrow_header *row)
+vclock_follow_xrow(struct vclock *vclock, const struct xrow_header *row)
 {
 	assert(row);
 	assert(row->replica_id < VCLOCK_MAX);
@@ -793,10 +791,9 @@ vclock_follow_xrow(struct vclock* vclock, const struct xrow_header *row)
 		/* Never confirm LSN out of order. */
 		panic("LSN for %u is used twice or COMMIT order is broken: "
 		      "confirmed: %lld, new: %lld, req: %s",
-		      (unsigned) row->replica_id,
-		      (long long) vclock_get(vclock, row->replica_id),
-		      (long long) row->lsn,
-		      req_str);
+		      (unsigned)row->replica_id,
+		      (long long)vclock_get(vclock, row->replica_id),
+		      (long long)row->lsn, req_str);
 	}
 	return vclock_follow(vclock, row->replica_id, row->lsn);
 }
@@ -853,8 +850,7 @@ xrow_encode_dml_xc(const struct request *request, struct region *region,
 
 /** @copydoc xrow_decode_call. */
 static inline void
-xrow_decode_call_xc(const struct xrow_header *row,
-		    struct call_request *request)
+xrow_decode_call_xc(const struct xrow_header *row, struct call_request *request)
 {
 	if (xrow_decode_call(row, request) != 0)
 		diag_raise();
@@ -862,8 +858,7 @@ xrow_decode_call_xc(const struct xrow_header *row,
 
 /** @copydoc xrow_decode_auth. */
 static inline void
-xrow_decode_auth_xc(const struct xrow_header *row,
-		    struct auth_request *request)
+xrow_decode_auth_xc(const struct xrow_header *row, struct auth_request *request)
 {
 	if (xrow_decode_auth(row, request) != 0)
 		diag_raise();
@@ -891,8 +886,8 @@ xrow_decode_ballot_xc(struct xrow_header *row, struct ballot *ballot)
 /** @copydoc xrow_encode_register. */
 static inline void
 xrow_encode_register_xc(struct xrow_header *row,
-		       const struct tt_uuid *instance_uuid,
-		       const struct vclock *vclock)
+			const struct tt_uuid *instance_uuid,
+			const struct vclock *vclock)
 {
 	if (xrow_encode_register(row, instance_uuid, vclock) != 0)
 		diag_raise();
@@ -906,8 +901,8 @@ xrow_encode_subscribe_xc(struct xrow_header *row,
 			 const struct vclock *vclock, bool anon,
 			 uint32_t id_filter)
 {
-	if (xrow_encode_subscribe(row, replicaset_uuid, instance_uuid,
-				  vclock, anon, id_filter) != 0)
+	if (xrow_encode_subscribe(row, replicaset_uuid, instance_uuid, vclock,
+				  anon, id_filter) != 0)
 		diag_raise();
 }
 
@@ -919,9 +914,8 @@ xrow_decode_subscribe_xc(struct xrow_header *row,
 			 uint32_t *replica_version_id, bool *anon,
 			 uint32_t *id_filter)
 {
-	if (xrow_decode_subscribe(row, replicaset_uuid, instance_uuid,
-				  vclock, replica_version_id, anon,
-				  id_filter) != 0)
+	if (xrow_decode_subscribe(row, replicaset_uuid, instance_uuid, vclock,
+				  replica_version_id, anon, id_filter) != 0)
 		diag_raise();
 }
 
@@ -1007,7 +1001,7 @@ iproto_reply_vclock_xc(struct obuf *out, const struct vclock *vclock,
 /** @copydoc iproto_reply_vote. */
 static inline void
 iproto_reply_vote_xc(struct obuf *out, const struct ballot *ballot,
-		       uint64_t sync, uint32_t schema_version)
+		     uint64_t sync, uint32_t schema_version)
 {
 	if (iproto_reply_vote(out, ballot, sync, schema_version) != 0)
 		diag_raise();

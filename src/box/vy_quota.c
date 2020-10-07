@@ -54,8 +54,7 @@ static const double VY_QUOTA_TIMER_PERIOD = 0.1;
 /**
  * Bit mask of resources used by a particular consumer type.
  */
-static unsigned
-vy_quota_consumer_resource_map[] = {
+static unsigned vy_quota_consumer_resource_map[] = {
 	/**
 	 * Transaction throttling pursues two goals. First, it is
 	 * capping memory consumption rate so that the hard memory
@@ -100,7 +99,7 @@ vy_rate_limit_is_applicable(enum vy_quota_consumer_type consumer_type,
 			    enum vy_quota_resource_type resource_type)
 {
 	return (vy_quota_consumer_resource_map[consumer_type] &
-					(1 << resource_type)) != 0;
+		(1 << resource_type)) != 0;
 }
 
 /**
@@ -300,8 +299,8 @@ vy_quota_release(struct vy_quota *q, size_t size)
 }
 
 int
-vy_quota_use(struct vy_quota *q, enum vy_quota_consumer_type type,
-	     size_t size, double timeout)
+vy_quota_use(struct vy_quota *q, enum vy_quota_consumer_type type, size_t size,
+	     double timeout)
 {
 	/*
 	 * Fail early if the configured memory limit never allows
@@ -342,8 +341,8 @@ vy_quota_use(struct vy_quota *q, enum vy_quota_consumer_type type,
 	double wait_time = ev_monotonic_now(loop()) - wait_start;
 	if (wait_time > q->too_long_threshold) {
 		say_warn_ratelimited("waited for %zu bytes of vinyl memory "
-				     "quota for too long: %.3f sec", size,
-				     wait_time);
+				     "quota for too long: %.3f sec",
+				     size, wait_time);
 	}
 
 	vy_quota_do_use(q, type, size);

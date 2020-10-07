@@ -98,8 +98,7 @@ struct vclock_c {
 	int64_t lsn;
 };
 
-struct vclock_iterator
-{
+struct vclock_iterator {
 	struct bit_iterator it;
 	const struct vclock *vclock;
 };
@@ -116,14 +115,13 @@ vclock_iterator_next(struct vclock_iterator *it)
 {
 	struct vclock_c c = { 0, 0 };
 	size_t id = bit_iterator_next(&it->it);
-	c.id = id == SIZE_MAX ? (int) VCLOCK_MAX : id;
+	c.id = id == SIZE_MAX ? (int)VCLOCK_MAX : id;
 	if (c.id < VCLOCK_MAX)
 		c.lsn = it->vclock->lsn[c.id];
 	return c;
 }
 
-
-#define vclock_foreach(it, var) \
+#define vclock_foreach(it, var)                              \
 	for (struct vclock_c var = vclock_iterator_next(it); \
 	     (var).id < VCLOCK_MAX; (var) = vclock_iterator_next(it))
 
@@ -215,8 +213,8 @@ vclock_copy(struct vclock *dst, const struct vclock *src)
 	 * undefined result if zero passed.
 	 */
 	unsigned int max_pos = VCLOCK_MAX - bit_clz_u32(src->map | 0x01);
-	memcpy(dst, src, offsetof(struct vclock, lsn) +
-			 sizeof(*dst->lsn) * max_pos);
+	memcpy(dst, src,
+	       offsetof(struct vclock, lsn) + sizeof(*dst->lsn) * max_pos);
 }
 
 static inline uint32_t
@@ -237,8 +235,7 @@ vclock_calc_sum(const struct vclock *vclock)
 	int64_t sum = 0;
 	struct vclock_iterator it;
 	vclock_iterator_init(&it, vclock);
-	vclock_foreach(&it, replica)
-		sum += replica.lsn;
+	vclock_foreach(&it, replica) sum += replica.lsn;
 	return sum;
 }
 
@@ -269,7 +266,8 @@ vclock_merge(struct vclock *dst, struct vclock *diff)
 	struct vclock_iterator it;
 	vclock_iterator_init(&it, diff);
 	vclock_foreach(&it, item)
-		vclock_follow(dst, item.id, vclock_get(dst, item.id) + item.lsn);
+		vclock_follow(dst, item.id,
+			      vclock_get(dst, item.id) + item.lsn);
 	vclock_create(diff);
 }
 
@@ -377,8 +375,8 @@ vclock_lex_compare(const struct vclock *a, const struct vclock *b)
 	vclock_map_t map = a->map | b->map;
 	struct bit_iterator it;
 	bit_iterator_init(&it, &map, sizeof(map), true);
-	for(size_t replica_id = bit_iterator_next(&it); replica_id < VCLOCK_MAX;
-	    replica_id = bit_iterator_next(&it)) {
+	for (size_t replica_id = bit_iterator_next(&it);
+	     replica_id < VCLOCK_MAX; replica_id = bit_iterator_next(&it)) {
 		int64_t lsn_a = vclock_get(a, replica_id);
 		int64_t lsn_b = vclock_get(b, replica_id);
 		if (lsn_a < lsn_b)
@@ -406,7 +404,7 @@ vclock_min_ignore0(struct vclock *a, const struct vclock *b)
 	if (replica_id == 0)
 		replica_id = bit_iterator_next(&it);
 
-	for( ; replica_id < VCLOCK_MAX; replica_id = bit_iterator_next(&it)) {
+	for (; replica_id < VCLOCK_MAX; replica_id = bit_iterator_next(&it)) {
 		int64_t lsn_a = vclock_get(a, replica_id);
 		int64_t lsn_b = vclock_get(b, replica_id);
 		if (lsn_a <= lsn_b)

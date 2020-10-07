@@ -77,57 +77,55 @@ box_lua_find(lua_State *L, const char *name, const char *name_end)
 	int objstack = 0, top = lua_gettop(L);
 	const char *start = name, *end;
 
-	while ((end = (const char *) memchr(start, '.', name_end - start))) {
+	while ((end = (const char *)memchr(start, '.', name_end - start))) {
 		lua_checkstack(L, 3);
 		lua_pushlstring(L, start, end - start);
 		lua_gettable(L, index);
-		if (! lua_istable(L, -1)) {
-			diag_set(ClientError, ER_NO_SUCH_PROC,
-				 name_end - name, name);
+		if (!lua_istable(L, -1)) {
+			diag_set(ClientError, ER_NO_SUCH_PROC, name_end - name,
+				 name);
 			return -1;
 		}
-		start = end + 1; /* next piece of a.b.c */
+		start = end + 1;       /* next piece of a.b.c */
 		index = lua_gettop(L); /* top of the stack */
 	}
 
 	/* box.something:method */
-	if ((end = (const char *) memchr(start, ':', name_end - start))) {
+	if ((end = (const char *)memchr(start, ':', name_end - start))) {
 		lua_checkstack(L, 3);
 		lua_pushlstring(L, start, end - start);
 		lua_gettable(L, index);
-		if (! (lua_istable(L, -1) ||
-			lua_islightuserdata(L, -1) || lua_isuserdata(L, -1) )) {
-				diag_set(ClientError, ER_NO_SUCH_PROC,
-					  name_end - name, name);
-				return -1;
+		if (!(lua_istable(L, -1) || lua_islightuserdata(L, -1) ||
+		      lua_isuserdata(L, -1))) {
+			diag_set(ClientError, ER_NO_SUCH_PROC, name_end - name,
+				 name);
+			return -1;
 		}
 
-		start = end + 1; /* next piece of a.b.c */
+		start = end + 1;       /* next piece of a.b.c */
 		index = lua_gettop(L); /* top of the stack */
 		objstack = index - top;
 	}
-
 
 	lua_pushlstring(L, start, name_end - start);
 	lua_gettable(L, index);
 	if (!lua_isfunction(L, -1) && !lua_istable(L, -1)) {
 		/* lua_call or lua_gettable would raise a type error
 		 * for us, but our own message is more verbose. */
-		diag_set(ClientError, ER_NO_SUCH_PROC,
-			  name_end - name, name);
+		diag_set(ClientError, ER_NO_SUCH_PROC, name_end - name, name);
 		return -1;
 	}
 
 	/* setting stack that it would contain only
 	 * the function pointer. */
 	if (index != LUA_GLOBALSINDEX) {
-		if (objstack == 0) {        /* no object, only a function */
+		if (objstack == 0) { /* no object, only a function */
 			lua_replace(L, top + 1);
 			lua_pop(L, lua_gettop(L) - top - 1);
 		} else if (objstack == 1) { /* just two values, swap them */
 			lua_insert(L, -2);
 			lua_pop(L, lua_gettop(L) - top - 2);
-		} else {		    /* long path */
+		} else { /* long path */
 			lua_insert(L, top + 1);
 			lua_insert(L, top + 2);
 			lua_pop(L, objstack - 1);
@@ -300,7 +298,7 @@ static const struct port_vtab port_lua_vtab;
 void
 port_lua_create(struct port *port, struct lua_State *L)
 {
-	struct port_lua *port_lua = (struct port_lua *) port;
+	struct port_lua *port_lua = (struct port_lua *)port;
 	memset(port_lua, 0, sizeof(*port_lua));
 	port_lua->vtab = &port_lua_vtab;
 	port_lua->L = L;
@@ -328,7 +326,7 @@ static int
 execute_lua_call(lua_State *L)
 {
 	struct execute_lua_ctx *ctx =
-		(struct execute_lua_ctx *) lua_topointer(L, 1);
+		(struct execute_lua_ctx *)lua_topointer(L, 1);
 	lua_settop(L, 0); /* clear the stack to simplify the logic below */
 
 	const char *name = ctx->name;
@@ -356,7 +354,7 @@ static int
 execute_lua_call_by_ref(lua_State *L)
 {
 	struct execute_lua_ctx *ctx =
-		(struct execute_lua_ctx *) lua_topointer(L, 1);
+		(struct execute_lua_ctx *)lua_topointer(L, 1);
 	lua_settop(L, 0); /* clear the stack to simplify the logic below */
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->lua_ref);
@@ -374,7 +372,7 @@ static int
 execute_lua_eval(lua_State *L)
 {
 	struct execute_lua_ctx *ctx =
-		(struct execute_lua_ctx *) lua_topointer(L, 1);
+		(struct execute_lua_ctx *)lua_topointer(L, 1);
 	lua_settop(L, 0); /* clear the stack to simplify the logic below */
 
 	/* Compile expression */
@@ -404,7 +402,7 @@ static int
 encode_lua_call(lua_State *L)
 {
 	struct encode_lua_ctx *ctx =
-		(struct encode_lua_ctx *) lua_topointer(L, 1);
+		(struct encode_lua_ctx *)lua_topointer(L, 1);
 	/*
 	 * Add all elements from Lua stack to the buffer.
 	 *
@@ -425,7 +423,7 @@ static int
 encode_lua_call_16(lua_State *L)
 {
 	struct encode_lua_ctx *ctx =
-		(struct encode_lua_ctx *) lua_topointer(L, 1);
+		(struct encode_lua_ctx *)lua_topointer(L, 1);
 	/*
 	 * Add all elements from Lua stack to the buffer.
 	 *
@@ -441,7 +439,7 @@ static inline int
 port_lua_do_dump(struct port *base, struct mpstream *stream,
 		 lua_CFunction handler)
 {
-	struct port_lua *port = (struct port_lua *) base;
+	struct port_lua *port = (struct port_lua *)base;
 	assert(port->vtab == &port_lua_vtab);
 	/*
 	 * Use the same global state, assuming the encoder doesn't
@@ -463,10 +461,10 @@ port_lua_do_dump(struct port *base, struct mpstream *stream,
 static int
 port_lua_dump(struct port *base, struct obuf *out)
 {
-	struct port_lua *port = (struct port_lua *) base;
+	struct port_lua *port = (struct port_lua *)base;
 	struct mpstream stream;
-	mpstream_init(&stream, out, obuf_reserve_cb, obuf_alloc_cb,
-		      luamp_error, port->L);
+	mpstream_init(&stream, out, obuf_reserve_cb, obuf_alloc_cb, luamp_error,
+		      port->L);
 	return port_lua_do_dump(base, &stream, encode_lua_call);
 }
 
@@ -475,17 +473,17 @@ port_lua_dump_16(struct port *base, struct obuf *out)
 {
 	struct port_lua *port = (struct port_lua *)base;
 	struct mpstream stream;
-	mpstream_init(&stream, out, obuf_reserve_cb, obuf_alloc_cb,
-		      luamp_error, port->L);
+	mpstream_init(&stream, out, obuf_reserve_cb, obuf_alloc_cb, luamp_error,
+		      port->L);
 	return port_lua_do_dump(base, &stream, encode_lua_call_16);
 }
 
 static void
 port_lua_dump_lua(struct port *base, struct lua_State *L, bool is_flat)
 {
-	(void) is_flat;
+	(void)is_flat;
 	assert(is_flat == true);
-	struct port_lua *port = (struct port_lua *) base;
+	struct port_lua *port = (struct port_lua *)base;
 	uint32_t size = lua_gettop(port->L);
 	lua_xmove(port->L, L, size);
 	port->size = size;
@@ -494,7 +492,7 @@ port_lua_dump_lua(struct port *base, struct lua_State *L, bool is_flat)
 static const char *
 port_lua_get_msgpack(struct port *base, uint32_t *size)
 {
-	struct port_lua *port = (struct port_lua *) base;
+	struct port_lua *port = (struct port_lua *)base;
 	struct region *region = &fiber()->gc;
 	uint32_t region_svp = region_used(region);
 	struct mpstream stream;
@@ -553,7 +551,7 @@ box_process_lua(enum handlers handler, struct execute_lua_ctx *ctx,
 		return -1;
 	int coro_ref = luaL_ref(tarantool_L, LUA_REGISTRYINDEX);
 	port_lua_create(ret, L);
-	((struct port_lua *) ret)->ref = coro_ref;
+	((struct port_lua *)ret)->ref = coro_ref;
 
 	/*
 	 * A code that need a temporary fiber-local Lua state may
@@ -593,8 +591,8 @@ box_process_lua(enum handlers handler, struct execute_lua_ctx *ctx,
 }
 
 int
-box_lua_call(const char *name, uint32_t name_len,
-	     struct port *args, struct port *ret)
+box_lua_call(const char *name, uint32_t name_len, struct port *args,
+	     struct port *ret)
 {
 	struct execute_lua_ctx ctx;
 	ctx.name = name;
@@ -604,8 +602,8 @@ box_lua_call(const char *name, uint32_t name_len,
 }
 
 int
-box_lua_eval(const char *expr, uint32_t expr_len,
-	     struct port *args, struct port *ret)
+box_lua_eval(const char *expr, uint32_t expr_len, struct port *args,
+	     struct port *ret)
 {
 	struct execute_lua_ctx ctx;
 	ctx.name = expr;
@@ -628,9 +626,9 @@ static struct func_vtab func_lua_vtab;
 static struct func_vtab func_persistent_lua_vtab;
 
 static const char *default_sandbox_exports[] = {
-	"assert", "error", "ipairs", "math", "next", "pairs", "pcall", "print",
-	"select", "string", "table", "tonumber", "tostring", "type", "unpack",
-	"xpcall", "utf8",
+	"assert",   "error", "ipairs", "math",	 "next",  "pairs",
+	"pcall",    "print", "select", "string", "table", "tonumber",
+	"tostring", "type",  "unpack", "xpcall", "utf8",
 };
 
 /**
@@ -696,7 +694,8 @@ func_persistent_lua_load(struct func_lua *func)
 		diag_set(OutOfMemory, load_str_sz, "region", "load_str");
 		return -1;
 	}
-	snprintf(load_str, load_str_sz, "%s%s", load_pref, func->base.def->body);
+	snprintf(load_str, load_str_sz, "%s%s", load_pref,
+		 func->base.def->body);
 
 	/*
 	 * Perform loading of the persistent Lua function
@@ -759,7 +758,7 @@ func_lua_new(struct func_def *def)
 {
 	assert(def->language == FUNC_LANGUAGE_LUA);
 	struct func_lua *func =
-		(struct func_lua *) malloc(sizeof(struct func_lua));
+		(struct func_lua *)malloc(sizeof(struct func_lua));
 	if (func == NULL) {
 		diag_set(OutOfMemory, sizeof(*func), "malloc", "func");
 		return NULL;
@@ -812,7 +811,7 @@ func_persistent_lua_destroy(struct func *base)
 	assert(base != NULL && base->def->language == FUNC_LANGUAGE_LUA &&
 	       base->def->body != NULL);
 	assert(base->vtab == &func_persistent_lua_vtab);
-	struct func_lua *func = (struct func_lua *) base;
+	struct func_lua *func = (struct func_lua *)base;
 	func_persistent_lua_unload(func);
 	free(func);
 }
@@ -828,7 +827,6 @@ func_persistent_lua_call(struct func *base, struct port *args, struct port *ret)
 	ctx.lua_ref = func->lua_ref;
 	ctx.args = args;
 	return box_process_lua(HANDLER_CALL_BY_REF, &ctx, ret);
-
 }
 
 static struct func_vtab func_persistent_lua_vtab = {
@@ -872,7 +870,7 @@ lbox_func_call(struct lua_State *L)
 	lua_xmove(L, args_L, lua_gettop(L) - 1);
 	struct port args;
 	port_lua_create(&args, args_L);
-	((struct port_lua *) &args)->ref = coro_ref;
+	((struct port_lua *)&args)->ref = coro_ref;
 
 	struct port ret;
 	if (func_call(func, &args, &ret) != 0) {
@@ -1011,7 +1009,7 @@ lbox_func_delete(struct lua_State *L, struct func *func)
 static int
 lbox_func_new_or_delete(struct trigger *trigger, void *event)
 {
-	struct lua_State *L = (struct lua_State *) trigger->data;
+	struct lua_State *L = (struct lua_State *)trigger->data;
 	struct func *func = (struct func *)event;
 	if (!func->def->exports.lua)
 		return 0;
@@ -1022,15 +1020,15 @@ lbox_func_new_or_delete(struct trigger *trigger, void *event)
 	return 0;
 }
 
-static struct trigger on_alter_func_in_lua = {
-	RLIST_LINK_INITIALIZER, lbox_func_new_or_delete, NULL, NULL
-};
+static struct trigger on_alter_func_in_lua = { RLIST_LINK_INITIALIZER,
+					       lbox_func_new_or_delete, NULL,
+					       NULL };
 
 static const struct luaL_Reg boxlib_internal[] = {
-	{"call_loadproc",  lbox_call_loadproc},
-	{"module_reload", lbox_module_reload},
-	{"func_call", lbox_func_call},
-	{NULL, NULL}
+	{ "call_loadproc", lbox_call_loadproc },
+	{ "module_reload", lbox_module_reload },
+	{ "func_call", lbox_func_call },
+	{ NULL, NULL }
 };
 
 void

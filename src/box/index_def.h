@@ -41,16 +41,16 @@ extern "C" {
 
 enum index_type {
 	HASH = 0, /* HASH Index */
-	TREE,     /* TREE Index */
-	BITSET,   /* BITSET Index */
-	RTREE,    /* R-Tree Index */
+	TREE,	  /* TREE Index */
+	BITSET,	  /* BITSET Index */
+	RTREE,	  /* R-Tree Index */
 	index_type_MAX,
 };
 
 extern const char *index_type_strs[];
 
 enum rtree_index_distance_type {
-	 /* Euclid distance, sqrt(dx*dx + dy*dy) */
+	/* Euclid distance, sqrt(dx*dx + dy*dy) */
 	RTREE_INDEX_DISTANCE_TYPE_EUCLID,
 	/* Manhattan distance, fabs(dx) + fabs(dy) */
 	RTREE_INDEX_DISTANCE_TYPE_MANHATTAN,
@@ -203,8 +203,8 @@ index_opts_cmp(const struct index_opts *o1, const struct index_opts *o2)
 	if (o1->page_size != o2->page_size)
 		return o1->page_size < o2->page_size ? -1 : 1;
 	if (o1->run_count_per_level != o2->run_count_per_level)
-		return o1->run_count_per_level < o2->run_count_per_level ?
-		       -1 : 1;
+		return o1->run_count_per_level < o2->run_count_per_level ? -1 :
+										 1;
 	if (o1->run_size_ratio != o2->run_size_ratio)
 		return o1->run_size_ratio < o2->run_size_ratio ? -1 : 1;
 	if (o1->bloom_fpr != o2->bloom_fpr)
@@ -310,8 +310,8 @@ index_def_update_optionality(struct index_def *def, uint32_t min_field_count)
 static inline void
 index_def_set_func(struct index_def *def, struct func *func)
 {
-	assert(def->opts.func_id > 0 &&
-	       def->key_def->for_func_index && def->cmp_def->for_func_index);
+	assert(def->opts.func_id > 0 && def->key_def->for_func_index &&
+	       def->cmp_def->for_func_index);
 	/*
 	 * def->key_def is used in key_list module to build a key
 	 * a key for given tuple.
@@ -368,8 +368,8 @@ index_def_list_add(struct rlist *index_def_list, struct index_def *index_def)
 struct index_def *
 index_def_new(uint32_t space_id, uint32_t iid, const char *name,
 	      uint32_t name_len, enum index_type type,
-	      const struct index_opts *opts,
-	      struct key_def *key_def, struct key_def *pk_def);
+	      const struct index_opts *opts, struct key_def *key_def,
+	      struct key_def *pk_def);
 
 /**
  * Create an array (on a region) of key_defs from list of index
@@ -415,7 +415,7 @@ index_def_dup_xc(const struct index_def *def)
 static inline void
 index_def_check_xc(struct index_def *index_def, const char *space_name)
 {
-	if (! index_def_is_valid(index_def, space_name))
+	if (!index_def_is_valid(index_def, space_name))
 		diag_raise();
 }
 

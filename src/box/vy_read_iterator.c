@@ -70,8 +70,8 @@ vy_read_iterator_reserve(struct vy_read_iterator *itr, uint32_t capacity)
 		return 0;
 	struct vy_read_src *new_src = calloc(capacity, sizeof(*new_src));
 	if (new_src == NULL) {
-		diag_set(OutOfMemory, capacity * sizeof(*new_src),
-			 "calloc", "new_src");
+		diag_set(OutOfMemory, capacity * sizeof(*new_src), "calloc",
+			 "new_src");
 		return -1;
 	}
 	memcpy(new_src, itr->src, itr->src_count * sizeof(*new_src));
@@ -148,15 +148,15 @@ vy_read_iterator_range_is_done(struct vy_read_iterator *itr,
 	int dir = iterator_direction(itr->iterator_type);
 
 	if (dir > 0 && range->end.stmt != NULL &&
-	    (next.stmt == NULL || vy_entry_compare(next, range->end,
-						   cmp_def) >= 0) &&
+	    (next.stmt == NULL ||
+	     vy_entry_compare(next, range->end, cmp_def) >= 0) &&
 	    (itr->iterator_type != ITER_EQ ||
 	     vy_entry_compare(itr->key, range->end, cmp_def) >= 0))
 		return true;
 
 	if (dir < 0 && range->begin.stmt != NULL &&
-	    (next.stmt == NULL || vy_entry_compare(next, range->begin,
-						   cmp_def) < 0) &&
+	    (next.stmt == NULL ||
+	     vy_entry_compare(next, range->begin, cmp_def) < 0) &&
 	    (itr->iterator_type != ITER_REQ ||
 	     vy_entry_compare(itr->key, range->begin, cmp_def) <= 0))
 		return true;
@@ -175,8 +175,8 @@ vy_read_iterator_range_is_done(struct vy_read_iterator *itr,
  * NULL denotes the statement following the last one.
  */
 static inline int
-vy_read_iterator_cmp_stmt(struct vy_read_iterator *itr,
-			  struct vy_entry a, struct vy_entry b)
+vy_read_iterator_cmp_stmt(struct vy_read_iterator *itr, struct vy_entry a,
+			  struct vy_entry b)
 {
 	if (a.stmt == NULL && b.stmt != NULL)
 		return 1;
@@ -185,7 +185,7 @@ vy_read_iterator_cmp_stmt(struct vy_read_iterator *itr,
 	if (a.stmt == NULL && b.stmt == NULL)
 		return 0;
 	return iterator_direction(itr->iterator_type) *
-		vy_entry_compare(a, b, itr->lsm->cmp_def);
+	       vy_entry_compare(a, b, itr->lsm->cmp_def);
 }
 
 /**
@@ -205,10 +205,10 @@ vy_read_iterator_is_exact_match(struct vy_read_iterator *itr,
 	 * in case the key is found in memory.
 	 */
 	return itr->last.stmt == NULL && entry.stmt != NULL &&
-		(type == ITER_EQ || type == ITER_REQ ||
-		 type == ITER_GE || type == ITER_LE) &&
-		vy_stmt_is_full_key(itr->key.stmt, cmp_def) &&
-		vy_entry_compare(entry, itr->key, cmp_def) == 0;
+	       (type == ITER_EQ || type == ITER_REQ || type == ITER_GE ||
+		type == ITER_LE) &&
+	       vy_stmt_is_full_key(itr->key.stmt, cmp_def) &&
+	       vy_entry_compare(entry, itr->key, cmp_def) == 0;
 }
 
 /**
@@ -220,8 +220,8 @@ vy_read_iterator_is_exact_match(struct vy_read_iterator *itr,
  */
 static void
 vy_read_iterator_evaluate_src(struct vy_read_iterator *itr,
-			      struct vy_read_src *src,
-			      struct vy_entry *next, bool *stop)
+			      struct vy_read_src *src, struct vy_entry *next,
+			      bool *stop)
 {
 	uint32_t src_id = src - itr->src;
 	struct vy_entry entry = vy_history_last_stmt(&src->history);
@@ -268,8 +268,8 @@ vy_read_iterator_evaluate_src(struct vy_read_iterator *itr,
  */
 
 static NODISCARD int
-vy_read_iterator_scan_txw(struct vy_read_iterator *itr,
-			  struct vy_entry *next, bool *stop)
+vy_read_iterator_scan_txw(struct vy_read_iterator *itr, struct vy_entry *next,
+			  bool *stop)
 {
 	struct vy_read_src *src = &itr->src[itr->txw_src];
 	struct vy_txw_iterator *src_itr = &src->txw_iterator;
@@ -297,19 +297,20 @@ vy_read_iterator_scan_txw(struct vy_read_iterator *itr,
 }
 
 static NODISCARD int
-vy_read_iterator_scan_cache(struct vy_read_iterator *itr,
-			    struct vy_entry *next, bool *stop)
+vy_read_iterator_scan_cache(struct vy_read_iterator *itr, struct vy_entry *next,
+			    bool *stop)
 {
 	bool is_interval = false;
 	struct vy_read_src *src = &itr->src[itr->cache_src];
 	struct vy_cache_iterator *src_itr = &src->cache_iterator;
 
-	int rc = vy_cache_iterator_restore(src_itr, itr->last,
-					   &src->history, &is_interval);
+	int rc = vy_cache_iterator_restore(src_itr, itr->last, &src->history,
+					   &is_interval);
 	if (rc == 0) {
 		if (!src->is_started || itr->cache_src >= itr->skipped_src) {
 			rc = vy_cache_iterator_skip(src_itr, itr->last,
-						&src->history, &is_interval);
+						    &src->history,
+						    &is_interval);
 		} else if (src->front_id == itr->prev_front_id) {
 			rc = vy_cache_iterator_next(src_itr, &src->history,
 						    &is_interval);
@@ -365,8 +366,7 @@ vy_read_iterator_scan_disk(struct vy_read_iterator *itr, uint32_t disk_src,
 	assert(disk_src >= itr->disk_src && disk_src < itr->src_count);
 
 	if (!src->is_started || disk_src >= itr->skipped_src)
-		rc = vy_run_iterator_skip(src_itr, itr->last,
-					  &src->history);
+		rc = vy_run_iterator_skip(src_itr, itr->last, &src->history);
 	else if (src->front_id == itr->prev_front_id)
 		rc = vy_run_iterator_next(src_itr, &src->history);
 	src->is_started = true;
@@ -391,8 +391,8 @@ vy_read_iterator_next_range(struct vy_read_iterator *itr);
 static NODISCARD int
 vy_read_iterator_advance(struct vy_read_iterator *itr)
 {
-	if (itr->last.stmt != NULL && (itr->iterator_type == ITER_EQ ||
-				       itr->iterator_type == ITER_REQ) &&
+	if (itr->last.stmt != NULL &&
+	    (itr->iterator_type == ITER_EQ || itr->iterator_type == ITER_REQ) &&
 	    vy_stmt_is_full_key(itr->key.stmt, itr->lsm->cmp_def)) {
 		/*
 		 * There may be one statement at max satisfying
@@ -507,7 +507,7 @@ done:
 	 * and respects statement order.
 	 */
 	if (itr->last.stmt != NULL && next.stmt != NULL) {
-	       assert(vy_read_iterator_cmp_stmt(itr, next, itr->last) > 0);
+		assert(vy_read_iterator_cmp_stmt(itr, next, itr->last) > 0);
 	}
 #endif
 	if (itr->need_check_eq && next.stmt != NULL &&
@@ -520,8 +520,8 @@ static void
 vy_read_iterator_add_tx(struct vy_read_iterator *itr)
 {
 	assert(itr->tx != NULL);
-	enum iterator_type iterator_type = (itr->iterator_type != ITER_REQ ?
-					    itr->iterator_type : ITER_LE);
+	enum iterator_type iterator_type =
+		(itr->iterator_type != ITER_REQ ? itr->iterator_type : ITER_LE);
 	struct vy_txw_iterator_stat *stat = &itr->lsm->stat.txw.iterator;
 	struct vy_read_src *sub_src = vy_read_iterator_add_src(itr);
 	vy_txw_iterator_open(&sub_src->txw_iterator, stat, itr->tx, itr->lsm,
@@ -531,19 +531,18 @@ vy_read_iterator_add_tx(struct vy_read_iterator *itr)
 static void
 vy_read_iterator_add_cache(struct vy_read_iterator *itr)
 {
-	enum iterator_type iterator_type = (itr->iterator_type != ITER_REQ ?
-					    itr->iterator_type : ITER_LE);
+	enum iterator_type iterator_type =
+		(itr->iterator_type != ITER_REQ ? itr->iterator_type : ITER_LE);
 	struct vy_read_src *sub_src = vy_read_iterator_add_src(itr);
-	vy_cache_iterator_open(&sub_src->cache_iterator,
-			       &itr->lsm->cache, iterator_type,
-			       itr->key, itr->read_view);
+	vy_cache_iterator_open(&sub_src->cache_iterator, &itr->lsm->cache,
+			       iterator_type, itr->key, itr->read_view);
 }
 
 static void
 vy_read_iterator_add_mem(struct vy_read_iterator *itr)
 {
-	enum iterator_type iterator_type = (itr->iterator_type != ITER_REQ ?
-					    itr->iterator_type : ITER_LE);
+	enum iterator_type iterator_type =
+		(itr->iterator_type != ITER_REQ ? itr->iterator_type : ITER_LE);
 	struct vy_lsm *lsm = itr->lsm;
 	struct vy_read_src *sub_src;
 
@@ -557,9 +556,8 @@ vy_read_iterator_add_mem(struct vy_read_iterator *itr)
 	rlist_foreach_entry(mem, &lsm->sealed, in_sealed) {
 		sub_src = vy_read_iterator_add_src(itr);
 		vy_mem_iterator_open(&sub_src->mem_iterator,
-				     &lsm->stat.memory.iterator,
-				     mem, iterator_type, itr->key,
-				     itr->read_view);
+				     &lsm->stat.memory.iterator, mem,
+				     iterator_type, itr->key, itr->read_view);
 	}
 }
 
@@ -567,8 +565,8 @@ static void
 vy_read_iterator_add_disk(struct vy_read_iterator *itr)
 {
 	assert(itr->curr_range != NULL);
-	enum iterator_type iterator_type = (itr->iterator_type != ITER_REQ ?
-					    itr->iterator_type : ITER_LE);
+	enum iterator_type iterator_type =
+		(itr->iterator_type != ITER_REQ ? itr->iterator_type : ITER_LE);
 	struct vy_lsm *lsm = itr->lsm;
 	struct vy_slice *slice;
 	/*
@@ -580,9 +578,9 @@ vy_read_iterator_add_disk(struct vy_read_iterator *itr)
 		struct vy_read_src *sub_src = vy_read_iterator_add_src(itr);
 		vy_run_iterator_open(&sub_src->run_iterator,
 				     &lsm->stat.disk.iterator, slice,
-				     iterator_type, itr->key,
-				     itr->read_view, lsm->cmp_def,
-				     lsm->key_def, lsm->disk_format);
+				     iterator_type, itr->key, itr->read_view,
+				     lsm->cmp_def, lsm->key_def,
+				     lsm->disk_format);
 	}
 }
 
@@ -648,7 +646,8 @@ vy_read_iterator_open(struct vy_read_iterator *itr, struct vy_lsm *lsm,
 		 * in this case.
 		 */
 		itr->iterator_type = iterator_direction(iterator_type) > 0 ?
-				     ITER_GE : ITER_LE;
+						   ITER_GE :
+						   ITER_LE;
 	}
 
 	if (iterator_type == ITER_ALL)
@@ -664,7 +663,6 @@ vy_read_iterator_open(struct vy_read_iterator *itr, struct vy_lsm *lsm,
 		 */
 		itr->need_check_eq = true;
 	}
-
 }
 
 /**
@@ -684,7 +682,8 @@ vy_read_iterator_restore(struct vy_read_iterator *itr)
 	itr->curr_range = vy_range_tree_find_by_key(&itr->lsm->range_tree,
 						    itr->iterator_type,
 						    itr->last.stmt != NULL ?
-						    itr->last : itr->key);
+								  itr->last :
+								  itr->key);
 	itr->range_version = itr->curr_range->version;
 
 	if (itr->tx != NULL) {
@@ -714,9 +713,10 @@ vy_read_iterator_next_range(struct vy_read_iterator *itr)
 
 	assert(range != NULL);
 	while (true) {
-		range = dir > 0 ?
-			vy_range_tree_next(&itr->lsm->range_tree, range) :
-			vy_range_tree_prev(&itr->lsm->range_tree, range);
+		range = dir > 0 ? vy_range_tree_next(&itr->lsm->range_tree,
+						     range) :
+					vy_range_tree_prev(&itr->lsm->range_tree,
+						     range);
 		assert(range != NULL);
 
 		if (itr->last.stmt == NULL)
@@ -725,13 +725,13 @@ vy_read_iterator_next_range(struct vy_read_iterator *itr)
 		 * We could skip an entire range due to the cache.
 		 * Make sure the next statement falls in the range.
 		 */
-		if (dir > 0 && (range->end.stmt == NULL ||
-				vy_entry_compare(itr->last, range->end,
-						 cmp_def) < 0))
+		if (dir > 0 &&
+		    (range->end.stmt == NULL ||
+		     vy_entry_compare(itr->last, range->end, cmp_def) < 0))
 			break;
-		if (dir < 0 && (range->begin.stmt == NULL ||
-				vy_entry_compare(itr->last, range->begin,
-						 cmp_def) > 0))
+		if (dir < 0 &&
+		    (range->begin.stmt == NULL ||
+		     vy_entry_compare(itr->last, range->begin, cmp_def) > 0))
 			break;
 	}
 	itr->curr_range = range;
@@ -768,8 +768,8 @@ vy_read_iterator_apply_history(struct vy_read_iterator *itr,
 	}
 
 	int upserts_applied = 0;
-	int rc = vy_history_apply(&history, lsm->cmp_def,
-				  true, &upserts_applied, ret);
+	int rc = vy_history_apply(&history, lsm->cmp_def, true,
+				  &upserts_applied, ret);
 
 	lsm->stat.upsert.applied += upserts_applied;
 	vy_history_cleanup(&history);
@@ -787,18 +787,18 @@ vy_read_iterator_track_read(struct vy_read_iterator *itr, struct vy_entry entry)
 
 	if (entry.stmt == NULL) {
 		entry = (itr->iterator_type == ITER_EQ ||
-			 itr->iterator_type == ITER_REQ ?
-			 itr->key : itr->lsm->env->empty_key);
+					 itr->iterator_type == ITER_REQ ?
+				       itr->key :
+				       itr->lsm->env->empty_key);
 	}
 
 	int rc;
 	if (iterator_direction(itr->iterator_type) >= 0) {
 		rc = vy_tx_track(itr->tx, itr->lsm, itr->key,
-				 itr->iterator_type != ITER_GT,
-				 entry, true);
+				 itr->iterator_type != ITER_GT, entry, true);
 	} else {
-		rc = vy_tx_track(itr->tx, itr->lsm, entry, true,
-				 itr->key, itr->iterator_type != ITER_LT);
+		rc = vy_tx_track(itr->tx, itr->lsm, entry, true, itr->key,
+				 itr->iterator_type != ITER_LT);
 	}
 	return rc;
 }
@@ -853,8 +853,8 @@ vy_read_iterator_cache_add(struct vy_read_iterator *itr, struct vy_entry entry)
 		itr->last_cached = vy_entry_none();
 		return;
 	}
-	vy_cache_add(&itr->lsm->cache, entry, itr->last_cached,
-		     itr->key, itr->iterator_type);
+	vy_cache_add(&itr->lsm->cache, entry, itr->last_cached, itr->key,
+		     itr->iterator_type);
 	if (entry.stmt != NULL)
 		tuple_ref(entry.stmt);
 	if (itr->last_cached.stmt != NULL)

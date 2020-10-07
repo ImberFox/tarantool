@@ -66,9 +66,9 @@ column_mask_set_fieldno(uint64_t *column_mask, uint32_t fieldno)
 		 * @sa column_mask key_def declaration for
 		 * details.
 		 */
-		*column_mask |= ((uint64_t) 1) << 63;
+		*column_mask |= ((uint64_t)1) << 63;
 	else
-		*column_mask |= ((uint64_t) 1) << fieldno;
+		*column_mask |= ((uint64_t)1) << fieldno;
 }
 
 /**
@@ -90,7 +90,7 @@ column_mask_set_range(uint64_t *column_mask, uint32_t first_fieldno_in_range)
 		*column_mask |= COLUMN_MASK_FULL << first_fieldno_in_range;
 	} else {
 		/* A range outside "short" range. */
-		*column_mask |= ((uint64_t) 1) << 63;
+		*column_mask |= ((uint64_t)1) << 63;
 	}
 }
 
@@ -119,7 +119,7 @@ key_update_can_be_skipped(uint64_t key_mask, uint64_t update_mask)
 static inline bool
 column_mask_fieldno_is_set(uint64_t column_mask, uint32_t fieldno)
 {
-	uint64_t mask = (uint64_t) 1 << (fieldno < 63 ? fieldno : 63);
+	uint64_t mask = (uint64_t)1 << (fieldno < 63 ? fieldno : 63);
 	return (column_mask & mask) != 0;
 }
 

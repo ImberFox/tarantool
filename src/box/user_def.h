@@ -31,7 +31,7 @@
  * SUCH DAMAGE.
  */
 #include "schema_def.h" /* for SCHEMA_OBJECT_TYPE */
-#include "scramble.h" /* for SCRAMBLE_SIZE */
+#include "scramble.h"	/* for SCRAMBLE_SIZE */
 #define RB_COMPACT 1
 #include "small/rb.h"
 #include "small/rlist.h"
@@ -102,7 +102,7 @@ enum priv_type {
 	/* Never granted, but used internally. */
 	PRIV_REVOKE = 16384,
 	/* all bits */
-	PRIV_ALL  = ~((user_access_t) 0),
+	PRIV_ALL = ~((user_access_t)0),
 };
 
 /**
@@ -180,7 +180,7 @@ user_def_sizeof(uint32_t name_len)
 enum {
 	BOX_SYSTEM_USER_ID_MIN = 0,
 	GUEST = 0,
-	ADMIN =  1,
+	ADMIN = 1,
 	PUBLIC = 2, /* role */
 	SUPER = 31, /* role */
 	BOX_SYSTEM_USER_ID_MAX = PUBLIC

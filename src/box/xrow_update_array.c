@@ -47,8 +47,8 @@ xrow_update_op_prepare_num_token(struct xrow_update_op *op)
 	if (op->is_token_consumed && xrow_update_op_next_token(op) != 0)
 		return -1;
 	if (op->token_type != JSON_TOKEN_NUM) {
-		return xrow_update_err(op, "can't update an array by a "\
-				       "non-numeric index");
+		return xrow_update_err(op, "can't update an array by a "
+					   "non-numeric index");
 	}
 	return 0;
 }
@@ -117,7 +117,7 @@ xrow_update_array_item_split(struct region *region,
 			     struct xrow_update_array_item *prev, size_t size,
 			     size_t offset)
 {
-	(void) size;
+	(void)size;
 	struct xrow_update_array_item *next = (struct xrow_update_array_item *)
 		xrow_update_alloc(region, sizeof(*next));
 	if (next == NULL)
@@ -292,10 +292,12 @@ xrow_update_array_store(struct xrow_update_field *field,
 		for (; node != NULL; node = xrow_update_rope_iter_next(&it)) {
 			struct xrow_update_array_item *item =
 				xrow_update_rope_leaf_data(node);
-			next_node = json_tree_lookup(format_tree, this_node, &token);
+			next_node = json_tree_lookup(format_tree, this_node,
+						     &token);
 			uint32_t field_count = xrow_update_rope_leaf_size(node);
-			out += xrow_update_field_store(&item->field, format_tree,
-						       next_node, out, out_end);
+			out += xrow_update_field_store(&item->field,
+						       format_tree, next_node,
+						       out, out_end);
 			assert(item->tail_size == 0 || field_count > 1);
 			memcpy(out, item->field.data + item->field.size,
 			       item->tail_size);
@@ -304,7 +306,7 @@ xrow_update_array_store(struct xrow_update_field *field,
 			total_field_count += field_count;
 		}
 	}
-	(void) total_field_count;
+	(void)total_field_count;
 	assert(xrow_update_rope_size(field->array.rope) == total_field_count);
 	assert(out <= out_end);
 	return out - out_begin;
@@ -351,7 +353,7 @@ xrow_update_op_do_array_set(struct xrow_update_op *op,
 		return -1;
 
 	/* Interpret '=' for n + 1 field as insert. */
-	if (op->field_no == (int32_t) xrow_update_rope_size(rope))
+	if (op->field_no == (int32_t)xrow_update_rope_size(rope))
 		return xrow_update_op_do_array_insert(op, field);
 
 	struct xrow_update_array_item *item =
@@ -396,7 +398,7 @@ xrow_update_op_do_array_delete(struct xrow_update_op *op,
 	if (xrow_update_op_adjust_field_no(op, size) != 0)
 		return -1;
 	uint32_t delete_count = op->arg.del.count;
-	if ((uint64_t) op->field_no + delete_count > size)
+	if ((uint64_t)op->field_no + delete_count > size)
 		delete_count = size - op->field_no;
 	assert(delete_count > 0);
 	for (uint32_t u = delete_count; u != 0; --u)
@@ -404,29 +406,29 @@ xrow_update_op_do_array_delete(struct xrow_update_op *op,
 	return 0;
 }
 
-#define DO_SCALAR_OP_GENERIC(op_type)						\
-int										\
-xrow_update_op_do_array_##op_type(struct xrow_update_op *op,			\
-				  struct xrow_update_field *field)		\
-{										\
-	if (xrow_update_op_prepare_num_token(op) != 0)				\
-		return -1;							\
-	struct xrow_update_array_item *item =					\
-		xrow_update_array_extract_item(field, op);			\
-	if (item == NULL)							\
-		return -1;							\
-	if (!xrow_update_op_is_term(op)) {					\
-		op->is_token_consumed = true;					\
-		return xrow_update_op_do_field_##op_type(op, &item->field);	\
-	}									\
-	if (item->field.type != XUPDATE_NOP)					\
-		return xrow_update_err_double(op);				\
-	if (xrow_update_op_do_##op_type(op, item->field.data) != 0)		\
-		return -1;							\
-	item->field.type = XUPDATE_SCALAR;					\
-	item->field.scalar.op = op;						\
-	return 0;								\
-}
+#define DO_SCALAR_OP_GENERIC(op_type)                                           \
+	int xrow_update_op_do_array_##op_type(struct xrow_update_op *op,        \
+					      struct xrow_update_field *field)  \
+	{                                                                       \
+		if (xrow_update_op_prepare_num_token(op) != 0)                  \
+			return -1;                                              \
+		struct xrow_update_array_item *item =                           \
+			xrow_update_array_extract_item(field, op);              \
+		if (item == NULL)                                               \
+			return -1;                                              \
+		if (!xrow_update_op_is_term(op)) {                              \
+			op->is_token_consumed = true;                           \
+			return xrow_update_op_do_field_##op_type(op,            \
+								 &item->field); \
+		}                                                               \
+		if (item->field.type != XUPDATE_NOP)                            \
+			return xrow_update_err_double(op);                      \
+		if (xrow_update_op_do_##op_type(op, item->field.data) != 0)     \
+			return -1;                                              \
+		item->field.type = XUPDATE_SCALAR;                              \
+		item->field.scalar.op = op;                                     \
+		return 0;                                                       \
+	}
 
 DO_SCALAR_OP_GENERIC(arith)
 

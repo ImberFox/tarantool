@@ -109,8 +109,9 @@ vy_write_history_new(struct vy_entry entry, struct vy_write_history *next)
 		return NULL;
 	}
 	h->entry = entry;
-	assert(next == NULL || (next->entry.stmt != NULL &&
-	       vy_stmt_lsn(next->entry.stmt) > vy_stmt_lsn(entry.stmt)));
+	assert(next == NULL ||
+	       (next->entry.stmt != NULL &&
+		vy_stmt_lsn(next->entry.stmt) > vy_stmt_lsn(entry.stmt)));
 	h->next = next;
 	vy_stmt_ref_if_possible(entry.stmt);
 	return h;
@@ -237,8 +238,8 @@ heap_less(heap_t *heap, struct vy_write_src *src1, struct vy_write_src *src2)
 	 * Virtual sources use 0 for LSN, so they are ordered
 	 * last automatically.
 	 */
-	int64_t lsn1 = src1->is_end_of_key  ? 0 : vy_stmt_lsn(src1->entry.stmt);
-	int64_t lsn2 = src2->is_end_of_key  ? 0 : vy_stmt_lsn(src2->entry.stmt);
+	int64_t lsn1 = src1->is_end_of_key ? 0 : vy_stmt_lsn(src1->entry.stmt);
+	int64_t lsn2 = src2->is_end_of_key ? 0 : vy_stmt_lsn(src2->entry.stmt);
 	if (lsn1 != lsn2)
 		return lsn1 > lsn2;
 
@@ -251,7 +252,6 @@ heap_less(heap_t *heap, struct vy_write_src *src1, struct vy_write_src *src2)
 	 */
 	return (vy_stmt_type(src1->entry.stmt) == IPROTO_DELETE ? 1 : 0) <
 	       (vy_stmt_type(src2->entry.stmt) == IPROTO_DELETE ? 1 : 0);
-
 }
 
 /**
@@ -262,10 +262,10 @@ heap_less(heap_t *heap, struct vy_write_src *src1, struct vy_write_src *src2)
 static struct vy_write_src *
 vy_write_iterator_new_src(struct vy_write_iterator *stream)
 {
-	struct vy_write_src *res = (struct vy_write_src *) malloc(sizeof(*res));
+	struct vy_write_src *res = (struct vy_write_src *)malloc(sizeof(*res));
 	if (res == NULL) {
-		diag_set(OutOfMemory, sizeof(*res),
-			 "malloc", "vinyl write stream");
+		diag_set(OutOfMemory, sizeof(*res), "malloc",
+			 "vinyl write stream");
 		return NULL;
 	}
 	heap_node_create(&res->heap_node);
@@ -274,7 +274,6 @@ vy_write_iterator_new_src(struct vy_write_iterator *stream)
 	rlist_add(&stream->src_list, &res->in_src_list);
 	return res;
 }
-
 
 /** Close a stream, remove it from the write iterator and delete. */
 static void
@@ -310,8 +309,8 @@ vy_write_iterator_add_src(struct vy_write_iterator *stream,
 
 	rc = vy_source_heap_insert(&stream->src_heap, src);
 	if (rc != 0) {
-		diag_set(OutOfMemory, sizeof(void *),
-			 "malloc", "vinyl write stream heap");
+		diag_set(OutOfMemory, sizeof(void *), "malloc",
+			 "vinyl write stream heap");
 		goto stop;
 	}
 	return 0;
@@ -326,7 +325,7 @@ stop:
  */
 static void
 vy_write_iterator_remove_src(struct vy_write_iterator *stream,
-			   struct vy_write_src *src)
+			     struct vy_write_src *src)
 {
 	if (heap_node_is_stray(&src->heap_node))
 		return; /* already removed */
@@ -362,7 +361,7 @@ vy_write_iterator_new(struct key_def *cmp_def, bool is_primary,
 	size_t size = sizeof(struct vy_write_iterator) +
 		      count * sizeof(struct vy_read_view_stmt);
 	struct vy_write_iterator *stream =
-		(struct vy_write_iterator *) calloc(1, size);
+		(struct vy_write_iterator *)calloc(1, size);
 	if (stream == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "write stream");
 		return NULL;
@@ -409,8 +408,8 @@ vy_write_iterator_start(struct vy_stmt_stream *vstream)
 		if (vy_write_iterator_add_src(stream, src) != 0)
 			goto fail;
 #ifndef NDEBUG
-		struct errinj *inj =
-			errinj(ERRINJ_VY_WRITE_ITERATOR_START_FAIL, ERRINJ_BOOL);
+		struct errinj *inj = errinj(ERRINJ_VY_WRITE_ITERATOR_START_FAIL,
+					    ERRINJ_BOOL);
 		if (inj != NULL && inj->bparam) {
 			inj->bparam = false;
 			diag_set(OutOfMemory, 666, "malloc", "struct vy_stmt");
@@ -447,7 +446,7 @@ vy_write_iterator_stop(struct vy_stmt_stream *vstream)
 		stream->deferred_delete = vy_entry_none();
 	}
 	struct vy_deferred_delete_handler *handler =
-			stream->deferred_delete_handler;
+		stream->deferred_delete_handler;
 	if (handler != NULL) {
 		handler->iface->destroy(handler);
 		stream->deferred_delete_handler = NULL;
@@ -556,8 +555,7 @@ vy_write_iterator_push_rv(struct vy_write_iterator *stream,
 	assert(current_rv_i < stream->rv_count);
 	struct vy_read_view_stmt *rv = &stream->read_views[current_rv_i];
 	assert(rv->vlsn >= vy_stmt_lsn(entry.stmt));
-	struct vy_write_history *h =
-		vy_write_history_new(entry, rv->history);
+	struct vy_write_history *h = vy_write_history_new(entry, rv->history);
 	if (h == NULL)
 		return -1;
 	rv->history = h;
@@ -627,7 +625,7 @@ vy_write_iterator_deferred_delete(struct vy_write_iterator *stream,
 	 */
 	if (stream->deferred_delete.stmt != NULL) {
 		struct vy_deferred_delete_handler *handler =
-				stream->deferred_delete_handler;
+			stream->deferred_delete_handler;
 		if (handler != NULL && vy_stmt_type(stmt) != IPROTO_DELETE &&
 		    handler->iface->process(handler, stmt,
 					    stream->deferred_delete.stmt) != 0)
@@ -669,8 +667,8 @@ vy_write_iterator_deferred_delete(struct vy_write_iterator *stream,
  * @retval -1 Memory error.
  */
 static NODISCARD int
-vy_write_iterator_build_history(struct vy_write_iterator *stream,
-				int *count, bool *is_first_insert)
+vy_write_iterator_build_history(struct vy_write_iterator *stream, int *count,
+				bool *is_first_insert)
 {
 	*count = 0;
 	*is_first_insert = false;
@@ -695,8 +693,8 @@ vy_write_iterator_build_history(struct vy_write_iterator *stream,
 	end_of_key_src.entry = src->entry;
 	int rc = vy_source_heap_insert(&stream->src_heap, &end_of_key_src);
 	if (rc) {
-		diag_set(OutOfMemory, sizeof(void *),
-			 "malloc", "vinyl write stream heap");
+		diag_set(OutOfMemory, sizeof(void *), "malloc",
+			 "vinyl write stream heap");
 		return rc;
 	}
 	vy_stmt_ref_if_possible(src->entry.stmt);
@@ -710,7 +708,8 @@ vy_write_iterator_build_history(struct vy_write_iterator *stream,
 	int64_t merge_until_lsn = vy_write_iterator_get_vlsn(stream, 1);
 
 	while (true) {
-		*is_first_insert = vy_stmt_type(src->entry.stmt) == IPROTO_INSERT;
+		*is_first_insert = vy_stmt_type(src->entry.stmt) ==
+				   IPROTO_INSERT;
 
 		if (!stream->is_primary &&
 		    (vy_stmt_flags(src->entry.stmt) & VY_STMT_UPDATE) != 0) {
@@ -791,7 +790,7 @@ vy_write_iterator_build_history(struct vy_write_iterator *stream,
 				vy_write_iterator_get_vlsn(stream,
 							   current_rv_i + 1);
 		}
-next_lsn:
+	next_lsn:
 		rc = vy_write_iterator_merge_step(stream);
 		if (rc != 0)
 			break;
@@ -845,8 +844,7 @@ vy_read_view_merge(struct vy_write_iterator *stream, struct vy_entry prev,
 	 * by a read view if it is preceded by another DELETE for
 	 * the same key.
 	 */
-	if (prev.stmt != NULL &&
-	    vy_stmt_type(prev.stmt) == IPROTO_DELETE &&
+	if (prev.stmt != NULL && vy_stmt_type(prev.stmt) == IPROTO_DELETE &&
 	    vy_stmt_type(h->entry.stmt) == IPROTO_DELETE) {
 		vy_write_history_destroy(h);
 		rv->history = NULL;
@@ -871,13 +869,13 @@ vy_read_view_merge(struct vy_write_iterator *stream, struct vy_entry prev,
 	 *    it, whether is_last_level is true or not.
 	 */
 	if (vy_stmt_type(h->entry.stmt) == IPROTO_UPSERT &&
-	    (stream->is_last_level || (prev.stmt != NULL &&
-	     vy_stmt_type(prev.stmt) != IPROTO_UPSERT))) {
+	    (stream->is_last_level ||
+	     (prev.stmt != NULL && vy_stmt_type(prev.stmt) != IPROTO_UPSERT))) {
 		assert(!stream->is_last_level || prev.stmt == NULL ||
 		       vy_stmt_type(prev.stmt) != IPROTO_UPSERT);
 		struct vy_entry applied;
-		applied = vy_entry_apply_upsert(h->entry, prev,
-						stream->cmp_def, false);
+		applied = vy_entry_apply_upsert(h->entry, prev, stream->cmp_def,
+						false);
 		if (applied.stmt == NULL)
 			return -1;
 		vy_stmt_unref_if_possible(h->entry.stmt);
@@ -1034,7 +1032,8 @@ vy_write_iterator_build_read_views(struct vy_write_iterator *stream, int *count)
 	for (; rv >= &stream->read_views[0]; --rv) {
 		if (rv->history == NULL)
 			continue;
-		if (vy_read_view_merge(stream, prev, rv, is_first_insert) != 0) {
+		if (vy_read_view_merge(stream, prev, rv, is_first_insert) !=
+		    0) {
 			rc = -1;
 			goto cleanup;
 		}
@@ -1123,4 +1122,3 @@ static const struct vy_stmt_stream_iface vy_slice_stream_iface = {
 	.stop = vy_write_iterator_stop,
 	.close = vy_write_iterator_close
 };
-

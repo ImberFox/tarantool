@@ -60,15 +60,19 @@
 #include "trivia/util.h"
 
 /* Min and max values for vy_scheduler::timeout. */
-#define VY_SCHEDULER_TIMEOUT_MIN	1
-#define VY_SCHEDULER_TIMEOUT_MAX	60
+#define VY_SCHEDULER_TIMEOUT_MIN 1
+#define VY_SCHEDULER_TIMEOUT_MAX 60
 
 static int vy_worker_f(va_list);
 static int vy_scheduler_f(va_list);
-static void vy_task_execute_f(struct cmsg *);
-static void vy_task_complete_f(struct cmsg *);
-static void vy_deferred_delete_batch_process_f(struct cmsg *);
-static void vy_deferred_delete_batch_free_f(struct cmsg *);
+static void
+vy_task_execute_f(struct cmsg *);
+static void
+vy_task_complete_f(struct cmsg *);
+static void
+vy_deferred_delete_batch_process_f(struct cmsg *);
+static void
+vy_deferred_delete_batch_free_f(struct cmsg *);
 
 static const struct cmsg_hop vy_task_execute_route[] = {
 	{ vy_task_execute_f, NULL },
@@ -222,7 +226,7 @@ struct vy_task {
 };
 
 static const struct vy_deferred_delete_handler_iface
-vy_task_deferred_delete_iface;
+	vy_task_deferred_delete_iface;
 
 /**
  * Allocate a new task to be executed by a worker thread.
@@ -237,8 +241,8 @@ vy_task_new(struct vy_scheduler *scheduler, struct vy_worker *worker,
 {
 	struct vy_task *task = calloc(1, sizeof(*task));
 	if (task == NULL) {
-		diag_set(OutOfMemory, sizeof(*task),
-			 "malloc", "struct vy_task");
+		diag_set(OutOfMemory, sizeof(*task), "malloc",
+			 "struct vy_task");
 		return NULL;
 	}
 	memset(task, 0, sizeof(*task));
@@ -432,8 +436,8 @@ vy_scheduler_create(struct vy_scheduler *scheduler, int write_threads,
 	scheduler->read_views = read_views;
 	scheduler->run_env = run_env;
 
-	scheduler->scheduler_fiber = fiber_new("vinyl.scheduler",
-					       vy_scheduler_f);
+	scheduler->scheduler_fiber =
+		fiber_new("vinyl.scheduler", vy_scheduler_f);
 	if (scheduler->scheduler_fiber == NULL)
 		panic("failed to allocate vinyl scheduler fiber");
 
@@ -455,10 +459,9 @@ vy_scheduler_create(struct vy_scheduler *scheduler, int write_threads,
 	assert(write_threads > 1);
 	int dump_threads = MAX(1, write_threads / 4);
 	int compaction_threads = write_threads - dump_threads;
-	vy_worker_pool_create(&scheduler->dump_pool,
-			      "dump", dump_threads);
-	vy_worker_pool_create(&scheduler->compaction_pool,
-			      "compaction", compaction_threads);
+	vy_worker_pool_create(&scheduler->dump_pool, "dump", dump_threads);
+	vy_worker_pool_create(&scheduler->compaction_pool, "compaction",
+			      compaction_threads);
 
 	stailq_create(&scheduler->processed_tasks);
 
@@ -515,8 +518,8 @@ vy_scheduler_on_delete_lsm(struct trigger *trigger, void *event)
 {
 	struct vy_lsm *lsm = event;
 	struct vy_scheduler *scheduler = trigger->data;
-	assert(! heap_node_is_stray(&lsm->in_dump));
-	assert(! heap_node_is_stray(&lsm->in_compaction));
+	assert(!heap_node_is_stray(&lsm->in_dump));
+	assert(!heap_node_is_stray(&lsm->in_compaction));
 	vy_dump_heap_delete(&scheduler->dump_heap, lsm);
 	vy_compaction_heap_delete(&scheduler->compaction_heap, lsm);
 	trigger_clear(trigger);
@@ -552,8 +555,8 @@ vy_scheduler_add_lsm(struct vy_scheduler *scheduler, struct vy_lsm *lsm)
 static void
 vy_scheduler_update_lsm(struct vy_scheduler *scheduler, struct vy_lsm *lsm)
 {
-	assert(! heap_node_is_stray(&lsm->in_dump));
-	assert(! heap_node_is_stray(&lsm->in_compaction));
+	assert(!heap_node_is_stray(&lsm->in_dump));
+	assert(!heap_node_is_stray(&lsm->in_compaction));
 	vy_dump_heap_update(&scheduler->dump_heap, lsm);
 	vy_compaction_heap_update(&scheduler->compaction_heap, lsm);
 }
@@ -675,8 +678,8 @@ vy_scheduler_complete_dump(struct vy_scheduler *scheduler)
 	scheduler->dump_start = now;
 	scheduler->dump_generation = min_generation;
 	scheduler->stat.dump_count++;
-	scheduler->dump_complete_cb(scheduler,
-			min_generation - 1, dump_duration);
+	scheduler->dump_complete_cb(scheduler, min_generation - 1,
+				    dump_duration);
 	fiber_cond_signal(&scheduler->dump_cond);
 }
 
@@ -698,7 +701,8 @@ vy_scheduler_begin_checkpoint(struct vy_scheduler *scheduler, bool is_scheduled)
 			struct error *e = diag_last_error(&scheduler->diag);
 			diag_set_error(diag_get(), e);
 			say_error("cannot checkpoint vinyl, "
-				  "scheduler is throttled with: %s", e->errmsg);
+				  "scheduler is throttled with: %s",
+				  e->errmsg);
 			return -1;
 		}
 		say_info("scheduler is unthrottled due to manual checkpoint "
@@ -796,9 +800,11 @@ vy_run_discard(struct vy_run *run)
 
 	vy_run_unref(run);
 
-	ERROR_INJECT(ERRINJ_VY_RUN_DISCARD,
-		     {say_error("error injection: run %lld not discarded",
-				(long long)run_id); return;});
+	ERROR_INJECT(ERRINJ_VY_RUN_DISCARD, {
+		say_error("error injection: run %lld not discarded",
+			  (long long)run_id);
+		return;
+	});
 
 	vy_log_tx_begin();
 	/*
@@ -865,8 +871,8 @@ vy_deferred_delete_process_one(struct space *deferred_delete_space,
 		return -1;
 
 	struct tuple *unused;
-	if (space_execute_dml(deferred_delete_space, txn,
-			      &request, &unused) != 0) {
+	if (space_execute_dml(deferred_delete_space, txn, &request, &unused) !=
+	    0) {
 		txn_rollback_stmt(txn);
 		return -1;
 	}
@@ -885,8 +891,8 @@ vy_deferred_delete_process_one(struct space *deferred_delete_space,
 static void
 vy_deferred_delete_batch_process_f(struct cmsg *cmsg)
 {
-	struct vy_deferred_delete_batch *batch = container_of(cmsg,
-				struct vy_deferred_delete_batch, cmsg);
+	struct vy_deferred_delete_batch *batch =
+		container_of(cmsg, struct vy_deferred_delete_batch, cmsg);
 	struct vy_task *task = batch->task;
 	struct vy_lsm *pk = task->lsm;
 
@@ -936,8 +942,8 @@ fail:
 static void
 vy_deferred_delete_batch_free_f(struct cmsg *cmsg)
 {
-	struct vy_deferred_delete_batch *batch = container_of(cmsg,
-				struct vy_deferred_delete_batch, cmsg);
+	struct vy_deferred_delete_batch *batch =
+		container_of(cmsg, struct vy_deferred_delete_batch, cmsg);
 	struct vy_task *task = batch->task;
 	for (int i = 0; i < batch->count; i++) {
 		struct vy_deferred_delete_stmt *stmt = &batch->stmt[i];
@@ -992,8 +998,8 @@ vy_task_deferred_delete_process(struct vy_deferred_delete_handler *handler,
 {
 	enum { MAX_IN_PROGRESS = 10 };
 
-	struct vy_task *task = container_of(handler, struct vy_task,
-					    deferred_delete_handler);
+	struct vy_task *task =
+		container_of(handler, struct vy_task, deferred_delete_handler);
 	struct vy_deferred_delete_batch *batch = task->deferred_delete_batch;
 
 	/*
@@ -1036,18 +1042,18 @@ vy_task_deferred_delete_process(struct vy_deferred_delete_handler *handler,
 static void
 vy_task_deferred_delete_destroy(struct vy_deferred_delete_handler *handler)
 {
-	struct vy_task *task = container_of(handler, struct vy_task,
-					    deferred_delete_handler);
+	struct vy_task *task =
+		container_of(handler, struct vy_task, deferred_delete_handler);
 	vy_task_deferred_delete_flush(task);
 	while (task->deferred_delete_in_progress > 0)
 		fiber_sleep(TIMEOUT_INFINITY);
 }
 
 static const struct vy_deferred_delete_handler_iface
-vy_task_deferred_delete_iface = {
-	.process = vy_task_deferred_delete_process,
-	.destroy = vy_task_deferred_delete_destroy,
-};
+	vy_task_deferred_delete_iface = {
+		.process = vy_task_deferred_delete_process,
+		.destroy = vy_task_deferred_delete_destroy,
+	};
 
 static int
 vy_task_write_run(struct vy_task *task, bool no_compression)
@@ -1057,17 +1063,17 @@ vy_task_write_run(struct vy_task *task, bool no_compression)
 	struct vy_lsm *lsm = task->lsm;
 	struct vy_stmt_stream *wi = task->wi;
 
-	ERROR_INJECT(ERRINJ_VY_RUN_WRITE,
-		     {diag_set(ClientError, ER_INJECTION,
-			       "vinyl dump"); return -1;});
+	ERROR_INJECT(ERRINJ_VY_RUN_WRITE, {
+		diag_set(ClientError, ER_INJECTION, "vinyl dump");
+		return -1;
+	});
 	ERROR_INJECT_SLEEP(ERRINJ_VY_RUN_WRITE_DELAY);
 
 	struct vy_run_writer writer;
 	if (vy_run_writer_create(&writer, task->new_run, lsm->env->path,
-				 lsm->space_id, lsm->index_id,
-				 task->cmp_def, task->key_def,
-				 task->page_size, task->bloom_fpr,
-				 no_compression) != 0)
+				 lsm->space_id, lsm->index_id, task->cmp_def,
+				 task->key_def, task->page_size,
+				 task->bloom_fpr, no_compression) != 0)
 		goto fail;
 
 	if (wi->iface->start(wi) != 0)
@@ -1076,8 +1082,8 @@ vy_task_write_run(struct vy_task *task, bool no_compression)
 	int loops = 0;
 	struct vy_entry entry = vy_entry_none();
 	while ((rc = wi->iface->next(wi, &entry)) == 0 && entry.stmt != NULL) {
-		struct errinj *inj = errinj(ERRINJ_VY_RUN_WRITE_STMT_TIMEOUT,
-					    ERRINJ_DOUBLE);
+		struct errinj *inj =
+			errinj(ERRINJ_VY_RUN_WRITE_STMT_TIMEOUT, ERRINJ_DOUBLE);
 		if (inj != NULL && inj->dparam > 0)
 			thread_sleep(inj->dparam);
 
@@ -1158,8 +1164,8 @@ vy_task_dump_complete(struct vy_task *task)
 	 * Figure out which ranges intersect the new run.
 	 */
 	if (vy_lsm_find_range_intersection(lsm, new_run->info.min_key,
-					   new_run->info.max_key,
-					   &begin_range, &end_range) != 0)
+					   new_run->info.max_key, &begin_range,
+					   &end_range) != 0)
 		goto fail;
 
 	/*
@@ -1173,8 +1179,8 @@ vy_task_dump_complete(struct vy_task *task)
 	}
 	for (range = begin_range, i = 0; range != end_range;
 	     range = vy_range_tree_next(&lsm->range_tree, range), i++) {
-		slice = vy_slice_new(vy_log_next_id(), new_run,
-				     range->begin, range->end, lsm->cmp_def);
+		slice = vy_slice_new(vy_log_next_id(), new_run, range->begin,
+				     range->end, lsm->cmp_def);
 		if (slice == NULL)
 			goto fail_free_slices;
 
@@ -1473,12 +1479,12 @@ vy_task_compaction_complete(struct vy_task *task)
 	 * as a result of compaction.
 	 */
 	RLIST_HEAD(unused_runs);
-	for (slice = first_slice; ; slice = rlist_next_entry(slice, in_range)) {
+	for (slice = first_slice;; slice = rlist_next_entry(slice, in_range)) {
 		slice->run->compacted_slice_count++;
 		if (slice == last_slice)
 			break;
 	}
-	for (slice = first_slice; ; slice = rlist_next_entry(slice, in_range)) {
+	for (slice = first_slice;; slice = rlist_next_entry(slice, in_range)) {
 		run = slice->run;
 		if (run->compacted_slice_count == run->slice_count)
 			rlist_add_entry(&unused_runs, run, in_unused);
@@ -1491,7 +1497,7 @@ vy_task_compaction_complete(struct vy_task *task)
 	 * Log change in metadata.
 	 */
 	vy_log_tx_begin();
-	for (slice = first_slice; ; slice = rlist_next_entry(slice, in_range)) {
+	for (slice = first_slice;; slice = rlist_next_entry(slice, in_range)) {
 		vy_log_delete_slice(slice->id);
 		if (slice == last_slice)
 			break;
@@ -1552,7 +1558,7 @@ vy_task_compaction_complete(struct vy_task *task)
 	if (new_slice != NULL)
 		vy_range_add_slice_before(range, new_slice, first_slice);
 	vy_disk_stmt_counter_reset(&compaction_input);
-	for (slice = first_slice; ; slice = next_slice) {
+	for (slice = first_slice;; slice = next_slice) {
 		next_slice = rlist_next_entry(slice, in_range);
 		vy_range_remove_slice(range, slice);
 		rlist_add_entry(&compacted_slices, slice, in_range);
@@ -1564,8 +1570,8 @@ vy_task_compaction_complete(struct vy_task *task)
 	vy_range_update_compaction_priority(range, &lsm->opts);
 	vy_range_update_dumps_per_compaction(range);
 	vy_lsm_acct_range(lsm, range);
-	vy_lsm_acct_compaction(lsm, compaction_time,
-			       &compaction_input, &compaction_output);
+	vy_lsm_acct_compaction(lsm, compaction_time, &compaction_input,
+			       &compaction_output);
 	scheduler->stat.compaction_input += compaction_input.bytes;
 	scheduler->stat.compaction_output += compaction_output.bytes;
 	scheduler->stat.compaction_time += compaction_time;
@@ -1575,8 +1581,8 @@ vy_task_compaction_complete(struct vy_task *task)
 	 */
 	rlist_foreach_entry(run, &unused_runs, in_unused)
 		vy_lsm_remove_run(lsm, run);
-	rlist_foreach_entry_safe(slice, &compacted_slices,
-				 in_range, next_slice) {
+	rlist_foreach_entry_safe(slice, &compacted_slices, in_range,
+				 next_slice) {
 		vy_slice_wait_pinned(slice);
 		vy_slice_delete(slice);
 	}
@@ -1588,8 +1594,8 @@ vy_task_compaction_complete(struct vy_task *task)
 	vy_range_heap_insert(&lsm->range_heap, range);
 	vy_scheduler_update_lsm(scheduler, lsm);
 
-	say_info("%s: completed compacting range %s",
-		 vy_lsm_name(lsm), vy_range_str(range));
+	say_info("%s: completed compacting range %s", vy_lsm_name(lsm),
+		 vy_range_str(range));
 	return 0;
 }
 
@@ -1605,8 +1611,8 @@ vy_task_compaction_abort(struct vy_task *task)
 
 	struct error *e = diag_last_error(&task->diag);
 	error_log(e);
-	say_error("%s: failed to compact range %s",
-		  vy_lsm_name(lsm), vy_range_str(range));
+	say_error("%s: failed to compact range %s", vy_lsm_name(lsm),
+		  vy_range_str(range));
 
 	vy_run_discard(task->new_run);
 
@@ -1635,8 +1641,8 @@ vy_task_compaction_new(struct vy_scheduler *scheduler, struct vy_worker *worker,
 		return 0;
 	}
 
-	struct vy_task *task = vy_task_new(scheduler, worker, lsm,
-					   &compaction_ops);
+	struct vy_task *task =
+		vy_task_new(scheduler, worker, lsm, &compaction_ops);
 	if (task == NULL)
 		goto err_task;
 
@@ -1648,8 +1654,9 @@ vy_task_compaction_new(struct vy_scheduler *scheduler, struct vy_worker *worker,
 	bool is_last_level = (range->compaction_priority == range->slice_count);
 	wi = vy_write_iterator_new(task->cmp_def, lsm->index_id == 0,
 				   is_last_level, scheduler->read_views,
-				   lsm->index_id > 0 ? NULL :
-				   &task->deferred_delete_handler);
+				   lsm->index_id > 0 ?
+						 NULL :
+						 &task->deferred_delete_handler);
 	if (wi == NULL)
 		goto err_wi;
 
@@ -1657,11 +1664,11 @@ vy_task_compaction_new(struct vy_scheduler *scheduler, struct vy_worker *worker,
 	int32_t dump_count = 0;
 	int n = range->compaction_priority;
 	rlist_foreach_entry(slice, &range->slices, in_range) {
-		if (vy_write_iterator_new_slice(wi, slice,
-						lsm->disk_format) != 0)
+		if (vy_write_iterator_new_slice(wi, slice, lsm->disk_format) !=
+		    0)
 			goto err_wi_sub;
-		new_run->dump_lsn = MAX(new_run->dump_lsn,
-					slice->run->dump_lsn);
+		new_run->dump_lsn =
+			MAX(new_run->dump_lsn, slice->run->dump_lsn);
 		dump_count += slice->run->dump_count;
 		/* Remember the slices we are compacting. */
 		if (task->first_slice == NULL)
@@ -1702,7 +1709,7 @@ vy_task_compaction_new(struct vy_scheduler *scheduler, struct vy_worker *worker,
 
 	say_info("%s: started compacting range %s, runs %d/%d",
 		 vy_lsm_name(lsm), vy_range_str(range),
-                 range->compaction_priority, range->slice_count);
+		 range->compaction_priority, range->slice_count);
 	*p_task = task;
 	return 0;
 
@@ -1783,8 +1790,8 @@ static void
 vy_task_complete_f(struct cmsg *cmsg)
 {
 	struct vy_task *task = container_of(cmsg, struct vy_task, cmsg);
-	stailq_add_tail_entry(&task->scheduler->processed_tasks,
-			      task, in_processed);
+	stailq_add_tail_entry(&task->scheduler->processed_tasks, task,
+			      in_processed);
 	fiber_cond_signal(&task->scheduler->scheduler_cond);
 }
 
@@ -1892,7 +1899,8 @@ vy_scheduler_peek_compaction(struct vy_scheduler *scheduler,
 	struct vy_worker *worker = NULL;
 retry:
 	*ptask = NULL;
-	struct vy_lsm *lsm = vy_compaction_heap_top(&scheduler->compaction_heap);
+	struct vy_lsm *lsm =
+		vy_compaction_heap_top(&scheduler->compaction_heap);
 	if (lsm == NULL)
 		goto no_task; /* nothing to do */
 	if (vy_lsm_compaction_priority(lsm) <= 1)
@@ -1908,7 +1916,7 @@ retry:
 	}
 	if (*ptask == NULL)
 		goto retry; /* LSM tree dropped or range split/coalesced */
-	return 0; /* new task */
+	return 0;	    /* new task */
 no_task:
 	if (worker != NULL)
 		vy_worker_pool_put(worker);
@@ -1939,7 +1947,6 @@ fail:
 	assert(!diag_is_empty(diag_get()));
 	diag_move(diag_get(), &scheduler->diag);
 	return -1;
-
 }
 
 static int
@@ -1956,12 +1963,11 @@ vy_task_complete(struct vy_task *task)
 		goto fail; /* ->execute fialed */
 	}
 	ERROR_INJECT(ERRINJ_VY_TASK_COMPLETE, {
-			diag_set(ClientError, ER_INJECTION,
-			       "vinyl task completion");
-			diag_move(diag_get(), diag);
-			goto fail; });
-	if (task->ops->complete &&
-	    task->ops->complete(task) != 0) {
+		diag_set(ClientError, ER_INJECTION, "vinyl task completion");
+		diag_move(diag_get(), diag);
+		goto fail;
+	});
+	if (task->ops->complete && task->ops->complete(task) != 0) {
 		assert(!diag_is_empty(diag_get()));
 		diag_move(diag_get(), diag);
 		goto fail;
@@ -1992,7 +1998,8 @@ vy_scheduler_f(va_list va)
 
 		/* Complete and delete all processed tasks. */
 		stailq_foreach_entry_safe(task, next, &processed_tasks,
-					  in_processed) {
+					  in_processed)
+		{
 			if (vy_task_complete(task) != 0)
 				tasks_failed++;
 			else
@@ -2035,7 +2042,7 @@ vy_scheduler_f(va_list va)
 
 		fiber_reschedule();
 		continue;
-error:
+	error:
 		/* Abort pending checkpoint. */
 		fiber_cond_signal(&scheduler->dump_cond);
 		/*

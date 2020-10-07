@@ -91,9 +91,10 @@ request_create_from_tuple(struct request *request, struct space *space,
 	if (new_tuple == NULL) {
 		uint32_t size, key_size;
 		const char *data = tuple_data_range(old_tuple, &size);
-		request->key = tuple_extract_key_raw(data, data + size,
-				space->index[0]->def->key_def, MULTIKEY_NONE,
-				&key_size);
+		request->key =
+			tuple_extract_key_raw(data, data + size,
+					      space->index[0]->def->key_def,
+					      MULTIKEY_NONE, &key_size);
 		if (request->key == NULL)
 			return -1;
 		request->key_end = request->key + key_size;
@@ -151,8 +152,7 @@ request_handle_sequence(struct request *request, struct space *space)
 	 * An automatically generated sequence inherits
 	 * privileges of the space it is used with.
 	 */
-	if (!seq->is_generated &&
-	    access_check_sequence(seq) != 0)
+	if (!seq->is_generated && access_check_sequence(seq) != 0)
 		return -1;
 
 	struct index *pk = space_index(space, 0);
@@ -199,10 +199,11 @@ request_handle_sequence(struct request *request, struct space *space)
 		mp_decode_nil(&key_end);
 
 		size_t buf_size = (request->tuple_end - request->tuple) +
-						mp_sizeof_uint(UINT64_MAX);
+				  mp_sizeof_uint(UINT64_MAX);
 		char *tuple = region_alloc(&fiber()->gc, buf_size);
 		if (tuple == NULL) {
-			diag_set(OutOfMemory, buf_size, "region_alloc", "tuple");
+			diag_set(OutOfMemory, buf_size, "region_alloc",
+				 "tuple");
 			return -1;
 		}
 		char *tuple_end = mp_encode_array(tuple, len);

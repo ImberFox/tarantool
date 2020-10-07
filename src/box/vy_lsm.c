@@ -73,8 +73,7 @@ static const int64_t VY_MAX_RANGE_SIZE = 2LL * 1024 * 1024 * 1024;
 int
 vy_lsm_env_create(struct vy_lsm_env *env, const char *path,
 		  int64_t *p_generation, struct tuple_format *key_format,
-		  vy_upsert_thresh_cb upsert_thresh_cb,
-		  void *upsert_thresh_arg)
+		  vy_upsert_thresh_cb upsert_thresh_cb, void *upsert_thresh_arg)
 {
 	env->empty_key.hint = HINT_NONE;
 	env->empty_key.stmt = vy_key_new(key_format, NULL, 0);
@@ -105,8 +104,8 @@ const char *
 vy_lsm_name(struct vy_lsm *lsm)
 {
 	char *buf = tt_static_buf();
-	snprintf(buf, TT_STATIC_BUF_LEN, "%u/%u",
-		 (unsigned)lsm->space_id, (unsigned)lsm->index_id);
+	snprintf(buf, TT_STATIC_BUF_LEN, "%u/%u", (unsigned)lsm->space_id,
+		 (unsigned)lsm->index_id);
 	return buf;
 }
 
@@ -134,8 +133,8 @@ vy_lsm_new(struct vy_lsm_env *lsm_env, struct vy_cache_env *cache_env,
 
 	struct vy_lsm *lsm = calloc(1, sizeof(struct vy_lsm));
 	if (lsm == NULL) {
-		diag_set(OutOfMemory, sizeof(struct vy_lsm),
-			 "calloc", "struct vy_lsm");
+		diag_set(OutOfMemory, sizeof(struct vy_lsm), "calloc",
+			 "struct vy_lsm");
 		goto fail;
 	}
 	lsm->env = lsm_env;
@@ -182,8 +181,7 @@ vy_lsm_new(struct vy_lsm_env *lsm_env, struct vy_cache_env *cache_env,
 	if (lsm->run_hist == NULL)
 		goto fail_run_hist;
 
-	lsm->mem = vy_mem_new(mem_env, cmp_def, format,
-			      *lsm->env->p_generation,
+	lsm->mem = vy_mem_new(mem_env, cmp_def, format, *lsm->env->p_generation,
 			      space_cache_version);
 	if (lsm->mem == NULL)
 		goto fail_mem;
@@ -255,7 +253,7 @@ vy_lsm_delete(struct vy_lsm *lsm)
 
 	lsm->env->lsm_count--;
 	lsm->env->compaction_queue_size -=
-			lsm->stat.disk.compaction.queue.bytes;
+		lsm->stat.disk.compaction.queue.bytes;
 	if (lsm->index_id == 0)
 		lsm->env->compacted_data_size -=
 			lsm->stat.disk.last_level_count.bytes;
@@ -292,8 +290,8 @@ vy_lsm_create(struct vy_lsm *lsm)
 	/* Make LSM tree directory. */
 	int rc;
 	char path[PATH_MAX];
-	vy_lsm_snprint_path(path, sizeof(path), lsm->env->path,
-			    lsm->space_id, lsm->index_id);
+	vy_lsm_snprint_path(path, sizeof(path), lsm->env->path, lsm->space_id,
+			    lsm->index_id);
 	char *path_sep = path;
 	while (*path_sep == '/') {
 		/* Don't create root */
@@ -305,7 +303,7 @@ vy_lsm_create(struct vy_lsm *lsm)
 		rc = mkdir(path, 0777);
 		if (rc == -1 && errno != EEXIST) {
 			diag_set(SystemError, "failed to create directory '%s'",
-		                 path);
+				 path);
 			*path_sep = '/';
 			return -1;
 		}
@@ -314,8 +312,7 @@ vy_lsm_create(struct vy_lsm *lsm)
 	}
 	rc = mkdir(path, 0777);
 	if (rc == -1 && errno != EEXIST) {
-		diag_set(SystemError, "failed to create directory '%s'",
-			 path);
+		diag_set(SystemError, "failed to create directory '%s'", path);
 		return -1;
 	}
 
@@ -338,8 +335,8 @@ vy_lsm_create(struct vy_lsm *lsm)
 
 	/* Write the new LSM tree record to vylog. */
 	vy_log_tx_begin();
-	vy_log_prepare_lsm(id, lsm->space_id, lsm->index_id,
-			   lsm->group_id, lsm->key_def);
+	vy_log_prepare_lsm(id, lsm->space_id, lsm->index_id, lsm->group_id,
+			   lsm->key_def);
 	vy_log_insert_range(id, range->id, NULL, NULL);
 	vy_log_tx_try_commit();
 
@@ -370,9 +367,8 @@ vy_lsm_recover_run(struct vy_lsm *lsm, struct vy_run_recovery_info *run_info,
 	if (vy_run_recover(run, lsm->env->path, lsm->space_id, lsm->index_id,
 			   lsm->cmp_def) != 0 &&
 	    (!force_recovery ||
-	     vy_run_rebuild_index(run, lsm->env->path,
-				  lsm->space_id, lsm->index_id,
-				  lsm->cmp_def, lsm->key_def,
+	     vy_run_rebuild_index(run, lsm->env->path, lsm->space_id,
+				  lsm->index_id, lsm->cmp_def, lsm->key_def,
 				  lsm->disk_format, &lsm->opts) != 0)) {
 		vy_run_unref(run);
 		return NULL;
@@ -411,8 +407,7 @@ vy_lsm_recover_slice(struct vy_lsm *lsm, struct vy_range *range,
 	}
 	if (slice_info->end != NULL) {
 		end = vy_entry_key_from_msgpack(lsm->env->key_format,
-						lsm->cmp_def,
-						slice_info->end);
+						lsm->cmp_def, slice_info->end);
 		if (end.stmt == NULL)
 			goto out;
 	}
@@ -424,8 +419,7 @@ vy_lsm_recover_slice(struct vy_lsm *lsm, struct vy_range *range,
 		goto out;
 	}
 
-	run = vy_lsm_recover_run(lsm, slice_info->run,
-				 run_env, force_recovery);
+	run = vy_lsm_recover_run(lsm, slice_info->run, run_env, force_recovery);
 	if (run == NULL)
 		goto out;
 
@@ -460,8 +454,7 @@ vy_lsm_recover_range(struct vy_lsm *lsm,
 	}
 	if (range_info->end != NULL) {
 		end = vy_entry_key_from_msgpack(lsm->env->key_format,
-						lsm->cmp_def,
-						range_info->end);
+						lsm->cmp_def, range_info->end);
 		if (end.stmt == NULL)
 			goto out;
 	}
@@ -483,9 +476,10 @@ vy_lsm_recover_range(struct vy_lsm *lsm,
 	 * order, so use reverse iterator.
 	 */
 	struct vy_slice_recovery_info *slice_info;
-	rlist_foreach_entry_reverse(slice_info, &range_info->slices, in_range) {
-		if (vy_lsm_recover_slice(lsm, range, slice_info,
-					 run_env, force_recovery) == NULL) {
+	rlist_foreach_entry_reverse(slice_info, &range_info->slices, in_range)
+	{
+		if (vy_lsm_recover_slice(lsm, range, slice_info, run_env,
+					 force_recovery) == NULL) {
 			vy_range_delete(range);
 			range = NULL;
 			goto out;
@@ -502,8 +496,8 @@ out:
 
 int
 vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
-		 struct vy_run_env *run_env, int64_t lsn,
-		 bool is_checkpoint_recovery, bool force_recovery)
+	       struct vy_run_env *run_env, int64_t lsn,
+	       bool is_checkpoint_recovery, bool force_recovery)
 {
 	assert(lsm->id < 0);
 	assert(lsm->commit_lsn < 0);
@@ -523,8 +517,8 @@ vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
 	 * Look up the last incarnation of the LSM tree in vylog.
 	 */
 	struct vy_lsm_recovery_info *lsm_info;
-	lsm_info = vy_recovery_lsm_by_index_id(recovery,
-			lsm->space_id, lsm->index_id);
+	lsm_info = vy_recovery_lsm_by_index_id(recovery, lsm->space_id,
+					       lsm->index_id);
 	if (is_checkpoint_recovery) {
 		if (lsm_info == NULL || lsm_info->create_lsn < 0) {
 			/*
@@ -549,9 +543,9 @@ vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
 		}
 	}
 
-	if (lsm_info == NULL || (lsm_info->prepared == NULL &&
-				 lsm_info->create_lsn >= 0 &&
-				 lsn > lsm_info->create_lsn)) {
+	if (lsm_info == NULL ||
+	    (lsm_info->prepared == NULL && lsm_info->create_lsn >= 0 &&
+	     lsn > lsm_info->create_lsn)) {
 		/*
 		 * If we failed to log LSM tree creation before restart,
 		 * we won't find it in the log on recovery. This is OK as
@@ -646,7 +640,8 @@ vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
 	 */
 	struct vy_range *range, *prev = NULL;
 	for (range = vy_range_tree_first(&lsm->range_tree); range != NULL;
-	     prev = range, range = vy_range_tree_next(&lsm->range_tree, range)) {
+	     prev = range,
+	    range = vy_range_tree_next(&lsm->range_tree, range)) {
 		if (prev == NULL && range->begin.stmt != NULL) {
 			diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 				 tt_sprintf("Range %lld is leftmost but "
@@ -659,12 +654,12 @@ vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
 		    (prev->end.stmt == NULL || range->begin.stmt == NULL ||
 		     (cmp = vy_entry_compare(prev->end, range->begin,
 					     lsm->cmp_def)) != 0)) {
-			const char *errmsg = cmp > 0 ?
-				"Nearby ranges %lld and %lld overlap" :
-				"Keys between ranges %lld and %lld not spanned";
+			const char *errmsg =
+				cmp > 0 ?
+					      "Nearby ranges %lld and %lld overlap" :
+					      "Keys between ranges %lld and %lld not spanned";
 			diag_set(ClientError, ER_INVALID_VYLOG_FILE,
-				 tt_sprintf(errmsg,
-					    (long long)prev->id,
+				 tt_sprintf(errmsg, (long long)prev->id,
 					    (long long)range->id));
 			return -1;
 		}
@@ -690,8 +685,11 @@ vy_lsm_recover(struct vy_lsm *lsm, struct vy_recovery *recovery,
 int64_t
 vy_lsm_generation(struct vy_lsm *lsm)
 {
-	struct vy_mem *oldest = rlist_empty(&lsm->sealed) ? lsm->mem :
-		rlist_last_entry(&lsm->sealed, struct vy_mem, in_sealed);
+	struct vy_mem *oldest = rlist_empty(&lsm->sealed) ?
+					      lsm->mem :
+					      rlist_last_entry(&lsm->sealed,
+							 struct vy_mem,
+							 in_sealed);
 	return oldest->generation;
 }
 
@@ -722,8 +720,10 @@ vy_lsm_range_size(struct vy_lsm *lsm)
 	 * create four times more than that for better smoothing.
 	 */
 	int range_count = 4 * vy_lsm_dumps_per_compaction(lsm);
-	int64_t range_size = range_count == 0 ? 0 :
-		lsm->stat.disk.last_level_count.bytes / range_count;
+	int64_t range_size =
+		range_count == 0 ?
+			      0 :
+			      lsm->stat.disk.last_level_count.bytes / range_count;
 	range_size = MAX(range_size, VY_MIN_RANGE_SIZE);
 	range_size = MIN(range_size, VY_MAX_RANGE_SIZE);
 	return range_size;
@@ -798,7 +798,7 @@ vy_lsm_add_range(struct vy_lsm *lsm, struct vy_range *range)
 void
 vy_lsm_remove_range(struct vy_lsm *lsm, struct vy_range *range)
 {
-	assert(! heap_node_is_stray(&range->heap_node));
+	assert(!heap_node_is_stray(&range->heap_node));
 	vy_range_heap_delete(&lsm->range_heap, range);
 	vy_range_tree_remove(&lsm->range_tree, range);
 	lsm->range_count--;
@@ -814,7 +814,8 @@ vy_lsm_acct_range(struct vy_lsm *lsm, struct vy_range *range)
 	lsm->env->compaction_queue_size += range->compaction_queue.bytes;
 	if (!rlist_empty(&range->slices)) {
 		struct vy_slice *slice = rlist_last_entry(&range->slices,
-						struct vy_slice, in_range);
+							  struct vy_slice,
+							  in_range);
 		vy_disk_stmt_counter_add(&lsm->stat.disk.last_level_count,
 					 &slice->count);
 		if (lsm->index_id == 0)
@@ -832,7 +833,8 @@ vy_lsm_unacct_range(struct vy_lsm *lsm, struct vy_range *range)
 	lsm->env->compaction_queue_size -= range->compaction_queue.bytes;
 	if (!rlist_empty(&range->slices)) {
 		struct vy_slice *slice = rlist_last_entry(&range->slices,
-						struct vy_slice, in_range);
+							  struct vy_slice,
+							  in_range);
 		vy_disk_stmt_counter_sub(&lsm->stat.disk.last_level_count,
 					 &slice->count);
 		if (lsm->index_id == 0)
@@ -890,8 +892,8 @@ vy_lsm_delete_mem(struct vy_lsm *lsm, struct vy_mem *mem)
 }
 
 int
-vy_lsm_set(struct vy_lsm *lsm, struct vy_mem *mem,
-	   struct vy_entry entry, struct tuple **region_stmt)
+vy_lsm_set(struct vy_lsm *lsm, struct vy_mem *mem, struct vy_entry entry,
+	   struct tuple **region_stmt)
 {
 	uint32_t format_id = entry.stmt->format_id;
 
@@ -982,7 +984,8 @@ vy_lsm_commit_upsert(struct vy_lsm *lsm, struct vy_mem *mem,
 		older = vy_mem_older_lsn(mem, entry);
 		assert(older.stmt != NULL &&
 		       vy_stmt_type(older.stmt) == IPROTO_UPSERT &&
-		       vy_stmt_n_upserts(older.stmt) == VY_UPSERT_THRESHOLD - 1);
+		       vy_stmt_n_upserts(older.stmt) ==
+			       VY_UPSERT_THRESHOLD - 1);
 #endif
 		if (lsm->env->upsert_thresh_cb == NULL) {
 			/* Squash callback is not installed. */
@@ -994,7 +997,7 @@ vy_lsm_commit_upsert(struct vy_lsm *lsm, struct vy_mem *mem,
 		dup.stmt = vy_stmt_dup(entry.stmt);
 		if (dup.stmt != NULL) {
 			lsm->env->upsert_thresh_cb(lsm, dup,
-					lsm->env->upsert_thresh_arg);
+						   lsm->env->upsert_thresh_arg);
 			tuple_unref(dup.stmt);
 		}
 		/*
@@ -1015,8 +1018,8 @@ vy_lsm_commit_upsert(struct vy_lsm *lsm, struct vy_mem *mem,
 		assert(older.stmt == NULL ||
 		       vy_stmt_type(older.stmt) != IPROTO_UPSERT);
 		struct vy_entry upserted;
-		upserted = vy_entry_apply_upsert(entry, older,
-						lsm->cmp_def, false);
+		upserted = vy_entry_apply_upsert(entry, older, lsm->cmp_def,
+						 false);
 		lsm->stat.upsert.applied++;
 
 		if (upserted.stmt == NULL) {
@@ -1058,7 +1061,8 @@ vy_lsm_commit_upsert(struct vy_lsm *lsm, struct vy_mem *mem,
 		 * now we replacing one statement with another, the
 		 * vy_lsm_set() cannot fail.
 		 */
-		assert(rc == 0); (void)rc;
+		assert(rc == 0);
+		(void)rc;
 		tuple_unref(upserted.stmt);
 		upserted.stmt = region_stmt;
 		vy_mem_commit_stmt(mem, upserted);
@@ -1094,9 +1098,9 @@ vy_lsm_rollback_stmt(struct vy_lsm *lsm, struct vy_mem *mem,
 }
 
 int
-vy_lsm_find_range_intersection(struct vy_lsm *lsm,
-		const char *min_key, const char *max_key,
-		struct vy_range **begin, struct vy_range **end)
+vy_lsm_find_range_intersection(struct vy_lsm *lsm, const char *min_key,
+			       const char *max_key, struct vy_range **begin,
+			       struct vy_range **end)
 {
 	struct tuple_format *key_format = lsm->env->key_format;
 	struct vy_entry entry;
@@ -1161,7 +1165,8 @@ vy_lsm_split_range(struct vy_lsm *lsm, struct vy_range *range)
 		 * so to preserve the order of the slices list, we have
 		 * to iterate backward.
 		 */
-		rlist_foreach_entry_reverse(slice, &range->slices, in_range) {
+		rlist_foreach_entry_reverse(slice, &range->slices, in_range)
+		{
 			if (vy_slice_cut(slice, vy_log_next_id(), part->begin,
 					 part->end, lsm->cmp_def,
 					 &new_slice) != 0)
@@ -1188,8 +1193,10 @@ vy_lsm_split_range(struct vy_lsm *lsm, struct vy_range *range)
 				    tuple_data_or_null(part->end.stmt));
 		rlist_foreach_entry(slice, &part->slices, in_range)
 			vy_log_insert_slice(part->id, slice->run->id, slice->id,
-					    tuple_data_or_null(slice->begin.stmt),
-					    tuple_data_or_null(slice->end.stmt));
+					    tuple_data_or_null(
+						    slice->begin.stmt),
+					    tuple_data_or_null(
+						    slice->end.stmt));
 	}
 	if (vy_log_tx_commit() < 0)
 		goto fail;
@@ -1224,8 +1231,8 @@ fail:
 		tuple_unref(split_key.stmt);
 
 	diag_log();
-	say_error("%s: failed to split range %s",
-		  vy_lsm_name(lsm), vy_range_str(range));
+	say_error("%s: failed to split range %s", vy_lsm_name(lsm),
+		  vy_range_str(range));
 	return false;
 }
 
@@ -1237,8 +1244,8 @@ vy_lsm_coalesce_range(struct vy_lsm *lsm, struct vy_range *range)
 				     vy_lsm_range_size(lsm), &first, &last))
 		return false;
 
-	struct vy_range *result = vy_range_new(vy_log_next_id(),
-			first->begin, last->end, lsm->cmp_def);
+	struct vy_range *result = vy_range_new(vy_log_next_id(), first->begin,
+					       last->end, lsm->cmp_def);
 	if (result == NULL)
 		goto fail_range;
 
@@ -1259,9 +1266,12 @@ vy_lsm_coalesce_range(struct vy_lsm *lsm, struct vy_range *range)
 			vy_log_delete_slice(slice->id);
 		vy_log_delete_range(it->id);
 		rlist_foreach_entry(slice, &it->slices, in_range) {
-			vy_log_insert_slice(result->id, slice->run->id, slice->id,
-					    tuple_data_or_null(slice->begin.stmt),
-					    tuple_data_or_null(slice->end.stmt));
+			vy_log_insert_slice(result->id, slice->run->id,
+					    slice->id,
+					    tuple_data_or_null(
+						    slice->begin.stmt),
+					    tuple_data_or_null(
+						    slice->end.stmt));
 		}
 	}
 	if (vy_log_tx_commit() < 0)
@@ -1273,7 +1283,8 @@ vy_lsm_coalesce_range(struct vy_lsm *lsm, struct vy_range *range)
 	 */
 	it = first;
 	while (it != end) {
-		struct vy_range *next = vy_range_tree_next(&lsm->range_tree, it);
+		struct vy_range *next =
+			vy_range_tree_next(&lsm->range_tree, it);
 		vy_lsm_unacct_range(lsm, it);
 		vy_lsm_remove_range(lsm, it);
 		rlist_splice(&result->slices, &it->slices);
@@ -1295,16 +1306,16 @@ vy_lsm_coalesce_range(struct vy_lsm *lsm, struct vy_range *range)
 	vy_lsm_add_range(lsm, result);
 	lsm->range_tree_version++;
 
-	say_info("%s: coalesced ranges %s",
-		 vy_lsm_name(lsm), vy_range_str(result));
+	say_info("%s: coalesced ranges %s", vy_lsm_name(lsm),
+		 vy_range_str(result));
 	return true;
 
 fail_commit:
 	vy_range_delete(result);
 fail_range:
 	diag_log();
-	say_error("%s: failed to coalesce range %s",
-		  vy_lsm_name(lsm), vy_range_str(range));
+	say_error("%s: failed to coalesce range %s", vy_lsm_name(lsm),
+		  vy_range_str(range));
 	return false;
 }
 

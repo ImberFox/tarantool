@@ -52,7 +52,7 @@
 #include "raft.h"
 
 /* sync snapshot every 16MB */
-#define SNAP_SYNC_INTERVAL	(1 << 24)
+#define SNAP_SYNC_INTERVAL (1 << 24)
 
 static void
 checkpoint_cancel(struct checkpoint *ckpt);
@@ -159,8 +159,8 @@ memtx_engine_recover_snapshot(struct memtx_engine *memtx,
 	/* Process existing snapshot */
 	say_info("recovery start");
 	int64_t signature = vclock_sum(vclock);
-	const char *filename = xdir_format_filename(&memtx->snap_dir,
-						    signature, NONE);
+	const char *filename =
+		xdir_format_filename(&memtx->snap_dir, signature, NONE);
 
 	say_info("recovering from `%s'", filename);
 	struct xlog_cursor cursor;
@@ -170,8 +170,8 @@ memtx_engine_recover_snapshot(struct memtx_engine *memtx,
 	int rc;
 	struct xrow_header row;
 	uint64_t row_count = 0;
-	while ((rc = xlog_cursor_next(&cursor, &row,
-				      memtx->force_recovery)) == 0) {
+	while ((rc = xlog_cursor_next(&cursor, &row, memtx->force_recovery)) ==
+	       0) {
 		row.lsn = signature;
 		rc = memtx_engine_recover_snapshot_row(memtx, &row);
 		if (rc < 0) {
@@ -182,8 +182,7 @@ memtx_engine_recover_snapshot(struct memtx_engine *memtx,
 		}
 		++row_count;
 		if (row_count % 100000 == 0) {
-			say_info("%.1fM rows processed",
-				 row_count / 1000000.);
+			say_info("%.1fM rows processed", row_count / 1000000.);
 			fiber_yield_timeout(0);
 		}
 	}
@@ -223,7 +222,7 @@ memtx_engine_recover_snapshot_row(struct memtx_engine *memtx,
 		if (row->type == IPROTO_RAFT)
 			return memtx_engine_recover_raft(row);
 		diag_set(ClientError, ER_UNKNOWN_REQUEST_TYPE,
-			 (uint32_t) row->type);
+			 (uint32_t)row->type);
 		return -1;
 	}
 	int rc;
@@ -287,8 +286,8 @@ memtx_engine_begin_initial_recovery(struct engine *engine,
 	 * recovery mode. Enable all keys on start, to detect and
 	 * discard duplicates in the snapshot.
 	 */
-	memtx->state = (memtx->force_recovery ?
-			MEMTX_OK : MEMTX_INITIAL_RECOVERY);
+	memtx->state =
+		(memtx->force_recovery ? MEMTX_OK : MEMTX_INITIAL_RECOVERY);
 	return 0;
 }
 
@@ -365,7 +364,8 @@ memtx_engine_prepare(struct engine *engine, struct txn *txn)
 {
 	(void)engine;
 	struct txn_stmt *stmt;
-	stailq_foreach_entry(stmt, &txn->stmts, next) {
+	stailq_foreach_entry(stmt, &txn->stmts, next)
+	{
 		if (stmt->add_story != NULL || stmt->del_story != NULL)
 			memtx_tx_history_prepare_stmt(stmt);
 	}
@@ -377,7 +377,8 @@ memtx_engine_commit(struct engine *engine, struct txn *txn)
 {
 	(void)engine;
 	struct txn_stmt *stmt;
-	stailq_foreach_entry(stmt, &txn->stmts, next) {
+	stailq_foreach_entry(stmt, &txn->stmts, next)
+	{
 		if (stmt->add_story != NULL || stmt->del_story != NULL) {
 			ssize_t bsize = memtx_tx_history_commit_stmt(stmt);
 			assert(stmt->space->engine == engine);
@@ -486,9 +487,9 @@ checkpoint_write_row(struct xlog *l, struct xrow_header *row)
 		return -1;
 
 	if ((l->rows + l->tx_rows) % 100000 == 0)
-		say_crit("%.1fM rows written", (l->rows + l->tx_rows) / 1000000.0);
+		say_crit("%.1fM rows written",
+			 (l->rows + l->tx_rows) / 1000000.0);
 	return 0;
-
 }
 
 static int
@@ -611,8 +612,8 @@ checkpoint_add_space(struct space *sp, void *data)
 	struct checkpoint *ckpt = (struct checkpoint *)data;
 	struct checkpoint_entry *entry = malloc(sizeof(*entry));
 	if (entry == NULL) {
-		diag_set(OutOfMemory, sizeof(*entry),
-			 "malloc", "struct checkpoint_entry");
+		diag_set(OutOfMemory, sizeof(*entry), "malloc",
+			 "struct checkpoint_entry");
 		return -1;
 	}
 	rlist_add_tail_entry(&ckpt->entries, entry, link);
@@ -672,7 +673,8 @@ checkpoint_f(va_list ap)
 		struct snapshot_iterator *it = entry->iterator;
 		while ((rc = it->next(it, &data, &size)) == 0 && data != NULL) {
 			if (checkpoint_write_tuple(&snap, entry->space_id,
-					entry->group_id, data, size) != 0)
+						   entry->group_id, data,
+						   size) != 0)
 				goto fail;
 		}
 		if (rc != 0)
@@ -694,7 +696,7 @@ fail:
 static int
 memtx_engine_begin_checkpoint(struct engine *engine, bool is_scheduled)
 {
-	(void) is_scheduled;
+	(void)is_scheduled;
 	struct memtx_engine *memtx = (struct memtx_engine *)engine;
 
 	assert(memtx->checkpoint == NULL);
@@ -712,8 +714,7 @@ memtx_engine_begin_checkpoint(struct engine *engine, bool is_scheduled)
 }
 
 static int
-memtx_engine_wait_checkpoint(struct engine *engine,
-			     const struct vclock *vclock)
+memtx_engine_wait_checkpoint(struct engine *engine, const struct vclock *vclock)
 {
 	struct memtx_engine *memtx = (struct memtx_engine *)engine;
 
@@ -728,8 +729,8 @@ memtx_engine_wait_checkpoint(struct engine *engine,
 	}
 	vclock_copy(&memtx->checkpoint->vclock, vclock);
 
-	if (cord_costart(&memtx->checkpoint->cord, "snapshot",
-			 checkpoint_f, memtx->checkpoint)) {
+	if (cord_costart(&memtx->checkpoint->cord, "snapshot", checkpoint_f,
+			 memtx->checkpoint)) {
 		return -1;
 	}
 	memtx->checkpoint->waiting_for_snap_thread = true;
@@ -747,7 +748,7 @@ static void
 memtx_engine_commit_checkpoint(struct engine *engine,
 			       const struct vclock *vclock)
 {
-	(void) vclock;
+	(void)vclock;
 	struct memtx_engine *memtx = (struct memtx_engine *)engine;
 
 	/* beginCheckpoint() must have been done */
@@ -800,7 +801,7 @@ memtx_engine_abort_checkpoint(struct engine *engine)
 		xdir_format_filename(&memtx->checkpoint->dir,
 				     vclock_sum(&memtx->checkpoint->vclock),
 				     INPROGRESS);
-	(void) coio_unlink(filename);
+	(void)coio_unlink(filename);
 
 	checkpoint_delete(memtx->checkpoint);
 	memtx->checkpoint = NULL;
@@ -851,8 +852,8 @@ memtx_join_add_space(struct space *space, void *arg)
 		return 0;
 	struct memtx_join_entry *entry = malloc(sizeof(*entry));
 	if (entry == NULL) {
-		diag_set(OutOfMemory, sizeof(*entry),
-			 "malloc", "struct memtx_join_entry");
+		diag_set(OutOfMemory, sizeof(*entry), "malloc",
+			 "struct memtx_join_entry");
 		return -1;
 	}
 	entry->space_id = space_id(space);
@@ -871,8 +872,8 @@ memtx_engine_prepare_join(struct engine *engine, void **arg)
 	(void)engine;
 	struct memtx_join_ctx *ctx = malloc(sizeof(*ctx));
 	if (ctx == NULL) {
-		diag_set(OutOfMemory, sizeof(*ctx),
-			 "malloc", "struct memtx_join_ctx");
+		diag_set(OutOfMemory, sizeof(*ctx), "malloc",
+			 "struct memtx_join_ctx");
 		return -1;
 	}
 	rlist_create(&ctx->entries);
@@ -1019,7 +1020,8 @@ memtx_engine_run_gc(struct memtx_engine *memtx, bool *stop)
 		return;
 
 	struct memtx_gc_task *task = stailq_first_entry(&memtx->gc_queue,
-					struct memtx_gc_task, link);
+							struct memtx_gc_task,
+							link);
 	bool task_done;
 	task->vtab->run(task, &task_done);
 	if (task_done) {
@@ -1056,8 +1058,8 @@ memtx_engine_new(const char *snap_dirname, bool force_recovery,
 {
 	struct memtx_engine *memtx = calloc(1, sizeof(*memtx));
 	if (memtx == NULL) {
-		diag_set(OutOfMemory, sizeof(*memtx),
-			 "malloc", "struct memtx_engine");
+		diag_set(OutOfMemory, sizeof(*memtx), "malloc",
+			 "struct memtx_engine");
 		return NULL;
 	}
 
@@ -1081,8 +1083,8 @@ memtx_engine_new(const char *snap_dirname, bool force_recovery,
 	int64_t snap_signature = xdir_last_vclock(&memtx->snap_dir, NULL);
 	if (snap_signature >= 0) {
 		struct xlog_cursor cursor;
-		if (xdir_open_cursor(&memtx->snap_dir,
-				     snap_signature, &cursor) != 0)
+		if (xdir_open_cursor(&memtx->snap_dir, snap_signature,
+				     &cursor) != 0)
 			goto fail;
 		INSTANCE_UUID = cursor.meta.instance_uuid;
 		xlog_cursor_close(&cursor, false);
@@ -1109,8 +1111,8 @@ memtx_engine_new(const char *snap_dirname, bool force_recovery,
 	tuple_arena_create(&memtx->arena, &memtx->quota, tuple_arena_max_size,
 			   SLAB_SIZE, dontdump, "memtx");
 	slab_cache_create(&memtx->slab_cache, &memtx->arena);
-	small_alloc_create(&memtx->alloc, &memtx->slab_cache,
-			   objsize_min, alloc_factor);
+	small_alloc_create(&memtx->alloc, &memtx->slab_cache, objsize_min,
+			   alloc_factor);
 
 	/* Initialize index extent allocator. */
 	slab_cache_create(&memtx->index_slab_cache, &memtx->arena);
@@ -1139,8 +1141,7 @@ fail:
 }
 
 void
-memtx_engine_schedule_gc(struct memtx_engine *memtx,
-			 struct memtx_gc_task *task)
+memtx_engine_schedule_gc(struct memtx_engine *memtx, struct memtx_gc_task *task)
 {
 	stailq_add_tail_entry(&memtx->gc_queue, task, link);
 	fiber_wakeup(memtx->gc_fiber);
@@ -1175,7 +1176,8 @@ memtx_enter_delayed_free_mode(struct memtx_engine *memtx)
 {
 	memtx->snapshot_version++;
 	if (memtx->delayed_free_mode++ == 0)
-		small_alloc_setopt(&memtx->alloc, SMALL_DELAYED_FREE_MODE, true);
+		small_alloc_setopt(&memtx->alloc, SMALL_DELAYED_FREE_MODE,
+				   true);
 }
 
 void
@@ -1183,7 +1185,8 @@ memtx_leave_delayed_free_mode(struct memtx_engine *memtx)
 {
 	assert(memtx->delayed_free_mode > 0);
 	if (--memtx->delayed_free_mode == 0)
-		small_alloc_setopt(&memtx->alloc, SMALL_DELAYED_FREE_MODE, false);
+		small_alloc_setopt(&memtx->alloc, SMALL_DELAYED_FREE_MODE,
+				   false);
 }
 
 struct tuple *
@@ -1244,7 +1247,7 @@ memtx_tuple_new(struct tuple_format *format, const char *data, const char *end)
 	tuple_format_ref(format);
 	tuple->data_offset = data_offset;
 	tuple->is_dirty = false;
-	char *raw = (char *) tuple + tuple->data_offset;
+	char *raw = (char *)tuple + tuple->data_offset;
 	field_map_build(&builder, raw - field_map_size);
 	memcpy(raw, data, tuple_len);
 	say_debug("%s(%zu) = %p", __func__, tuple_len, memtx_tuple);
@@ -1276,8 +1279,7 @@ metmx_tuple_chunk_delete(struct tuple_format *format, const char *data)
 {
 	struct memtx_engine *memtx = (struct memtx_engine *)format->engine;
 	struct tuple_chunk *tuple_chunk =
-		container_of((const char (*)[0])data,
-			     struct tuple_chunk, data);
+		container_of((const char(*)[0])data, struct tuple_chunk, data);
 	uint32_t sz = tuple_chunk_sz(tuple_chunk->data_sz);
 	smfree(&memtx->alloc, tuple_chunk, sz);
 }
@@ -1289,7 +1291,7 @@ memtx_tuple_chunk_new(struct tuple_format *format, struct tuple *tuple,
 	struct memtx_engine *memtx = (struct memtx_engine *)format->engine;
 	uint32_t sz = tuple_chunk_sz(data_sz);
 	struct tuple_chunk *tuple_chunk =
-		(struct tuple_chunk *) smalloc(&memtx->alloc, sz);
+		(struct tuple_chunk *)smalloc(&memtx->alloc, sz);
 	if (tuple == NULL) {
 		diag_set(OutOfMemory, sz, "smalloc", "tuple");
 		return NULL;
@@ -1322,8 +1324,7 @@ memtx_index_extent_alloc(void *ctx)
 	}
 	ERROR_INJECT(ERRINJ_INDEX_ALLOC, {
 		/* same error as in mempool_alloc */
-		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE,
-			 "mempool", "new slab");
+		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE, "mempool", "new slab");
 		return NULL;
 	});
 	void *ret;
@@ -1334,8 +1335,7 @@ memtx_index_extent_alloc(void *ctx)
 			break;
 	}
 	if (ret == NULL)
-		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE,
-			 "mempool", "new slab");
+		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE, "mempool", "new slab");
 	return ret;
 }
 
@@ -1358,8 +1358,7 @@ memtx_index_extent_reserve(struct memtx_engine *memtx, int num)
 {
 	ERROR_INJECT(ERRINJ_INDEX_ALLOC, {
 		/* same error as in mempool_alloc */
-		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE,
-			 "mempool", "new slab");
+		diag_set(OutOfMemory, MEMTX_EXTENT_SIZE, "mempool", "new slab");
 		return -1;
 	});
 	struct mempool *pool = &memtx->index_extent_pool;
@@ -1372,8 +1371,8 @@ memtx_index_extent_reserve(struct memtx_engine *memtx, int num)
 				break;
 		}
 		if (ext == NULL) {
-			diag_set(OutOfMemory, MEMTX_EXTENT_SIZE,
-				 "mempool", "new slab");
+			diag_set(OutOfMemory, MEMTX_EXTENT_SIZE, "mempool",
+				 "new slab");
 			return -1;
 		}
 		*(void **)ext = memtx->reserved_extents;

@@ -88,15 +88,14 @@ struct region;
  */
 static inline void
 journal_entry_create(struct journal_entry *entry, size_t n_rows,
-		     size_t approx_len,
-		     journal_write_async_f write_async_cb,
+		     size_t approx_len, journal_write_async_f write_async_cb,
 		     void *complete_data)
 {
-	entry->write_async_cb	= write_async_cb;
-	entry->complete_data	= complete_data;
-	entry->approx_len	= approx_len;
-	entry->n_rows		= n_rows;
-	entry->res		= -1;
+	entry->write_async_cb = write_async_cb;
+	entry->complete_data = complete_data;
+	entry->approx_len = approx_len;
+	entry->n_rows = n_rows;
+	entry->res = -1;
 }
 
 /**
@@ -106,8 +105,7 @@ journal_entry_create(struct journal_entry *entry, size_t n_rows,
  */
 struct journal_entry *
 journal_entry_new(size_t n_rows, struct region *region,
-		  journal_write_async_f write_async_cb,
-		  void *complete_data);
+		  journal_write_async_f write_async_cb, void *complete_data);
 
 /**
  * An API for an abstract journal for all transactions of this
@@ -120,8 +118,7 @@ struct journal {
 			   struct journal_entry *entry);
 
 	/** Synchronous write */
-	int (*write)(struct journal *journal,
-		     struct journal_entry *entry);
+	int (*write)(struct journal *journal, struct journal_entry *entry);
 };
 
 /**
@@ -196,8 +193,8 @@ journal_create(struct journal *journal,
 	       int (*write)(struct journal *journal,
 			    struct journal_entry *entry))
 {
-	journal->write_async	= write_async;
-	journal->write		= write;
+	journal->write_async = write_async;
+	journal->write = write;
 }
 
 static inline bool

@@ -93,9 +93,9 @@ struct sql_value;
 
 /** Port implementation used with vdbe memory variables. */
 struct port_vdbemem {
-    const struct port_vtab *vtab;
-    struct sql_value *mem;
-    uint32_t mem_count;
+	const struct port_vtab *vtab;
+	struct sql_value *mem;
+	uint32_t mem_count;
 };
 
 static_assert(sizeof(struct port_vdbemem) <= sizeof(struct port),

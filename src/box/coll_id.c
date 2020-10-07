@@ -38,7 +38,7 @@ struct coll_id *
 coll_id_new(const struct coll_id_def *def)
 {
 	size_t total_len = sizeof(struct coll_id) + def->name_len + 1;
-	struct coll_id *coll_id = (struct coll_id *) malloc(total_len);
+	struct coll_id *coll_id = (struct coll_id *)malloc(total_len);
 	if (coll_id == NULL) {
 		diag_set(OutOfMemory, total_len, "malloc", "coll_id");
 		return NULL;

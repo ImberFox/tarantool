@@ -250,70 +250,64 @@ vy_log_record_snprint(char *buf, int size, const struct vy_log_record *record)
 	SNPRINT(total, snprintf, buf, size, "%s{",
 		vy_log_type_name[record->type]);
 	if (record->lsm_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
 			vy_log_key_name[VY_LOG_KEY_LSM_ID], record->lsm_id);
 	if (record->range_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_RANGE_ID],
-			record->range_id);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_RANGE_ID], record->range_id);
 	if (record->run_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_RUN_ID],
-			record->run_id);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_RUN_ID], record->run_id);
 	if (record->begin != NULL) {
-		SNPRINT(total, snprintf, buf, size, "%s=",
-			vy_log_key_name[VY_LOG_KEY_BEGIN]);
+		SNPRINT(total, snprintf, buf, size,
+			"%s=", vy_log_key_name[VY_LOG_KEY_BEGIN]);
 		SNPRINT(total, mp_snprint, buf, size, record->begin);
 		SNPRINT(total, snprintf, buf, size, ", ");
 	}
 	if (record->end != NULL) {
-		SNPRINT(total, snprintf, buf, size, "%s=",
-			vy_log_key_name[VY_LOG_KEY_END]);
+		SNPRINT(total, snprintf, buf, size,
+			"%s=", vy_log_key_name[VY_LOG_KEY_END]);
 		SNPRINT(total, mp_snprint, buf, size, record->end);
 		SNPRINT(total, snprintf, buf, size, ", ");
 	}
 	if (record->index_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIu32", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIu32 ", ",
 			vy_log_key_name[VY_LOG_KEY_INDEX_ID], record->index_id);
 	if (record->space_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIu32", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIu32 ", ",
 			vy_log_key_name[VY_LOG_KEY_SPACE_ID], record->space_id);
 	if (record->group_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIu32", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIu32 ", ",
 			vy_log_key_name[VY_LOG_KEY_GROUP_ID], record->group_id);
 	if (record->key_parts != NULL) {
-		SNPRINT(total, snprintf, buf, size, "%s=",
-			vy_log_key_name[VY_LOG_KEY_DEF]);
+		SNPRINT(total, snprintf, buf, size,
+			"%s=", vy_log_key_name[VY_LOG_KEY_DEF]);
 		SNPRINT(total, key_def_snprint_parts, buf, size,
 			record->key_parts, record->key_part_count);
 		SNPRINT(total, snprintf, buf, size, ", ");
 	}
 	if (record->slice_id > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_SLICE_ID],
-			record->slice_id);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_SLICE_ID], record->slice_id);
 	if (record->create_lsn > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
 			vy_log_key_name[VY_LOG_KEY_CREATE_LSN],
 			record->create_lsn);
 	if (record->modify_lsn > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
 			vy_log_key_name[VY_LOG_KEY_MODIFY_LSN],
 			record->modify_lsn);
 	if (record->drop_lsn > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_DROP_LSN],
-			record->drop_lsn);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_DROP_LSN], record->drop_lsn);
 	if (record->dump_lsn > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_DUMP_LSN],
-			record->dump_lsn);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_DUMP_LSN], record->dump_lsn);
 	if (record->gc_lsn > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIi64", ",
-			vy_log_key_name[VY_LOG_KEY_GC_LSN],
-			record->gc_lsn);
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIi64 ", ",
+			vy_log_key_name[VY_LOG_KEY_GC_LSN], record->gc_lsn);
 	if (record->dump_count > 0)
-		SNPRINT(total, snprintf, buf, size, "%s=%"PRIu32", ",
+		SNPRINT(total, snprintf, buf, size, "%s=%" PRIu32 ", ",
 			vy_log_key_name[VY_LOG_KEY_DUMP_COUNT],
 			record->dump_count);
 	SNPRINT(total, snprintf, buf, size, "}");
@@ -554,8 +548,7 @@ vy_log_record_encode(const struct vy_log_record *record,
  * Return 0 on success, -1 on failure.
  */
 static int
-vy_log_record_decode(struct vy_log_record *record,
-		     struct xrow_header *row)
+vy_log_record_decode(struct vy_log_record *record, struct xrow_header *row)
 {
 	char *buf;
 
@@ -632,8 +625,8 @@ vy_log_record_decode(struct vy_log_record *record,
 					 "region_alloc_array", "parts");
 				return -1;
 			}
-			if (key_def_decode_parts(parts, part_count, &pos,
-						 NULL, 0, region) != 0) {
+			if (key_def_decode_parts(parts, part_count, &pos, NULL,
+						 0, region) != 0) {
 				diag_log();
 				diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 					 "Bad record: failed to decode "
@@ -705,8 +698,8 @@ vy_log_record_dup(struct region *pool, const struct vy_log_record *src)
 {
 	size_t used = region_used(pool);
 	size_t size;
-	struct vy_log_record *dst = region_alloc_object(pool, typeof(*dst),
-							&size);
+	struct vy_log_record *dst =
+		region_alloc_object(pool, typeof(*dst), &size);
 	if (dst == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc_object", "dst");
 		goto err;
@@ -769,8 +762,7 @@ vy_log_init(const char *dir)
 	diag_create(&vy_log.tx_diag);
 	wal_init_vy_log();
 	fiber_cond_create(&vy_log.flusher_cond);
-	vy_log.flusher = fiber_new("vinyl.vylog_flusher",
-				   vy_log_flusher_f);
+	vy_log.flusher = fiber_new("vinyl.vylog_flusher", vy_log_flusher_f);
 	if (vy_log.flusher == NULL)
 		panic("failed to allocate vylog flusher fiber");
 	fiber_wakeup(vy_log.flusher);
@@ -814,8 +806,7 @@ vy_log_tx_flush(struct vy_log_tx *tx)
 
 	int tx_size = 0;
 	struct vy_log_record *record;
-	stailq_foreach_entry(record, &tx->records, in_tx)
-		tx_size++;
+	stailq_foreach_entry(record, &tx->records, in_tx) tx_size++;
 
 	size_t used = region_used(&fiber()->gc);
 
@@ -835,7 +826,8 @@ vy_log_tx_flush(struct vy_log_tx *tx)
 	 * Encode buffered records.
 	 */
 	int i = 0;
-	stailq_foreach_entry(record, &tx->records, in_tx) {
+	stailq_foreach_entry(record, &tx->records, in_tx)
+	{
 		if (record->gc_lsn == VY_LOG_GC_LSN_CURRENT)
 			record->gc_lsn = vy_log_signature();
 		assert(i < tx_size);
@@ -881,7 +873,8 @@ vy_log_flush(void)
 	int rc = 0;
 	while (!stailq_empty(&pending)) {
 		struct vy_log_tx *tx = stailq_first_entry(&pending,
-					struct vy_log_tx, in_pending);
+							  struct vy_log_tx,
+							  in_pending);
 		rc = vy_log_tx_flush(tx);
 		if (rc != 0)
 			break;
@@ -952,8 +945,7 @@ vy_log_open(struct xlog *xlog)
 		goto fail;
 	}
 
-	if (xdir_create_xlog(&vy_log.dir, xlog,
-			     &vy_log.last_checkpoint) < 0)
+	if (xdir_create_xlog(&vy_log.dir, xlog, &vy_log.last_checkpoint) < 0)
 		goto fail;
 
 	struct xrow_header row;
@@ -1113,7 +1105,8 @@ vy_log_end_recovery(void)
 	 * recovery - we will need them for garbage collection.
 	 */
 	struct vy_log_tx *tx;
-	stailq_foreach_entry(tx, &vy_log.pending_tx, in_pending) {
+	stailq_foreach_entry(tx, &vy_log.pending_tx, in_pending)
+	{
 		struct vy_log_record *record;
 		stailq_foreach_entry(record, &tx->records, in_tx)
 			vy_recovery_process_record(vy_log.recovery, record);
@@ -1156,8 +1149,8 @@ vy_log_rotate(const struct vclock *vclock)
 		return 0;
 
 	assert(signature > prev_signature);
-	say_verbose("rotating vylog %lld => %lld",
-		    (long long)prev_signature, (long long)signature);
+	say_verbose("rotating vylog %lld => %lld", (long long)prev_signature,
+		    (long long)signature);
 
 	/*
 	 * Lock out all concurrent log writers while we are rotating it.
@@ -1321,8 +1314,8 @@ vy_log_write(const struct vy_log_record *record)
 		return;
 
 	assert(vy_log.tx != NULL);
-	struct vy_log_record *tx_record = vy_log_record_dup(&vy_log.tx->region,
-							    record);
+	struct vy_log_record *tx_record =
+		vy_log_record_dup(&vy_log.tx->region, record);
 	if (tx_record == NULL) {
 		diag_move(diag_get(), &vy_log.tx_diag);
 		vy_log.tx_failed = true;
@@ -1343,8 +1336,8 @@ vy_recovery_index_id_hash(uint32_t space_id, uint32_t index_id)
 
 /** Lookup an LSM tree in vy_recovery::index_id_hash map. */
 struct vy_lsm_recovery_info *
-vy_recovery_lsm_by_index_id(struct vy_recovery *recovery,
-			    uint32_t space_id, uint32_t index_id)
+vy_recovery_lsm_by_index_id(struct vy_recovery *recovery, uint32_t space_id,
+			    uint32_t index_id)
 {
 	int64_t key = vy_recovery_index_id_hash(space_id, index_id);
 	struct mh_i64ptr_t *h = recovery->index_id_hash;
@@ -1413,7 +1406,8 @@ vy_recovery_alloc_key_parts(const struct key_part_def *key_parts,
 	uint32_t new_parts_sz = sizeof(*key_parts) * key_part_count;
 	for (uint32_t i = 0; i < key_part_count; i++) {
 		new_parts_sz += key_parts[i].path != NULL ?
-				strlen(key_parts[i].path) + 1 : 0;
+					      strlen(key_parts[i].path) + 1 :
+					      0;
 	}
 	struct key_part_def *new_parts = malloc(new_parts_sz);
 	if (new_parts == NULL) {
@@ -1459,8 +1453,8 @@ vy_recovery_do_create_lsm(struct vy_recovery *recovery, int64_t id,
 	}
 	struct vy_lsm_recovery_info *lsm = malloc(sizeof(*lsm));
 	if (lsm == NULL) {
-		diag_set(OutOfMemory, sizeof(*lsm),
-			 "malloc", "struct vy_lsm_recovery_info");
+		diag_set(OutOfMemory, sizeof(*lsm), "malloc",
+			 "struct vy_lsm_recovery_info");
 		return NULL;
 	}
 	lsm->key_parts = vy_recovery_alloc_key_parts(key_parts, key_part_count);
@@ -1521,8 +1515,7 @@ vy_recovery_do_create_lsm(struct vy_recovery *recovery, int64_t id,
  */
 static int
 vy_recovery_prepare_lsm(struct vy_recovery *recovery, int64_t id,
-			uint32_t space_id, uint32_t index_id,
-			uint32_t group_id,
+			uint32_t space_id, uint32_t index_id, uint32_t group_id,
 			const struct key_part_def *key_parts,
 			uint32_t key_part_count)
 {
@@ -1570,8 +1563,8 @@ vy_recovery_create_lsm(struct vy_recovery *recovery, int64_t id,
 		}
 	} else {
 		lsm = vy_recovery_do_create_lsm(recovery, id, space_id,
-						index_id, group_id,
-						key_parts, key_part_count);
+						index_id, group_id, key_parts,
+						key_part_count);
 		if (lsm == NULL)
 			return -1;
 		lsm->dump_lsn = dump_lsn;
@@ -1682,8 +1675,7 @@ vy_recovery_forget_lsm(struct vy_recovery *recovery, int64_t id)
  * Returns 0 on success, -1 if ID not found or LSM tree is dropped.
  */
 static int
-vy_recovery_dump_lsm(struct vy_recovery *recovery,
-		     int64_t id, int64_t dump_lsn)
+vy_recovery_dump_lsm(struct vy_recovery *recovery, int64_t id, int64_t dump_lsn)
 {
 	struct vy_lsm_recovery_info *lsm;
 	lsm = vy_recovery_lookup_lsm(recovery, id);
@@ -1706,8 +1698,8 @@ vy_recovery_do_create_run(struct vy_recovery *recovery, int64_t run_id)
 {
 	struct vy_run_recovery_info *run = malloc(sizeof(*run));
 	if (run == NULL) {
-		diag_set(OutOfMemory, sizeof(*run),
-			 "malloc", "struct vy_run_recovery_info");
+		diag_set(OutOfMemory, sizeof(*run), "malloc",
+			 "struct vy_run_recovery_info");
 		return NULL;
 	}
 	struct mh_i64ptr_t *h = recovery->run_hash;
@@ -1748,8 +1740,8 @@ vy_recovery_prepare_run(struct vy_recovery *recovery, int64_t lsm_id,
 	if (lsm == NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 			 tt_sprintf("Run %lld created for unregistered "
-				    "LSM tree %lld", (long long)run_id,
-				    (long long)lsm_id));
+				    "LSM tree %lld",
+				    (long long)run_id, (long long)lsm_id));
 		return -1;
 	}
 	if (vy_recovery_lookup_run(recovery, run_id) != NULL) {
@@ -1784,8 +1776,8 @@ vy_recovery_create_run(struct vy_recovery *recovery, int64_t lsm_id,
 	if (lsm == NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 			 tt_sprintf("Run %lld created for unregistered "
-				    "LSM tree %lld", (long long)run_id,
-				    (long long)lsm_id));
+				    "LSM tree %lld",
+				    (long long)run_id, (long long)lsm_id));
 		return -1;
 	}
 	struct vy_run_recovery_info *run;
@@ -1883,8 +1875,8 @@ vy_recovery_insert_range(struct vy_recovery *recovery, int64_t lsm_id,
 	if (lsm == NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 			 tt_sprintf("Range %lld created for unregistered "
-				    "LSM tree %lld", (long long)range_id,
-				    (long long)lsm_id));
+				    "LSM tree %lld",
+				    (long long)range_id, (long long)lsm_id));
 		return -1;
 	}
 
@@ -1903,8 +1895,8 @@ vy_recovery_insert_range(struct vy_recovery *recovery, int64_t lsm_id,
 
 	struct vy_range_recovery_info *range = malloc(size);
 	if (range == NULL) {
-		diag_set(OutOfMemory, size,
-			 "malloc", "struct vy_range_recovery_info");
+		diag_set(OutOfMemory, size, "malloc",
+			 "struct vy_range_recovery_info");
 		return -1;
 	}
 	struct mh_i64ptr_t *h = recovery->range_hash;
@@ -1971,8 +1963,8 @@ vy_recovery_delete_range(struct vy_recovery *recovery, int64_t range_id)
  */
 static int
 vy_recovery_insert_slice(struct vy_recovery *recovery, int64_t range_id,
-			 int64_t run_id, int64_t slice_id,
-			 const char *begin, const char *end)
+			 int64_t run_id, int64_t slice_id, const char *begin,
+			 const char *end)
 {
 	if (vy_recovery_lookup_slice(recovery, slice_id) != NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
@@ -1985,8 +1977,8 @@ vy_recovery_insert_slice(struct vy_recovery *recovery, int64_t range_id,
 	if (range == NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 			 tt_sprintf("Slice %lld created for unregistered "
-				    "range %lld", (long long)slice_id,
-				    (long long)range_id));
+				    "range %lld",
+				    (long long)slice_id, (long long)range_id));
 		return -1;
 	}
 	struct vy_run_recovery_info *run;
@@ -1994,8 +1986,8 @@ vy_recovery_insert_slice(struct vy_recovery *recovery, int64_t range_id,
 	if (run == NULL) {
 		diag_set(ClientError, ER_INVALID_VYLOG_FILE,
 			 tt_sprintf("Slice %lld created for unregistered "
-				    "run %lld", (long long)slice_id,
-				    (long long)run_id));
+				    "run %lld",
+				    (long long)slice_id, (long long)run_id));
 		return -1;
 	}
 
@@ -2014,8 +2006,8 @@ vy_recovery_insert_slice(struct vy_recovery *recovery, int64_t range_id,
 
 	struct vy_slice_recovery_info *slice = malloc(size);
 	if (slice == NULL) {
-		diag_set(OutOfMemory, size,
-			 "malloc", "struct vy_slice_recovery_info");
+		diag_set(OutOfMemory, size, "malloc",
+			 "struct vy_slice_recovery_info");
 		return -1;
 	}
 	struct mh_i64ptr_t *h = recovery->slice_hash;
@@ -2128,21 +2120,25 @@ vy_recovery_process_record(struct vy_recovery *recovery,
 	switch (record->type) {
 	case VY_LOG_PREPARE_LSM:
 		rc = vy_recovery_prepare_lsm(recovery, record->lsm_id,
-				record->space_id, record->index_id,
-				record->group_id, record->key_parts,
-				record->key_part_count);
+					     record->space_id, record->index_id,
+					     record->group_id,
+					     record->key_parts,
+					     record->key_part_count);
 		break;
 	case VY_LOG_CREATE_LSM:
 		rc = vy_recovery_create_lsm(recovery, record->lsm_id,
-				record->space_id, record->index_id,
-				record->group_id, record->key_parts,
-				record->key_part_count, record->create_lsn,
-				record->modify_lsn, record->dump_lsn);
+					    record->space_id, record->index_id,
+					    record->group_id, record->key_parts,
+					    record->key_part_count,
+					    record->create_lsn,
+					    record->modify_lsn,
+					    record->dump_lsn);
 		break;
 	case VY_LOG_MODIFY_LSM:
 		rc = vy_recovery_modify_lsm(recovery, record->lsm_id,
-				record->key_parts, record->key_part_count,
-				record->modify_lsn);
+					    record->key_parts,
+					    record->key_part_count,
+					    record->modify_lsn);
 		break;
 	case VY_LOG_DROP_LSM:
 		rc = vy_recovery_drop_lsm(recovery, record->lsm_id,
@@ -2153,7 +2149,8 @@ vy_recovery_process_record(struct vy_recovery *recovery,
 		break;
 	case VY_LOG_INSERT_RANGE:
 		rc = vy_recovery_insert_range(recovery, record->lsm_id,
-				record->range_id, record->begin, record->end);
+					      record->range_id, record->begin,
+					      record->end);
 		break;
 	case VY_LOG_DELETE_RANGE:
 		rc = vy_recovery_delete_range(recovery, record->range_id);
@@ -2184,7 +2181,7 @@ vy_recovery_process_record(struct vy_recovery *recovery,
 		break;
 	case VY_LOG_DUMP_LSM:
 		rc = vy_recovery_dump_lsm(recovery, record->lsm_id,
-					    record->dump_lsn);
+					  record->dump_lsn);
 		break;
 	case VY_LOG_TRUNCATE_LSM:
 		/* Not used anymore, ignore. */
@@ -2247,8 +2244,8 @@ vy_recovery_build_index_id_hash(struct vy_recovery *recovery)
 		uint32_t space_id = lsm->space_id;
 		uint32_t index_id = lsm->index_id;
 		struct vy_lsm_recovery_info *hashed_lsm;
-		hashed_lsm = vy_recovery_lsm_by_index_id(recovery,
-						space_id, index_id);
+		hashed_lsm = vy_recovery_lsm_by_index_id(recovery, space_id,
+							 index_id);
 		/*
 		 * If there's no LSM tree for these space_id/index_id
 		 * or it was dropped, simply replace it with the latest
@@ -2257,7 +2254,8 @@ vy_recovery_build_index_id_hash(struct vy_recovery *recovery)
 		if (hashed_lsm == NULL ||
 		    (hashed_lsm->drop_lsn >= 0 && lsm->create_lsn >= 0)) {
 			struct mh_i64ptr_node_t node;
-			node.key = vy_recovery_index_id_hash(space_id, index_id);
+			node.key =
+				vy_recovery_index_id_hash(space_id, index_id);
 			node.val = lsm;
 			if (mh_i64ptr_put(h, &node, NULL, NULL) == mh_end(h)) {
 				diag_set(OutOfMemory, 0, "mh_i64ptr_put",
@@ -2305,8 +2303,8 @@ vy_recovery_new_f(va_list ap)
 
 	struct vy_recovery *recovery = malloc(sizeof(*recovery));
 	if (recovery == NULL) {
-		diag_set(OutOfMemory, sizeof(*recovery),
-			 "malloc", "struct vy_recovery");
+		diag_set(OutOfMemory, sizeof(*recovery), "malloc",
+			 "struct vy_recovery");
 		goto fail;
 	}
 
@@ -2324,10 +2322,8 @@ vy_recovery_new_f(va_list ap)
 	recovery->range_hash = mh_i64ptr_new();
 	recovery->run_hash = mh_i64ptr_new();
 	recovery->slice_hash = mh_i64ptr_new();
-	if (recovery->index_id_hash == NULL ||
-	    recovery->lsm_hash == NULL ||
-	    recovery->range_hash == NULL ||
-	    recovery->run_hash == NULL ||
+	if (recovery->index_id_hash == NULL || recovery->lsm_hash == NULL ||
+	    recovery->range_hash == NULL || recovery->run_hash == NULL ||
 	    recovery->slice_hash == NULL) {
 		diag_set(OutOfMemory, 0, "mh_i64ptr_new", "mh_i64ptr_t");
 		goto fail_free;
@@ -2445,8 +2441,8 @@ vy_recovery_delete(struct vy_recovery *recovery)
 	struct vy_run_recovery_info *run, *next_run;
 
 	rlist_foreach_entry_safe(lsm, &recovery->lsms, in_recovery, next_lsm) {
-		rlist_foreach_entry_safe(range, &lsm->ranges,
-					 in_lsm, next_range) {
+		rlist_foreach_entry_safe(range, &lsm->ranges, in_lsm,
+					 next_range) {
 			rlist_foreach_entry_safe(slice, &range->slices,
 						 in_range, next_slice)
 				free(slice);
@@ -2495,8 +2491,8 @@ vy_log_append_lsm(struct xlog *xlog, struct vy_lsm_recovery_info *lsm)
 	struct vy_log_record record;
 
 	vy_log_record_init(&record);
-	record.type = lsm->create_lsn < 0 ?
-		VY_LOG_PREPARE_LSM : VY_LOG_CREATE_LSM;
+	record.type = lsm->create_lsn < 0 ? VY_LOG_PREPARE_LSM :
+						  VY_LOG_CREATE_LSM;
 	record.lsm_id = lsm->id;
 	record.index_id = lsm->index_id;
 	record.space_id = lsm->space_id;
@@ -2548,7 +2544,8 @@ vy_log_append_lsm(struct xlog *xlog, struct vy_lsm_recovery_info *lsm)
 		 * while we are supposed to return slices in chronological
 		 * order, so use reverse iterator.
 		 */
-		rlist_foreach_entry_reverse(slice, &range->slices, in_range) {
+		rlist_foreach_entry_reverse(slice, &range->slices, in_range)
+		{
 			vy_log_record_init(&record);
 			record.type = VY_LOG_INSERT_SLICE;
 			record.range_id = range->id;
@@ -2612,8 +2609,7 @@ vy_log_create(const struct vclock *vclock, struct vy_recovery *recovery)
 	});
 
 	/* Finalize the new xlog. */
-	if (xlog_flush(&xlog) < 0 ||
-	    xlog_sync(&xlog) < 0 ||
+	if (xlog_flush(&xlog) < 0 || xlog_sync(&xlog) < 0 ||
 	    xlog_rename(&xlog) < 0)
 		goto err_write_xlog;
 
@@ -2626,8 +2622,7 @@ err_write_xlog:
 	/* Delete the unfinished xlog. */
 	assert(xlog_is_open(&xlog));
 	if (unlink(xlog.filename) < 0)
-		say_syserror("failed to delete file '%s'",
-			     xlog.filename);
+		say_syserror("failed to delete file '%s'", xlog.filename);
 	xlog_close(&xlog, false);
 
 err_create_xlog:

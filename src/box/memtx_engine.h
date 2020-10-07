@@ -211,9 +211,8 @@ memtx_engine_schedule_gc(struct memtx_engine *memtx,
 
 struct memtx_engine *
 memtx_engine_new(const char *snap_dirname, bool force_recovery,
-		 uint64_t tuple_arena_max_size,
-		 uint32_t objsize_min, bool dontdump,
-		 float alloc_factor);
+		 uint64_t tuple_arena_max_size, uint32_t objsize_min,
+		 bool dontdump, float alloc_factor);
 
 int
 memtx_engine_recover_snapshot(struct memtx_engine *memtx,
@@ -256,10 +255,7 @@ memtx_tuple_delete(struct tuple_format *format, struct tuple *tuple);
 /** Tuple format vtab for memtx engine. */
 extern struct tuple_format_vtab memtx_tuple_format_vtab;
 
-enum {
-	MEMTX_EXTENT_SIZE = 16 * 1024,
-	MEMTX_SLAB_SIZE = 4 * 1024 * 1024
-};
+enum { MEMTX_EXTENT_SIZE = 16 * 1024, MEMTX_SLAB_SIZE = 4 * 1024 * 1024 };
 
 /**
  * Allocate a block of size MEMTX_EXTENT_SIZE for memtx index
@@ -297,14 +293,12 @@ memtx_index_def_change_requires_rebuild(struct index *index,
 
 static inline struct memtx_engine *
 memtx_engine_new_xc(const char *snap_dirname, bool force_recovery,
-		    uint64_t tuple_arena_max_size,
-		    uint32_t objsize_min, bool dontdump,
-		    float alloc_factor)
+		    uint64_t tuple_arena_max_size, uint32_t objsize_min,
+		    bool dontdump, float alloc_factor)
 {
 	struct memtx_engine *memtx;
 	memtx = memtx_engine_new(snap_dirname, force_recovery,
-				 tuple_arena_max_size,
-				 objsize_min, dontdump,
+				 tuple_arena_max_size, objsize_min, dontdump,
 				 alloc_factor);
 	if (memtx == NULL)
 		diag_raise();

@@ -72,7 +72,8 @@ struct engine_vtab {
 	void (*shutdown)(struct engine *);
 	/** Allocate a new space instance. */
 	struct space *(*create_space)(struct engine *engine,
-			struct space_def *def, struct rlist *key_list);
+				      struct space_def *def,
+				      struct rlist *key_list);
 	/**
 	 * Freeze a read view to feed to a new replica.
 	 * Setup and return a context that will be used
@@ -140,7 +141,7 @@ struct engine_vtab {
 	 * On remote recovery, it is set to NULL.
 	 */
 	int (*begin_initial_recovery)(struct engine *engine,
-			const struct vclock *recovery_vclock);
+				      const struct vclock *recovery_vclock);
 	/**
 	 * Notify engine about a start of recovering from WALs
 	 * that could be local WALs during local recovery
@@ -237,7 +238,8 @@ struct engine_join_ctx {
 };
 
 /** Register engine engine instance. */
-void engine_register(struct engine *engine);
+void
+engine_register(struct engine *engine);
 
 /** Call a visitor function on every registered engine. */
 #define engine_foreach(engine) rlist_foreach_entry(engine, &engines, link)
@@ -380,32 +382,54 @@ engine_reset_stat(void);
 /*
  * Virtual method stubs.
  */
-int generic_engine_prepare_join(struct engine *, void **);
-int generic_engine_join(struct engine *, void *, struct xstream *);
-void generic_engine_complete_join(struct engine *, void *);
-int generic_engine_begin(struct engine *, struct txn *);
-int generic_engine_begin_statement(struct engine *, struct txn *);
-int generic_engine_prepare(struct engine *, struct txn *);
-void generic_engine_commit(struct engine *, struct txn *);
-void generic_engine_rollback_statement(struct engine *, struct txn *,
-				       struct txn_stmt *);
-void generic_engine_rollback(struct engine *, struct txn *);
-void generic_engine_switch_to_ro(struct engine *);
-int generic_engine_bootstrap(struct engine *);
-int generic_engine_begin_initial_recovery(struct engine *,
-					  const struct vclock *);
-int generic_engine_begin_final_recovery(struct engine *);
-int generic_engine_end_recovery(struct engine *);
-int generic_engine_begin_checkpoint(struct engine *, bool);
-int generic_engine_wait_checkpoint(struct engine *, const struct vclock *);
-void generic_engine_commit_checkpoint(struct engine *, const struct vclock *);
-void generic_engine_abort_checkpoint(struct engine *);
-void generic_engine_collect_garbage(struct engine *, const struct vclock *);
-int generic_engine_backup(struct engine *, const struct vclock *,
-			  engine_backup_cb, void *);
-void generic_engine_memory_stat(struct engine *, struct engine_memory_stat *);
-void generic_engine_reset_stat(struct engine *);
-int generic_engine_check_space_def(struct space_def *);
+int
+generic_engine_prepare_join(struct engine *, void **);
+int
+generic_engine_join(struct engine *, void *, struct xstream *);
+void
+generic_engine_complete_join(struct engine *, void *);
+int
+generic_engine_begin(struct engine *, struct txn *);
+int
+generic_engine_begin_statement(struct engine *, struct txn *);
+int
+generic_engine_prepare(struct engine *, struct txn *);
+void
+generic_engine_commit(struct engine *, struct txn *);
+void
+generic_engine_rollback_statement(struct engine *, struct txn *,
+				  struct txn_stmt *);
+void
+generic_engine_rollback(struct engine *, struct txn *);
+void
+generic_engine_switch_to_ro(struct engine *);
+int
+generic_engine_bootstrap(struct engine *);
+int
+generic_engine_begin_initial_recovery(struct engine *, const struct vclock *);
+int
+generic_engine_begin_final_recovery(struct engine *);
+int
+generic_engine_end_recovery(struct engine *);
+int
+generic_engine_begin_checkpoint(struct engine *, bool);
+int
+generic_engine_wait_checkpoint(struct engine *, const struct vclock *);
+void
+generic_engine_commit_checkpoint(struct engine *, const struct vclock *);
+void
+generic_engine_abort_checkpoint(struct engine *);
+void
+generic_engine_collect_garbage(struct engine *, const struct vclock *);
+int
+generic_engine_backup(struct engine *, const struct vclock *, engine_backup_cb,
+		      void *);
+void
+generic_engine_memory_stat(struct engine *, struct engine_memory_stat *);
+void
+generic_engine_reset_stat(struct engine *);
+int
+generic_engine_check_space_def(struct space_def *);
 
 #if defined(__cplusplus)
 } /* extern "C" */
@@ -421,7 +445,7 @@ engine_find_xc(const char *name)
 
 static inline struct space *
 engine_create_space_xc(struct engine *engine, struct space_def *def,
-		    struct rlist *key_list)
+		       struct rlist *key_list)
 {
 	struct space *space = engine_create_space(engine, def, key_list);
 	if (space == NULL)

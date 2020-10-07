@@ -163,8 +163,9 @@ field_map_get_offset(const uint32_t *field_map, int32_t offset_slot,
 		 * The field_map extent has the following
 		 * structure: [size=N|slot1|slot2|..|slotN]
 		 */
-		const uint32_t *extent = (const uint32_t *)
-			((const char *)field_map + (int32_t)offset);
+		const uint32_t *extent =
+			(const uint32_t *)((const char *)field_map +
+					   (int32_t)offset);
 		if ((uint32_t)multikey_idx >= load_u32(&extent[0]))
 			return 0;
 		offset = load_u32(&extent[multikey_idx + 1]);
@@ -229,8 +230,11 @@ field_map_builder_set_slot(struct field_map_builder *builder,
 			assert(extent != NULL);
 			assert(extent->size == multikey_count);
 		} else {
-			extent = field_map_builder_slot_extent_new(builder,
-					offset_slot, multikey_count, region);
+			extent =
+				field_map_builder_slot_extent_new(builder,
+								  offset_slot,
+								  multikey_count,
+								  region);
 			if (extent == NULL)
 				return -1;
 		}
@@ -245,8 +249,7 @@ field_map_builder_set_slot(struct field_map_builder *builder,
 static inline uint32_t
 field_map_build_size(struct field_map_builder *builder)
 {
-	return builder->slot_count * sizeof(uint32_t) +
-	       builder->extents_size;
+	return builder->slot_count * sizeof(uint32_t) + builder->extents_size;
 }
 
 /**

@@ -81,8 +81,8 @@ typedef void (*wal_on_checkpoint_threshold_f)(void);
  * Start WAL thread and initialize WAL writer.
  */
 int
-wal_init(enum wal_mode wal_mode, const char *wal_dirname,
-	 int64_t wal_max_size, const struct tt_uuid *instance_uuid,
+wal_init(enum wal_mode wal_mode, const char *wal_dirname, int64_t wal_max_size,
+	 const struct tt_uuid *instance_uuid,
 	 wal_on_garbage_collection_f on_garbage_collection,
 	 wal_on_checkpoint_threshold_f on_checkpoint_threshold);
 
@@ -113,9 +113,9 @@ struct wal_watcher_msg {
 
 enum wal_event {
 	/** A row is written to the current WAL. */
-	WAL_EVENT_WRITE		= (1 << 0),
+	WAL_EVENT_WRITE = (1 << 0),
 	/** A new WAL is created. */
-	WAL_EVENT_ROTATE	= (1 << 1),
+	WAL_EVENT_ROTATE = (1 << 1),
 };
 
 struct wal_watcher {

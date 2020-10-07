@@ -51,12 +51,12 @@ struct func_def;
  * (implementation of 'CALL' command code).
  */
 int
-box_lua_call(const char *name, uint32_t name_len,
-	     struct port *args, struct port *ret);
+box_lua_call(const char *name, uint32_t name_len, struct port *args,
+	     struct port *ret);
 
 int
-box_lua_eval(const char *expr, uint32_t expr_len,
-	     struct port *args, struct port *ret);
+box_lua_eval(const char *expr, uint32_t expr_len, struct port *args,
+	     struct port *ret);
 
 /** Construct a Lua function object. */
 struct func *

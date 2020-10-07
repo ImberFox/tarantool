@@ -87,8 +87,7 @@ struct vy_mem_tree_key {
  * Internal. Extracted to speed up BPS tree.
  */
 static int
-vy_mem_tree_cmp(struct vy_entry a, struct vy_entry b,
-		struct key_def *cmp_def)
+vy_mem_tree_cmp(struct vy_entry a, struct vy_entry b, struct key_def *cmp_def)
 {
 	int res = vy_entry_compare(a, b, cmp_def);
 	if (res)
@@ -370,9 +369,10 @@ struct vy_mem_iterator {
  * Open an iterator over in-memory tree.
  */
 void
-vy_mem_iterator_open(struct vy_mem_iterator *itr, struct vy_mem_iterator_stat *stat,
-		     struct vy_mem *mem, enum iterator_type iterator_type,
-		     struct vy_entry key, const struct vy_read_view **rv);
+vy_mem_iterator_open(struct vy_mem_iterator *itr,
+		     struct vy_mem_iterator_stat *stat, struct vy_mem *mem,
+		     enum iterator_type iterator_type, struct vy_entry key,
+		     const struct vy_read_view **rv);
 
 /**
  * Advance a mem iterator to the next key.
@@ -380,8 +380,7 @@ vy_mem_iterator_open(struct vy_mem_iterator *itr, struct vy_mem_iterator_stat *s
  * Returns 0 on success, -1 on memory allocation error.
  */
 NODISCARD int
-vy_mem_iterator_next(struct vy_mem_iterator *itr,
-		     struct vy_history *history);
+vy_mem_iterator_next(struct vy_mem_iterator *itr, struct vy_history *history);
 
 /**
  * Advance a mem iterator to the key following @last.

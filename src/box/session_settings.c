@@ -42,16 +42,11 @@ struct session_setting session_settings[SESSION_SETTING_COUNT] = {};
 
 /** Corresponding names of session settings. */
 const char *session_setting_strs[SESSION_SETTING_COUNT] = {
-	"error_marshaling_enabled",
-	"sql_default_engine",
-	"sql_defer_foreign_keys",
-	"sql_full_column_names",
-	"sql_full_metadata",
-	"sql_parser_debug",
-	"sql_recursive_triggers",
-	"sql_reverse_unordered_selects",
-	"sql_select_debug",
-	"sql_vdbe_debug",
+	"error_marshaling_enabled", "sql_default_engine",
+	"sql_defer_foreign_keys",   "sql_full_column_names",
+	"sql_full_metadata",	    "sql_parser_debug",
+	"sql_recursive_triggers",   "sql_reverse_unordered_selects",
+	"sql_select_debug",	    "sql_vdbe_debug",
 };
 
 struct session_settings_index {
@@ -105,8 +100,7 @@ session_settings_next(int *sid, const char *key, bool is_eq, bool is_including)
 	for (; i < SESSION_SETTING_COUNT; ++i) {
 		const char *name = session_setting_strs[i];
 		int cmp = strcmp(name, key);
-		if ((cmp == 0 && is_including) ||
-		    (cmp > 0 && !is_eq)) {
+		if ((cmp == 0 && is_including) || (cmp > 0 && !is_eq)) {
 			*sid = i;
 			return 0;
 		}
@@ -128,8 +122,7 @@ session_settings_prev(int *sid, const char *key, bool is_eq, bool is_including)
 	for (; i >= 0; --i) {
 		const char *name = session_setting_strs[i];
 		int cmp = strcmp(name, key);
-		if ((cmp == 0 && is_including) ||
-		    (cmp < 0 && !is_eq)) {
+		if ((cmp == 0 && is_including) || (cmp < 0 && !is_eq)) {
 			*sid = i;
 			return 0;
 		}
@@ -238,9 +231,9 @@ session_settings_index_get(struct index *base, const char *key,
 			   uint32_t part_count, struct tuple **result)
 {
 	struct session_settings_index *index =
-		(struct session_settings_index *) base;
+		(struct session_settings_index *)base;
 	assert(part_count == 1);
-	(void) part_count;
+	(void)part_count;
 	uint32_t len;
 	key = mp_decode_str(&key, &len);
 	key = tt_cstr(key, len);
@@ -265,7 +258,7 @@ static const struct index_vtab session_settings_index_vtab = {
 	/* .update_def = */ generic_index_update_def,
 	/* .depends_on_pk = */ generic_index_depends_on_pk,
 	/* .def_change_requires_rebuild = */
-		generic_index_def_change_requires_rebuild,
+	generic_index_def_change_requires_rebuild,
 	/* .size = */ generic_index_size,
 	/* .bsize = */ generic_index_bsize,
 	/* .min = */ generic_index_min,
@@ -276,7 +269,7 @@ static const struct index_vtab session_settings_index_vtab = {
 	/* .replace = */ generic_index_replace,
 	/* .create_iterator = */ session_settings_index_create_iterator,
 	/* .create_snapshot_iterator = */
-		generic_index_create_snapshot_iterator,
+	generic_index_create_snapshot_iterator,
 	/* .stat = */ generic_index_stat,
 	/* .compact = */ generic_index_compact,
 	/* .reset_stat = */ generic_index_reset_stat,
@@ -443,7 +436,8 @@ const struct space_vtab session_settings_space_vtab = {
 };
 
 int
-session_setting_find(const char *name) {
+session_setting_find(const char *name)
+{
 	int sid = 0;
 	if (session_settings_next(&sid, name, true, true) == 0)
 		return sid;
@@ -465,7 +459,7 @@ session_setting_error_marshaling_enabled_get(int id, const char **mp_pair,
 	size_t size = mp_sizeof_array(2) + mp_sizeof_str(name_len) +
 		      mp_sizeof_bool(value);
 
-	char *pos = (char*)static_alloc(size);
+	char *pos = (char *)static_alloc(size);
 	assert(pos != NULL);
 	char *pos_end = mp_encode_array(pos, 2);
 	pos_end = mp_encode_str(pos_end, name, name_len);

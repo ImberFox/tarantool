@@ -55,11 +55,11 @@
 static inline size_t
 netbox_prepare_request(lua_State *L, struct mpstream *stream, uint32_t r_type)
 {
-	struct ibuf *ibuf = (struct ibuf *) lua_topointer(L, 1);
+	struct ibuf *ibuf = (struct ibuf *)lua_topointer(L, 1);
 	uint64_t sync = luaL_touint64(L, 2);
 
-	mpstream_init(stream, ibuf, ibuf_reserve_cb, ibuf_alloc_cb,
-		      luamp_error, L);
+	mpstream_init(stream, ibuf, ibuf_reserve_cb, ibuf_alloc_cb, luamp_error,
+		      L);
 
 	/* Remember initial size of ibuf (see netbox_encode_request()) */
 	size_t used = ibuf_used(ibuf);
@@ -87,7 +87,7 @@ netbox_encode_request(struct mpstream *stream, size_t initial_size)
 {
 	mpstream_flush(stream);
 
-	struct ibuf *ibuf = (struct ibuf *) stream->ctx;
+	struct ibuf *ibuf = (struct ibuf *)stream->ctx;
 
 	/*
 	 * Calculation the start position in ibuf by getting current size
@@ -428,8 +428,7 @@ netbox_decode_greeting(lua_State *L)
 		buf = lua_tolstring(L, 1, &len);
 
 	if (buf == NULL || len != IPROTO_GREETING_SIZE ||
-		greeting_decode(buf, &greeting) != 0) {
-
+	    greeting_decode(buf, &greeting) != 0) {
 		lua_pushboolean(L, 0);
 		lua_pushstring(L, "Invalid greeting");
 		return 2;
@@ -469,8 +468,8 @@ netbox_communicate(lua_State *L)
 {
 	uint32_t fd = lua_tonumber(L, 1);
 	const int NETBOX_READAHEAD = 16320;
-	struct ibuf *send_buf = (struct ibuf *) lua_topointer(L, 2);
-	struct ibuf *recv_buf = (struct ibuf *) lua_topointer(L, 3);
+	struct ibuf *send_buf = (struct ibuf *)lua_topointer(L, 2);
+	struct ibuf *recv_buf = (struct ibuf *)lua_topointer(L, 3);
 
 	/* limit or boundary */
 	size_t limit = SIZE_MAX;
@@ -494,20 +493,18 @@ netbox_communicate(lua_State *L)
 	int revents = COIO_READ;
 	while (true) {
 		/* reader serviced first */
-check_limit:
+	check_limit:
 		if (ibuf_used(recv_buf) >= limit) {
 			lua_pushnil(L);
 			lua_pushinteger(L, (lua_Integer)limit);
 			return 2;
 		}
 		const char *p;
-		if (boundary != NULL && (p = memmem(
-					recv_buf->rpos,
-					ibuf_used(recv_buf),
-					boundary, boundary_len)) != NULL) {
+		if (boundary != NULL &&
+		    (p = memmem(recv_buf->rpos, ibuf_used(recv_buf), boundary,
+				boundary_len)) != NULL) {
 			lua_pushnil(L);
-			lua_pushinteger(L, (lua_Integer)(
-					p - recv_buf->rpos));
+			lua_pushinteger(L, (lua_Integer)(p - recv_buf->rpos));
 			return 2;
 		}
 
@@ -515,13 +512,14 @@ check_limit:
 			void *p = ibuf_reserve(recv_buf, NETBOX_READAHEAD);
 			if (p == NULL)
 				luaL_error(L, "out of memory");
-			ssize_t rc = recv(
-				fd, recv_buf->wpos, ibuf_unused(recv_buf), 0);
+			ssize_t rc = recv(fd, recv_buf->wpos,
+					  ibuf_unused(recv_buf), 0);
 			if (rc == 0) {
 				lua_pushinteger(L, ER_NO_CONNECTION);
 				lua_pushstring(L, "Peer closed");
 				return 2;
-			} if (rc > 0) {
+			}
+			if (rc > 0) {
 				recv_buf->wpos += rc;
 				goto check_limit;
 			} else if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -531,8 +529,8 @@ check_limit:
 		}
 
 		while ((revents & COIO_WRITE) && ibuf_used(send_buf) != 0) {
-			ssize_t rc = send(
-				fd, send_buf->rpos, ibuf_used(send_buf), 0);
+			ssize_t rc = send(fd, send_buf->rpos,
+					  ibuf_used(send_buf), 0);
 			if (rc >= 0)
 				send_buf->rpos += rc;
 			else if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -542,8 +540,11 @@ check_limit:
 		}
 
 		ev_tstamp deadline = ev_monotonic_now(loop()) + timeout;
-		revents = coio_wait(fd, EV_READ | (ibuf_used(send_buf) != 0 ?
-				EV_WRITE : 0), timeout);
+		revents = coio_wait(fd,
+				    EV_READ | (ibuf_used(send_buf) != 0 ?
+							     EV_WRITE :
+							     0),
+				    timeout);
 		luaL_testcancel(L);
 		timeout = deadline - ev_monotonic_now(loop());
 		timeout = MAX(0.0, timeout);
@@ -563,8 +564,8 @@ static int
 netbox_encode_execute(lua_State *L)
 {
 	if (lua_gettop(L) < 5)
-		return luaL_error(L, "Usage: netbox.encode_execute(ibuf, "\
-				  "sync, query, parameters, options)");
+		return luaL_error(L, "Usage: netbox.encode_execute(ibuf, "
+				     "sync, query, parameters, options)");
 	struct mpstream stream;
 	size_t svp = netbox_prepare_request(L, &stream, IPROTO_EXECUTE);
 
@@ -595,7 +596,7 @@ static int
 netbox_encode_prepare(lua_State *L)
 {
 	if (lua_gettop(L) < 3)
-		return luaL_error(L, "Usage: netbox.encode_prepare(ibuf, "\
+		return luaL_error(L, "Usage: netbox.encode_prepare(ibuf, "
 				     "sync, query)");
 	struct mpstream stream;
 	size_t svp = netbox_prepare_request(L, &stream, IPROTO_PREPARE);
@@ -631,8 +632,7 @@ netbox_decode_data(struct lua_State *L, const char **data,
 	for (uint32_t j = 0; j < count; ++j) {
 		const char *begin = *data;
 		mp_next(data);
-		struct tuple *tuple =
-			box_tuple_new(format, begin, *data);
+		struct tuple *tuple = box_tuple_new(format, begin, *data);
 		if (tuple == NULL)
 			luaT_error(L);
 		luaT_pushtuple(L, tuple);
@@ -661,10 +661,10 @@ netbox_decode_select(struct lua_State *L)
 	uint32_t map_size = mp_decode_map(&data);
 	/* Until 2.0 body has no keys except DATA. */
 	assert(map_size == 1);
-	(void) map_size;
+	(void)map_size;
 	uint32_t key = mp_decode_uint(&data);
 	assert(key == IPROTO_DATA);
-	(void) key;
+	(void)key;
 	netbox_decode_data(L, &data, format);
 	*(const char **)luaL_pushcdata(L, ctypeid) = data;
 	return 2;
@@ -729,7 +729,7 @@ netbox_decode_metadata(struct lua_State *L, const char **data)
 		assert(map_size >= 2 && map_size <= 6);
 		uint32_t key = mp_decode_uint(data);
 		assert(key == IPROTO_FIELD_NAME);
-		(void) key;
+		(void)key;
 		lua_createtable(L, 0, map_size);
 		uint32_t name_len, type_len;
 		const char *str = mp_decode_str(data, &name_len);
@@ -796,7 +796,7 @@ netbox_decode_execute(struct lua_State *L)
 	int rows_index = 0, meta_index = 0, info_index = 0;
 	for (uint32_t i = 0; i < map_size; ++i) {
 		uint32_t key = mp_decode_uint(&data);
-		switch(key) {
+		switch (key) {
 		case IPROTO_DATA:
 			netbox_decode_data(L, &data, tuple_format_runtime);
 			rows_index = i - map_size;
@@ -840,7 +840,7 @@ netbox_decode_prepare(struct lua_State *L)
 	uint32_t stmt_id = 0;
 	for (uint32_t i = 0; i < map_size; ++i) {
 		uint32_t key = mp_decode_uint(&data);
-		switch(key) {
+		switch (key) {
 		case IPROTO_STMT_ID: {
 			stmt_id = mp_decode_uint(&data);
 			luaL_pushuint64(L, stmt_id);
@@ -863,7 +863,8 @@ netbox_decode_prepare(struct lua_State *L)
 			luaL_pushuint64(L, bind_count);
 			bind_count_idx = i - map_size;
 			break;
-		}}
+		}
+		}
 	}
 	/* These fields must be present in response. */
 	assert(stmt_id_idx * bind_meta_idx * bind_count_idx != 0);
@@ -888,25 +889,25 @@ int
 luaopen_net_box(struct lua_State *L)
 {
 	static const luaL_Reg net_box_lib[] = {
-		{ "encode_ping",    netbox_encode_ping },
+		{ "encode_ping", netbox_encode_ping },
 		{ "encode_call_16", netbox_encode_call_16 },
-		{ "encode_call",    netbox_encode_call },
-		{ "encode_eval",    netbox_encode_eval },
-		{ "encode_select",  netbox_encode_select },
-		{ "encode_insert",  netbox_encode_insert },
+		{ "encode_call", netbox_encode_call },
+		{ "encode_eval", netbox_encode_eval },
+		{ "encode_select", netbox_encode_select },
+		{ "encode_insert", netbox_encode_insert },
 		{ "encode_replace", netbox_encode_replace },
-		{ "encode_delete",  netbox_encode_delete },
-		{ "encode_update",  netbox_encode_update },
-		{ "encode_upsert",  netbox_encode_upsert },
-		{ "encode_execute", netbox_encode_execute},
-		{ "encode_prepare", netbox_encode_prepare},
-		{ "encode_auth",    netbox_encode_auth },
-		{ "decode_greeting",netbox_decode_greeting },
-		{ "communicate",    netbox_communicate },
-		{ "decode_select",  netbox_decode_select },
+		{ "encode_delete", netbox_encode_delete },
+		{ "encode_update", netbox_encode_update },
+		{ "encode_upsert", netbox_encode_upsert },
+		{ "encode_execute", netbox_encode_execute },
+		{ "encode_prepare", netbox_encode_prepare },
+		{ "encode_auth", netbox_encode_auth },
+		{ "decode_greeting", netbox_decode_greeting },
+		{ "communicate", netbox_communicate },
+		{ "decode_select", netbox_decode_select },
 		{ "decode_execute", netbox_decode_execute },
 		{ "decode_prepare", netbox_decode_prepare },
-		{ NULL, NULL}
+		{ NULL, NULL }
 	};
 	/* luaL_register_module polutes _G */
 	lua_newtable(L);

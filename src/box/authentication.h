@@ -43,7 +43,6 @@ struct on_auth_trigger_ctx {
 	bool is_authenticated;
 };
 
-
 void
 authenticate(const char *user_name, uint32_t len, const char *salt,
 	     const char *tuple);

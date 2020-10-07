@@ -105,11 +105,11 @@ vy_regulator_trigger_dump(struct vy_regulator *regulator)
 	 *   write_rate    dump_bandwidth
 	 */
 	struct vy_quota *quota = regulator->quota;
-	size_t mem_left = (quota->used < quota->limit ?
-			   quota->limit - quota->used : 0);
+	size_t mem_left =
+		(quota->used < quota->limit ? quota->limit - quota->used : 0);
 	size_t mem_used = quota->used;
-	size_t max_write_rate = (double)mem_left / (mem_used + 1) *
-					regulator->dump_bandwidth;
+	size_t max_write_rate =
+		(double)mem_left / (mem_used + 1) * regulator->dump_bandwidth;
 	max_write_rate = MIN(max_write_rate, regulator->dump_bandwidth);
 	vy_quota_set_rate_limit(quota, VY_QUOTA_RESOURCE_MEMORY,
 				max_write_rate);
@@ -144,8 +144,8 @@ vy_regulator_update_write_rate(struct vy_regulator *regulator)
 	size_t rate_avg = regulator->write_rate;
 	size_t rate_curr = (used_curr - used_last) / VY_REGULATOR_TIMER_PERIOD;
 
-	double weight = 1 - exp(-VY_REGULATOR_TIMER_PERIOD /
-				VY_WRITE_RATE_AVG_WIN);
+	double weight =
+		1 - exp(-VY_REGULATOR_TIMER_PERIOD / VY_WRITE_RATE_AVG_WIN);
 	rate_avg = (1 - weight) * rate_avg + weight * rate_curr;
 
 	regulator->write_rate = rate_avg;
@@ -178,15 +178,15 @@ vy_regulator_update_dump_watermark(struct vy_regulator *regulator)
 	 */
 	size_t write_rate = regulator->write_rate_max * 3 / 2;
 	regulator->dump_watermark =
-			(double)quota->limit * regulator->dump_bandwidth /
-			(regulator->dump_bandwidth + write_rate + 1);
+		(double)quota->limit * regulator->dump_bandwidth /
+		(regulator->dump_bandwidth + write_rate + 1);
 	/*
 	 * It doesn't make sense to set the watermark below 50%
 	 * of the memory limit because the write rate can exceed
 	 * the dump bandwidth under no circumstances.
 	 */
-	regulator->dump_watermark = MAX(regulator->dump_watermark,
-					quota->limit / 2);
+	regulator->dump_watermark =
+		MAX(regulator->dump_watermark, quota->limit / 2);
 }
 
 static void
@@ -209,17 +209,18 @@ vy_regulator_create(struct vy_regulator *regulator, struct vy_quota *quota,
 	enum { KB = 1024, MB = KB * KB };
 	static int64_t dump_bandwidth_buckets[] = {
 		100 * KB, 200 * KB, 300 * KB, 400 * KB, 500 * KB, 600 * KB,
-		700 * KB, 800 * KB, 900 * KB,   1 * MB,   2 * MB,   3 * MB,
-		  4 * MB,   5 * MB,   6 * MB,   7 * MB,   8 * MB,   9 * MB,
-		 10 * MB,  15 * MB,  20 * MB,  25 * MB,  30 * MB,  35 * MB,
-		 40 * MB,  45 * MB,  50 * MB,  55 * MB,  60 * MB,  65 * MB,
-		 70 * MB,  75 * MB,  80 * MB,  85 * MB,  90 * MB,  95 * MB,
+		700 * KB, 800 * KB, 900 * KB, 1 * MB,	2 * MB,	  3 * MB,
+		4 * MB,	  5 * MB,   6 * MB,   7 * MB,	8 * MB,	  9 * MB,
+		10 * MB,  15 * MB,  20 * MB,  25 * MB,	30 * MB,  35 * MB,
+		40 * MB,  45 * MB,  50 * MB,  55 * MB,	60 * MB,  65 * MB,
+		70 * MB,  75 * MB,  80 * MB,  85 * MB,	90 * MB,  95 * MB,
 		100 * MB, 200 * MB, 300 * MB, 400 * MB, 500 * MB, 600 * MB,
 		700 * MB, 800 * MB, 900 * MB,
 	};
 	memset(regulator, 0, sizeof(*regulator));
-	regulator->dump_bandwidth_hist = histogram_new(dump_bandwidth_buckets,
-					lengthof(dump_bandwidth_buckets));
+	regulator->dump_bandwidth_hist =
+		histogram_new(dump_bandwidth_buckets,
+			      lengthof(dump_bandwidth_buckets));
 	if (regulator->dump_bandwidth_hist == NULL)
 		panic("failed to allocate dump bandwidth histogram");
 
@@ -262,8 +263,8 @@ vy_regulator_check_dump_watermark(struct vy_regulator *regulator)
 }
 
 void
-vy_regulator_dump_complete(struct vy_regulator *regulator,
-			   size_t mem_dumped, double dump_duration)
+vy_regulator_dump_complete(struct vy_regulator *regulator, size_t mem_dumped,
+			   double dump_duration)
 {
 	regulator->dump_in_progress = false;
 
@@ -430,7 +431,7 @@ vy_regulator_update_rate_limit(struct vy_regulator *regulator,
 	recent->compaction_time += compaction_time;
 
 	double rate = 0.75 * compaction_threads * recent->dump_input /
-						  recent->compaction_time;
+		      recent->compaction_time;
 	/*
 	 * We can't simply use (size_t)MIN(rate, SIZE_MAX) to cast
 	 * the rate from double to size_t here, because on a 64-bit

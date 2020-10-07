@@ -247,7 +247,6 @@ lbox_session_fd(struct lua_State *L)
 	return 1;
 }
 
-
 /**
  * Pretty print peer name.
  */
@@ -286,15 +285,15 @@ lbox_session_peer(struct lua_State *L)
 static int
 lbox_push_on_connect_event(struct lua_State *L, void *event)
 {
-	(void) L;
-	(void) event;
+	(void)L;
+	(void)event;
 	return 0;
 }
 
 static int
 lbox_push_on_auth_event(struct lua_State *L, void *event)
 {
-	struct on_auth_trigger_ctx *ctx = (struct on_auth_trigger_ctx *) event;
+	struct on_auth_trigger_ctx *ctx = (struct on_auth_trigger_ctx *)event;
 	lua_pushstring(L, ctx->username);
 	lua_pushboolean(L, ctx->is_authenticated);
 	return 2;
@@ -328,7 +327,7 @@ lbox_session_run_on_disconnect(struct lua_State *L)
 {
 	struct session *session = current_session();
 	session_run_on_disconnect_triggers(session);
-	(void) L;
+	(void)L;
 	return 0;
 }
 
@@ -360,7 +359,7 @@ lbox_session_run_on_auth(struct lua_State *L)
 static int
 lbox_push_on_access_denied_event(struct lua_State *L, void *event)
 {
-	struct on_access_denied_ctx *ctx = (struct on_access_denied_ctx *) event;
+	struct on_access_denied_ctx *ctx = (struct on_access_denied_ctx *)event;
 	lua_pushstring(L, ctx->access_type);
 	lua_pushstring(L, ctx->object_type);
 	lua_pushstring(L, ctx->object_name);
@@ -427,8 +426,10 @@ lbox_session_setting_get(struct lua_State *L)
 	const char *setting_name = lua_tostring(L, -1);
 	int sid = session_setting_find(setting_name);
 	if (sid < 0) {
-		diag_set(ClientError, ER_PROC_LUA, tt_sprintf("Session "\
-			 "setting %s doesn't exist", setting_name));
+		diag_set(ClientError, ER_PROC_LUA,
+			 tt_sprintf("Session "
+				    "setting %s doesn't exist",
+				    setting_name));
 		return luaT_error(L);
 	}
 	return lbox_session_setting_get_by_id(L, sid);
@@ -450,7 +451,7 @@ lbox_session_setting_set(struct lua_State *L)
 	case LUA_TBOOLEAN: {
 		bool value = lua_toboolean(L, -1);
 		size_t size = mp_sizeof_bool(value);
-		char *mp_value = (char *) static_alloc(size);
+		char *mp_value = (char *)static_alloc(size);
 		mp_encode_bool(mp_value, value);
 		if (setting->set(sid, mp_value) != 0)
 			return luaT_error(L);
@@ -460,10 +461,9 @@ lbox_session_setting_set(struct lua_State *L)
 		const char *str = lua_tostring(L, -1);
 		size_t len = strlen(str);
 		uint32_t size = mp_sizeof_str(len);
-		char *mp_value = (char *) static_alloc(size);
+		char *mp_value = (char *)static_alloc(size);
 		if (mp_value == NULL) {
-			diag_set(OutOfMemory, size, "static_alloc",
-				 "mp_value");
+			diag_set(OutOfMemory, size, "static_alloc", "mp_value");
 			return luaT_error(L);
 		}
 		mp_encode_str(mp_value, str, len);
@@ -544,33 +544,33 @@ void
 box_lua_session_init(struct lua_State *L)
 {
 	static const struct luaL_Reg session_internal_lib[] = {
-		{"create", lbox_session_create},
-		{"run_on_connect",    lbox_session_run_on_connect},
-		{"run_on_disconnect", lbox_session_run_on_disconnect},
-		{"run_on_auth", lbox_session_run_on_auth},
-		{NULL, NULL}
+		{ "create", lbox_session_create },
+		{ "run_on_connect", lbox_session_run_on_connect },
+		{ "run_on_disconnect", lbox_session_run_on_disconnect },
+		{ "run_on_auth", lbox_session_run_on_auth },
+		{ NULL, NULL }
 	};
 	luaL_register(L, "box.internal.session", session_internal_lib);
 	lua_pop(L, 1);
 
 	static const struct luaL_Reg sessionlib[] = {
-		{"id", lbox_session_id},
-		{"type", lbox_session_type},
-		{"sync", lbox_session_sync},
-		{"uid", lbox_session_uid},
-		{"euid", lbox_session_euid},
-		{"user", lbox_session_user},
-		{"effective_user", lbox_session_effective_user},
-		{"su", lbox_session_su},
-		{"fd", lbox_session_fd},
-		{"exists", lbox_session_exists},
-		{"peer", lbox_session_peer},
-		{"on_connect", lbox_session_on_connect},
-		{"on_disconnect", lbox_session_on_disconnect},
-		{"on_auth", lbox_session_on_auth},
-		{"on_access_denied", lbox_session_on_access_denied},
-		{"push", lbox_session_push},
-		{NULL, NULL}
+		{ "id", lbox_session_id },
+		{ "type", lbox_session_type },
+		{ "sync", lbox_session_sync },
+		{ "uid", lbox_session_uid },
+		{ "euid", lbox_session_euid },
+		{ "user", lbox_session_user },
+		{ "effective_user", lbox_session_effective_user },
+		{ "su", lbox_session_su },
+		{ "fd", lbox_session_fd },
+		{ "exists", lbox_session_exists },
+		{ "peer", lbox_session_peer },
+		{ "on_connect", lbox_session_on_connect },
+		{ "on_disconnect", lbox_session_on_disconnect },
+		{ "on_auth", lbox_session_on_auth },
+		{ "on_access_denied", lbox_session_on_access_denied },
+		{ "push", lbox_session_push },
+		{ NULL, NULL }
 	};
 	luaL_register_module(L, sessionlib_name, sessionlib);
 	lbox_session_settings_init(L);

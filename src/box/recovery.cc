@@ -83,17 +83,13 @@ struct recovery *
 recovery_new(const char *wal_dirname, bool force_recovery,
 	     const struct vclock *vclock)
 {
-	struct recovery *r = (struct recovery *)
-			calloc(1, sizeof(*r));
+	struct recovery *r = (struct recovery *)calloc(1, sizeof(*r));
 
 	if (r == NULL) {
-		tnt_raise(OutOfMemory, sizeof(*r), "malloc",
-			  "struct recovery");
+		tnt_raise(OutOfMemory, sizeof(*r), "malloc", "struct recovery");
 	}
 
-	auto guard = make_scoped_guard([=]{
-		free(r);
-	});
+	auto guard = make_scoped_guard([=] { free(r); });
 
 	xdir_create(&r->wal_dir, wal_dirname, XLOG, &INSTANCE_UUID,
 		    &xlog_opts_default);
@@ -152,8 +148,7 @@ recovery_close_log(struct recovery *r)
 	if (xlog_cursor_is_eof(&r->cursor)) {
 		say_info("done `%s'", r->cursor.name);
 	} else {
-		say_warn("file `%s` wasn't correctly closed",
-			 r->cursor.name);
+		say_warn("file `%s` wasn't correctly closed", r->cursor.name);
 	}
 	xlog_cursor_close(&r->cursor, false);
 	trigger_run_xc(&r->on_close_log, NULL);
@@ -325,8 +320,7 @@ recover_remaining_wals(struct recovery *r, struct xstream *stream,
 	}
 
 	for (clock = vclockset_match(&r->wal_dir.index, &r->vclock);
-	     clock != NULL;
-	     clock = vclockset_next(&r->wal_dir.index, clock)) {
+	     clock != NULL; clock = vclockset_next(&r->wal_dir.index, clock)) {
 		if (stop_vclock != NULL &&
 		    clock->signature >= stop_vclock->signature) {
 			break;
@@ -345,7 +339,7 @@ recover_remaining_wals(struct recovery *r, struct xstream *stream,
 
 		say_info("recover from `%s'", r->cursor.name);
 
-recover_current_wal:
+	recover_current_wal:
 		recover_xlog(r, stream, stop_vclock);
 	}
 
@@ -363,7 +357,6 @@ recovery_finalize(struct recovery *r)
 {
 	recovery_close_log(r);
 }
-
 
 /* }}} */
 
@@ -405,9 +398,8 @@ public:
 	{
 		f = fiber();
 		events = 0;
-		if ((size_t)snprintf(dir_path, sizeof(dir_path), "%s", wal_dir) >=
-				sizeof(dir_path)) {
-
+		if ((size_t)snprintf(dir_path, sizeof(dir_path), "%s",
+				     wal_dir) >= sizeof(dir_path)) {
 			panic("path too long: %s", wal_dir);
 		}
 
@@ -433,8 +425,7 @@ public:
 		 * Note: .file_path valid iff file_stat is active.
 		 */
 		if (path && ev_is_active(&file_stat) &&
-				strcmp(file_path, path) == 0) {
-
+		    strcmp(file_path, path) == 0) {
 			return;
 		}
 
@@ -443,9 +434,8 @@ public:
 		if (path == NULL)
 			return;
 
-		if ((size_t)snprintf(file_path, sizeof(file_path), "%s", path) >=
-				sizeof(file_path)) {
-
+		if ((size_t)snprintf(file_path, sizeof(file_path), "%s",
+				     path) >= sizeof(file_path)) {
 			panic("path too long: %s", path);
 		}
 		ev_stat_set(&file_stat, file_path, 0.0);
@@ -465,8 +455,7 @@ hot_standby_f(va_list ap)
 
 	WalSubscription subscription(r->wal_dir.dirname);
 
-	while (! fiber_is_cancelled()) {
-
+	while (!fiber_is_cancelled()) {
 		/*
 		 * Recover until there is no new stuff which appeared in
 		 * the log dir while recovery was running.
@@ -491,7 +480,8 @@ hot_standby_f(va_list ap)
 		} while (end > start && !xlog_cursor_is_open(&r->cursor));
 
 		subscription.set_log_path(xlog_cursor_is_open(&r->cursor) ?
-					  r->cursor.name : NULL);
+							r->cursor.name :
+							NULL);
 
 		bool timed_out = false;
 		if (subscription.events == 0) {
@@ -505,7 +495,7 @@ hot_standby_f(va_list ap)
 		}
 
 		scan_dir = timed_out ||
-			(subscription.events & WAL_EVENT_ROTATE) != 0;
+			   (subscription.events & WAL_EVENT_ROTATE) != 0;
 
 		subscription.events = 0;
 	}

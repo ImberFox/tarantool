@@ -47,8 +47,8 @@
 static int
 small_stats_noop_cb(const struct mempool_stats *stats, void *cb_ctx)
 {
-	(void) stats;
-	(void) cb_ctx;
+	(void)stats;
+	(void)cb_ctx;
 	return 0;
 }
 
@@ -59,7 +59,7 @@ small_stats_lua_cb(const struct mempool_stats *stats, void *cb_ctx)
 	if (stats->slabcount == 0)
 		return 0;
 
-	struct lua_State *L = (struct lua_State *) cb_ctx;
+	struct lua_State *L = (struct lua_State *)cb_ctx;
 
 	/*
 	 * Create a Lua table for every slab class. A class is
@@ -142,8 +142,7 @@ lbox_slab_info(struct lua_State *L)
 	double ratio;
 	char ratio_buf[32];
 
-	ratio = 100 * ((double) totals.used
-		/ ((double) totals.total + 0.0001));
+	ratio = 100 * ((double)totals.used / ((double)totals.total + 0.0001));
 	snprintf(ratio_buf, sizeof(ratio_buf), "%0.2lf%%", ratio);
 
 	/** How much address space has been already touched */
@@ -190,8 +189,8 @@ lbox_slab_info(struct lua_State *L)
 	luaL_pushuint64(L, totals.used + index_stats.totals.used);
 	lua_settable(L, -3);
 
-	ratio = 100 * ((double) (totals.used + index_stats.totals.used)
-		       / (double) arena_size);
+	ratio = 100 * ((double)(totals.used + index_stats.totals.used) /
+		       (double)arena_size);
 	snprintf(ratio_buf, sizeof(ratio_buf), "%0.1lf%%", ratio);
 
 	lua_pushstring(L, "arena_used_ratio");
@@ -220,8 +219,8 @@ lbox_slab_info(struct lua_State *L)
 	 * factor, it's the quota that give you OOM error in the
 	 * end of the day.
 	 */
-	ratio = 100 * ((double) quota_used(&memtx->quota) /
-		 ((double) quota_total(&memtx->quota) + 0.0001));
+	ratio = 100 * ((double)quota_used(&memtx->quota) /
+		       ((double)quota_total(&memtx->quota) + 0.0001));
 	snprintf(ratio_buf, sizeof(ratio_buf), "%0.2lf%%", ratio);
 
 	lua_pushstring(L, "quota_used_ratio");

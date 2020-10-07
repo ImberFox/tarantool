@@ -46,15 +46,16 @@
 #include "mpstream/mpstream.h"
 
 static_assert(IPROTO_DATA < 0x7f && IPROTO_METADATA < 0x7f &&
-	      IPROTO_SQL_INFO < 0x7f, "encoded IPROTO_BODY keys must fit into "\
+		      IPROTO_SQL_INFO < 0x7f,
+	      "encoded IPROTO_BODY keys must fit into "
 	      "one byte");
 
 static inline uint32_t
 mp_sizeof_vclock_ignore0(const struct vclock *vclock)
 {
 	uint32_t size = vclock_size_ignore0(vclock);
-	return mp_sizeof_map(size) + size * (mp_sizeof_uint(UINT32_MAX) +
-					     mp_sizeof_uint(UINT64_MAX));
+	return mp_sizeof_map(size) +
+	       size * (mp_sizeof_uint(UINT32_MAX) + mp_sizeof_uint(UINT64_MAX));
 }
 
 static inline char *
@@ -67,7 +68,7 @@ mp_encode_vclock_ignore0(char *data, const struct vclock *vclock)
 	replica = vclock_iterator_next(&it);
 	if (replica.id == 0)
 		replica = vclock_iterator_next(&it);
-	for ( ; replica.id < VCLOCK_MAX; replica = vclock_iterator_next(&it)) {
+	for (; replica.id < VCLOCK_MAX; replica = vclock_iterator_next(&it)) {
 		data = mp_encode_uint(data, replica.id);
 		data = mp_encode_uint(data, replica.lsn);
 	}
@@ -104,7 +105,9 @@ mp_decode_vclock_ignore0(const char **data, struct vclock *vclock)
  *
  * The format is similar to the xxd utility.
  */
-void dump_row_hex(const char *start, const char *end) {
+void
+dump_row_hex(const char *start, const char *end)
+{
 	if (!say_log_level_is_enabled(S_VERBOSE))
 		return;
 
@@ -116,7 +119,8 @@ void dump_row_hex(const char *start, const char *end) {
 		char *pos = buf;
 		pos += snprintf(pos, buf_end - pos, "%08lX: ", cur - start);
 		for (size_t i = 0; i < 16; ++i) {
-			pos += snprintf(pos, buf_end - pos, "%02X ", (unsigned char)*cur++);
+			pos += snprintf(pos, buf_end - pos, "%02X ",
+					(unsigned char)*cur++);
 			if (cur >= end || pos == buf_end)
 				break;
 		}
@@ -125,10 +129,11 @@ void dump_row_hex(const char *start, const char *end) {
 	}
 }
 
-#define xrow_on_decode_err(start, end, what, desc_str) do {\
-	diag_set(ClientError, what, desc_str);\
-	dump_row_hex(start, end);\
-} while (0);
+#define xrow_on_decode_err(start, end, what, desc_str) \
+	do {                                           \
+		diag_set(ClientError, what, desc_str); \
+		dump_row_hex(start, end);              \
+	} while (0);
 
 int
 xrow_header_decode(struct xrow_header *header, const char **pos,
@@ -136,10 +141,11 @@ xrow_header_decode(struct xrow_header *header, const char **pos,
 {
 	memset(header, 0, sizeof(struct xrow_header));
 	const char *tmp = *pos;
-	const char * const start = *pos;
+	const char *const start = *pos;
 	if (mp_check(&tmp, end) != 0) {
-error:
-		xrow_on_decode_err(start, end, ER_INVALID_MSGPACK, "packet header");
+	error:
+		xrow_on_decode_err(start, end, ER_INVALID_MSGPACK,
+				   "packet header");
 		return -1;
 	}
 
@@ -206,15 +212,17 @@ error:
 	if (*pos < end && header->type != IPROTO_NOP) {
 		const char *body = *pos;
 		if (mp_check(pos, end)) {
-			xrow_on_decode_err(start, end, ER_INVALID_MSGPACK, "packet body");
+			xrow_on_decode_err(start, end, ER_INVALID_MSGPACK,
+					   "packet body");
 			return -1;
 		}
 		header->bodycnt = 1;
-		header->body[0].iov_base = (void *) body;
+		header->body[0].iov_base = (void *)body;
 		header->body[0].iov_len = *pos - body;
 	}
 	if (end_is_exact && *pos < end) {
-		xrow_on_decode_err(start,end, ER_INVALID_MSGPACK, "packet body");
+		xrow_on_decode_err(start, end, ER_INVALID_MSGPACK,
+				   "packet body");
 		return -1;
 	}
 	return 0;
@@ -240,14 +248,14 @@ xrow_header_encode(const struct xrow_header *header, uint64_t sync,
 		   struct iovec *out, size_t fixheader_len)
 {
 	/* allocate memory for sign + header */
-	out->iov_base = region_alloc(&fiber()->gc, XROW_HEADER_LEN_MAX +
-				     fixheader_len);
+	out->iov_base =
+		region_alloc(&fiber()->gc, XROW_HEADER_LEN_MAX + fixheader_len);
 	if (out->iov_base == NULL) {
 		diag_set(OutOfMemory, XROW_HEADER_LEN_MAX + fixheader_len,
 			 "gc arena", "xrow header encode");
 		return -1;
 	}
-	char *data = (char *) out->iov_base + fixheader_len;
+	char *data = (char *)out->iov_base + fixheader_len;
 
 	/* Header */
 	char *d = data + 1; /* Skip 1 byte for MP_MAP */
@@ -323,7 +331,7 @@ xrow_header_encode(const struct xrow_header *header, uint64_t sync,
 	}
 	assert(d <= data + XROW_HEADER_LEN_MAX);
 	mp_encode_map(data, map_size);
-	out->iov_len = d - (char *) out->iov_base;
+	out->iov_len = d - (char *)out->iov_base;
 	out++;
 
 	memcpy(out, header->body, sizeof(*out) * header->bodycnt);
@@ -339,18 +347,18 @@ xrow_encode_uuid(char *pos, const struct tt_uuid *in)
 
 /* m_ - msgpack meta, k_ - key, v_ - value */
 struct PACKED iproto_header_bin {
-	uint8_t m_len;                          /* MP_UINT32 */
-	uint32_t v_len;                         /* length */
-	uint8_t m_header;                       /* MP_MAP */
-	uint8_t k_code;                         /* IPROTO_REQUEST_TYPE */
-	uint8_t m_code;                         /* MP_UINT32 */
-	uint32_t v_code;                        /* response status */
-	uint8_t k_sync;                         /* IPROTO_SYNC */
-	uint8_t m_sync;                         /* MP_UINT64 */
-	uint64_t v_sync;                        /* sync */
-	uint8_t k_schema_version;               /* IPROTO_SCHEMA_VERSION */
-	uint8_t m_schema_version;               /* MP_UINT32 */
-	uint32_t v_schema_version;              /* schema_version */
+	uint8_t m_len;		   /* MP_UINT32 */
+	uint32_t v_len;		   /* length */
+	uint8_t m_header;	   /* MP_MAP */
+	uint8_t k_code;		   /* IPROTO_REQUEST_TYPE */
+	uint8_t m_code;		   /* MP_UINT32 */
+	uint32_t v_code;	   /* response status */
+	uint8_t k_sync;		   /* IPROTO_SYNC */
+	uint8_t m_sync;		   /* MP_UINT64 */
+	uint64_t v_sync;	   /* sync */
+	uint8_t k_schema_version;  /* IPROTO_SCHEMA_VERSION */
+	uint8_t m_schema_version;  /* MP_UINT32 */
+	uint32_t v_schema_version; /* schema_version */
 };
 
 static_assert(sizeof(struct iproto_header_bin) == IPROTO_HEADER_LEN,
@@ -378,18 +386,18 @@ iproto_header_encode(char *out, uint32_t type, uint64_t sync,
 }
 
 struct PACKED iproto_body_bin {
-	uint8_t m_body;                    /* MP_MAP */
-	uint8_t k_data;                    /* IPROTO_DATA or errors */
-	uint8_t m_data;                    /* MP_STR or MP_ARRAY */
-	uint32_t v_data_len;               /* string length of array size */
+	uint8_t m_body;	     /* MP_MAP */
+	uint8_t k_data;	     /* IPROTO_DATA or errors */
+	uint8_t m_data;	     /* MP_STR or MP_ARRAY */
+	uint32_t v_data_len; /* string length of array size */
 };
 
 static_assert(sizeof(struct iproto_body_bin) + IPROTO_HEADER_LEN ==
-	      IPROTO_SELECT_HEADER_LEN, "size of the prepared select");
+		      IPROTO_SELECT_HEADER_LEN,
+	      "size of the prepared select");
 
-static const struct iproto_body_bin iproto_body_bin = {
-	0x81, IPROTO_DATA, 0xdd, 0
-};
+static const struct iproto_body_bin iproto_body_bin = { 0x81, IPROTO_DATA, 0xdd,
+							0 };
 
 /** Return a 4-byte numeric error code, with status flags. */
 static inline uint32_t
@@ -417,12 +425,12 @@ iproto_reply_vclock(struct obuf *out, const struct vclock *vclock,
 		    uint64_t sync, uint32_t schema_version)
 {
 	size_t max_size = IPROTO_HEADER_LEN + mp_sizeof_map(1) +
-		mp_sizeof_uint(UINT32_MAX) + mp_sizeof_vclock_ignore0(vclock);
+			  mp_sizeof_uint(UINT32_MAX) +
+			  mp_sizeof_vclock_ignore0(vclock);
 
 	char *buf = obuf_reserve(out, max_size);
 	if (buf == NULL) {
-		diag_set(OutOfMemory, max_size,
-			 "obuf_alloc", "buf");
+		diag_set(OutOfMemory, max_size, "obuf_alloc", "buf");
 		return -1;
 	}
 
@@ -437,30 +445,30 @@ iproto_reply_vclock(struct obuf *out, const struct vclock *vclock,
 			     size - IPROTO_HEADER_LEN);
 
 	char *ptr = obuf_alloc(out, size);
-	(void) ptr;
+	(void)ptr;
 	assert(ptr == buf);
 	return 0;
 }
 
 int
-iproto_reply_vote(struct obuf *out, const struct ballot *ballot,
-		  uint64_t sync, uint32_t schema_version)
+iproto_reply_vote(struct obuf *out, const struct ballot *ballot, uint64_t sync,
+		  uint32_t schema_version)
 {
-	size_t max_size = IPROTO_HEADER_LEN + mp_sizeof_map(1) +
+	size_t max_size =
+		IPROTO_HEADER_LEN + mp_sizeof_map(1) +
 		mp_sizeof_uint(UINT32_MAX) + mp_sizeof_map(5) +
 		mp_sizeof_uint(UINT32_MAX) + mp_sizeof_bool(ballot->is_ro) +
-		mp_sizeof_uint(UINT32_MAX) + mp_sizeof_bool(ballot->is_loading) +
-		mp_sizeof_uint(IPROTO_BALLOT_IS_ANON) +
-		mp_sizeof_bool(ballot->is_anon) +
 		mp_sizeof_uint(UINT32_MAX) +
+		mp_sizeof_bool(ballot->is_loading) +
+		mp_sizeof_uint(IPROTO_BALLOT_IS_ANON) +
+		mp_sizeof_bool(ballot->is_anon) + mp_sizeof_uint(UINT32_MAX) +
 		mp_sizeof_vclock_ignore0(&ballot->vclock) +
 		mp_sizeof_uint(UINT32_MAX) +
 		mp_sizeof_vclock_ignore0(&ballot->gc_vclock);
 
 	char *buf = obuf_reserve(out, max_size);
 	if (buf == NULL) {
-		diag_set(OutOfMemory, max_size,
-			 "obuf_alloc", "buf");
+		diag_set(OutOfMemory, max_size, "obuf_alloc", "buf");
 		return -1;
 	}
 
@@ -485,7 +493,7 @@ iproto_reply_vote(struct obuf *out, const struct ballot *ballot,
 			     size - IPROTO_HEADER_LEN);
 
 	char *ptr = obuf_alloc(out, size);
-	(void) ptr;
+	(void)ptr;
 	assert(ptr == buf);
 	return 0;
 }
@@ -560,7 +568,7 @@ iproto_write_error(int fd, const struct error *e, uint32_t schema_version,
 	ssize_t unused;
 	unused = write(fd, header, sizeof(header));
 	unused = write(fd, payload, payload_size);
-	(void) unused;
+	(void)unused;
 cleanup:
 	region_truncate(region, region_svp);
 }
@@ -580,7 +588,7 @@ iproto_prepare_header(struct obuf *buf, struct obuf_svp *svp, size_t size)
 	}
 	*svp = obuf_create_svp(buf);
 	ptr = obuf_alloc(buf, size);
-	assert(ptr !=  NULL);
+	assert(ptr != NULL);
 	return 0;
 }
 
@@ -588,10 +596,9 @@ void
 iproto_reply_select(struct obuf *buf, struct obuf_svp *svp, uint64_t sync,
 		    uint32_t schema_version, uint32_t count)
 {
-	char *pos = (char *) obuf_svp_to_ptr(buf, svp);
+	char *pos = (char *)obuf_svp_to_ptr(buf, svp);
 	iproto_header_encode(pos, IPROTO_OK, sync, schema_version,
-			        obuf_size(buf) - svp->used -
-				IPROTO_HEADER_LEN);
+			     obuf_size(buf) - svp->used - IPROTO_HEADER_LEN);
 
 	struct iproto_body_bin body = iproto_body_bin;
 	body.v_data_len = mp_bswap_u32(count);
@@ -603,18 +610,19 @@ int
 xrow_decode_sql(const struct xrow_header *row, struct sql_request *request)
 {
 	if (row->bodycnt == 0) {
-		diag_set(ClientError, ER_INVALID_MSGPACK, "missing request body");
+		diag_set(ClientError, ER_INVALID_MSGPACK,
+			 "missing request body");
 		return 1;
 	}
 	assert(row->bodycnt == 1);
-	const char *data = (const char *) row->body[0].iov_base;
+	const char *data = (const char *)row->body[0].iov_base;
 	const char *end = data + row->body[0].iov_len;
 	assert((end - data) > 0);
 
 	if (mp_typeof(*data) != MP_MAP || mp_check_map(data, end) > 0) {
-error:
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet body");
+	error:
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet body");
 		return -1;
 	}
 
@@ -626,12 +634,12 @@ error:
 		uint8_t key = *data;
 		if (key != IPROTO_SQL_BIND && key != IPROTO_SQL_TEXT &&
 		    key != IPROTO_STMT_ID) {
-			mp_check(&data, end);   /* skip the key */
-			mp_check(&data, end);   /* skip the value */
+			mp_check(&data, end); /* skip the key */
+			mp_check(&data, end); /* skip the value */
 			continue;
 		}
-		const char *value = ++data;     /* skip the key */
-		if (mp_check(&data, end) != 0)  /* check the value */
+		const char *value = ++data;    /* skip the key */
+		if (mp_check(&data, end) != 0) /* check the value */
 			goto error;
 		if (key == IPROTO_SQL_BIND)
 			request->bind = value;
@@ -641,8 +649,9 @@ error:
 			request->stmt_id = value;
 	}
 	if (request->sql_text != NULL && request->stmt_id != NULL) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "SQL text and statement id are incompatible "\
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK,
+				   "SQL text and statement id are incompatible "
 				   "options in one request: choose one");
 		return -1;
 	}
@@ -663,7 +672,7 @@ void
 iproto_reply_sql(struct obuf *buf, struct obuf_svp *svp, uint64_t sync,
 		 uint32_t schema_version)
 {
-	char *pos = (char *) obuf_svp_to_ptr(buf, svp);
+	char *pos = (char *)obuf_svp_to_ptr(buf, svp);
 	iproto_header_encode(pos, IPROTO_OK, sync, schema_version,
 			     obuf_size(buf) - svp->used - IPROTO_HEADER_LEN);
 }
@@ -672,7 +681,7 @@ void
 iproto_reply_chunk(struct obuf *buf, struct obuf_svp *svp, uint64_t sync,
 		   uint32_t schema_version)
 {
-	char *pos = (char *) obuf_svp_to_ptr(buf, svp);
+	char *pos = (char *)obuf_svp_to_ptr(buf, svp);
 	iproto_header_encode(pos, IPROTO_CHUNK, sync, schema_version,
 			     obuf_size(buf) - svp->used - IPROTO_HEADER_LEN);
 	struct iproto_body_bin body = iproto_body_bin;
@@ -695,20 +704,20 @@ xrow_decode_dml(struct xrow_header *row, struct request *request,
 		goto done;
 
 	assert(row->bodycnt == 1);
-	const char *data = start = (const char *) row->body[0].iov_base;
+	const char *data = start = (const char *)row->body[0].iov_base;
 	end = data + row->body[0].iov_len;
 	assert((end - data) > 0);
 
 	if (mp_typeof(*data) != MP_MAP || mp_check_map(data, end) > 0) {
-error:
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet body");
+	error:
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet body");
 		return -1;
 	}
 
 	uint32_t size = mp_decode_map(&data);
 	for (uint32_t i = 0; i < size; i++) {
-		if (! iproto_dml_body_has_key(data, end)) {
+		if (!iproto_dml_body_has_key(data, end)) {
 			if (mp_check(&data, end) != 0 ||
 			    mp_check(&data, end) != 0)
 				goto error;
@@ -716,8 +725,7 @@ error:
 		}
 		uint64_t key = mp_decode_uint(&data);
 		const char *value = data;
-		if (mp_check(&data, end) ||
-		    key >= IPROTO_KEY_MAX ||
+		if (mp_check(&data, end) || key >= IPROTO_KEY_MAX ||
 		    iproto_key_type[key] != mp_typeof(*value))
 			goto error;
 		key_map &= ~iproto_key_bit(key);
@@ -761,13 +769,13 @@ error:
 		}
 	}
 	if (data != end) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet end");
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet end");
 		return -1;
 	}
 done:
 	if (key_map) {
-		enum iproto_key key = (enum iproto_key) bit_ctz_u64(key_map);
+		enum iproto_key key = (enum iproto_key)bit_ctz_u64(key_map);
 		xrow_on_decode_err(start, end, ER_MISSING_REQUEST_FIELD,
 				   iproto_key_name(key));
 		return -1;
@@ -779,14 +787,14 @@ static int
 request_snprint(char *buf, int size, const struct request *request)
 {
 	int total = 0;
-	SNPRINT(total, snprintf, buf, size, "{type: '%s', "
-			"replica_id: %u, lsn: %lld, "
-			"space_id: %u, index_id: %u",
-			iproto_type_name(request->type),
-			(unsigned) request->header->replica_id,
-			(long long) request->header->lsn,
-			(unsigned) request->space_id,
-			(unsigned) request->index_id);
+	SNPRINT(total, snprintf, buf, size,
+		"{type: '%s', "
+		"replica_id: %u, lsn: %lld, "
+		"space_id: %u, index_id: %u",
+		iproto_type_name(request->type),
+		(unsigned)request->header->replica_id,
+		(long long)request->header->lsn, (unsigned)request->space_id,
+		(unsigned)request->index_id);
 	if (request->key != NULL) {
 		SNPRINT(total, snprintf, buf, size, ", key: ");
 		SNPRINT(total, mp_snprint, buf, size, request->key);
@@ -822,14 +830,14 @@ xrow_encode_dml(const struct request *request, struct region *region,
 	uint32_t ops_len = request->ops_end - request->ops;
 	uint32_t tuple_meta_len = request->tuple_meta_end - request->tuple_meta;
 	uint32_t tuple_len = request->tuple_end - request->tuple;
-	uint32_t len = MAP_LEN_MAX + key_len + ops_len + tuple_meta_len +
-		       tuple_len;
-	char *begin = (char *) region_alloc(region, len);
+	uint32_t len =
+		MAP_LEN_MAX + key_len + ops_len + tuple_meta_len + tuple_len;
+	char *begin = (char *)region_alloc(region, len);
 	if (begin == NULL) {
 		diag_set(OutOfMemory, len, "region_alloc", "begin");
 		return -1;
 	}
-	char *pos = begin + 1;     /* skip 1 byte for MP_MAP */
+	char *pos = begin + 1; /* skip 1 byte for MP_MAP */
 	int map_size = 0;
 	if (request->space_id) {
 		pos = mp_encode_uint(pos, IPROTO_SPACE_ID);
@@ -883,8 +891,7 @@ xrow_encode_dml(const struct request *request, struct region *region,
 }
 
 void
-xrow_encode_synchro(struct xrow_header *row,
-		    struct synchro_body_bin *body,
+xrow_encode_synchro(struct xrow_header *row, struct synchro_body_bin *body,
 		    const struct synchro_request *req)
 {
 	/*
@@ -918,8 +925,8 @@ xrow_decode_synchro(const struct xrow_header *row, struct synchro_request *req)
 
 	assert(row->bodycnt == 1);
 
-	const char * const data = (const char *)row->body[0].iov_base;
-	const char * const end = data + row->body[0].iov_len;
+	const char *const data = (const char *)row->body[0].iov_base;
+	const char *const end = data + row->body[0].iov_len;
 	const char *d = data;
 	if (mp_check(&d, end) != 0 || mp_typeof(*data) != MP_MAP) {
 		xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
@@ -967,8 +974,8 @@ xrow_encode_raft(struct xrow_header *row, struct region *region,
 	 * the term is too old.
 	 */
 	int map_size = 1;
-	size_t size = mp_sizeof_uint(IPROTO_RAFT_TERM) +
-		      mp_sizeof_uint(r->term);
+	size_t size =
+		mp_sizeof_uint(IPROTO_RAFT_TERM) + mp_sizeof_uint(r->term);
 	if (r->vote != 0) {
 		++map_size;
 		size += mp_sizeof_uint(IPROTO_RAFT_VOTE) +
@@ -1033,8 +1040,7 @@ xrow_decode_raft(const struct xrow_header *row, struct raft_request *r,
 	const char *end = begin + row->body[0].iov_len;
 	const char *pos = begin;
 	uint32_t map_size = mp_decode_map(&pos);
-	for (uint32_t i = 0; i < map_size; ++i)
-	{
+	for (uint32_t i = 0; i < map_size; ++i) {
 		if (mp_typeof(*pos) != MP_UINT)
 			goto bad_msgpack;
 		uint64_t key = mp_decode_uint(&pos);
@@ -1085,7 +1091,7 @@ xrow_to_iovec(const struct xrow_header *row, struct iovec *out)
 		len += out[i].iov_len;
 
 	/* Encode length */
-	char *data = (char *) out[0].iov_base;
+	char *data = (char *)out[0].iov_base;
 	*(data++) = 0xce; /* MP_UINT32 */
 	store_u32(data, mp_bswap_u32(len));
 
@@ -1103,14 +1109,14 @@ xrow_decode_call(const struct xrow_header *row, struct call_request *request)
 	}
 
 	assert(row->bodycnt == 1);
-	const char *data = (const char *) row->body[0].iov_base;
+	const char *data = (const char *)row->body[0].iov_base;
 	const char *end = data + row->body[0].iov_len;
 	assert((end - data) > 0);
 
 	if (mp_typeof(*data) != MP_MAP || mp_check_map(data, end) > 0) {
-error:
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet body");
+	error:
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet body");
 		return -1;
 	}
 
@@ -1149,20 +1155,21 @@ error:
 		}
 	}
 	if (data != end) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet end");
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet end");
 		return -1;
 	}
 	if (row->type == IPROTO_EVAL) {
 		if (request->expr == NULL) {
-			xrow_on_decode_err(row->body[0].iov_base, end, ER_MISSING_REQUEST_FIELD,
+			xrow_on_decode_err(row->body[0].iov_base, end,
+					   ER_MISSING_REQUEST_FIELD,
 					   iproto_key_name(IPROTO_EXPR));
 			return -1;
 		}
 	} else if (request->name == NULL) {
-		assert(row->type == IPROTO_CALL_16 ||
-		       row->type == IPROTO_CALL);
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_MISSING_REQUEST_FIELD,
+		assert(row->type == IPROTO_CALL_16 || row->type == IPROTO_CALL);
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_MISSING_REQUEST_FIELD,
 				   iproto_key_name(IPROTO_FUNCTION_NAME));
 		return -1;
 	}
@@ -1184,14 +1191,14 @@ xrow_decode_auth(const struct xrow_header *row, struct auth_request *request)
 	}
 
 	assert(row->bodycnt == 1);
-	const char *data = (const char *) row->body[0].iov_base;
+	const char *data = (const char *)row->body[0].iov_base;
 	const char *end = data + row->body[0].iov_len;
 	assert((end - data) > 0);
 
 	if (mp_typeof(*data) != MP_MAP || mp_check_map(data, end) > 0) {
-error:
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet body");
+	error:
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet body");
 		return -1;
 	}
 
@@ -1223,17 +1230,19 @@ error:
 		}
 	}
 	if (data != end) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_INVALID_MSGPACK,
-				   "packet end");
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_INVALID_MSGPACK, "packet end");
 		return -1;
 	}
 	if (request->user_name == NULL) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_MISSING_REQUEST_FIELD,
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_MISSING_REQUEST_FIELD,
 				   iproto_key_name(IPROTO_USER_NAME));
 		return -1;
 	}
 	if (request->scramble == NULL) {
-		xrow_on_decode_err(row->body[0].iov_base, end, ER_MISSING_REQUEST_FIELD,
+		xrow_on_decode_err(row->body[0].iov_base, end,
+				   ER_MISSING_REQUEST_FIELD,
 				   iproto_key_name(IPROTO_TUPLE));
 		return -1;
 	}
@@ -1242,14 +1251,14 @@ error:
 
 int
 xrow_encode_auth(struct xrow_header *packet, const char *salt, size_t salt_len,
-		 const char *login, size_t login_len,
-		 const char *password, size_t password_len)
+		 const char *login, size_t login_len, const char *password,
+		 size_t password_len)
 {
 	assert(login != NULL);
 	memset(packet, 0, sizeof(*packet));
 
 	size_t buf_size = XROW_BODY_LEN_MAX + login_len + SCRAMBLE_SIZE;
-	char *buf = (char *) region_alloc(&fiber()->gc, buf_size);
+	char *buf = (char *)region_alloc(&fiber()->gc, buf_size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, buf_size, "region_alloc", "buf");
 		return -1;
@@ -1259,9 +1268,9 @@ xrow_encode_auth(struct xrow_header *packet, const char *salt, size_t salt_len,
 	d = mp_encode_map(d, password != NULL ? 2 : 1);
 	d = mp_encode_uint(d, IPROTO_USER_NAME);
 	d = mp_encode_str(d, login, login_len);
-	if (password != NULL) { /* password can be omitted */
+	if (password != NULL) {			   /* password can be omitted */
 		assert(salt_len >= SCRAMBLE_SIZE); /* greetingbuf_decode */
-		(void) salt_len;
+		(void)salt_len;
 		char scramble[SCRAMBLE_SIZE];
 		scramble_prepare(scramble, salt, password, password_len);
 		d = mp_encode_uint(d, IPROTO_TUPLE);
@@ -1289,11 +1298,11 @@ xrow_decode_error(struct xrow_header *row)
 
 	if (row->bodycnt == 0)
 		goto error;
-	pos = (char *) row->body[0].iov_base;
+	pos = (char *)row->body[0].iov_base;
 	if (mp_check(&pos, pos + row->body[0].iov_len))
 		goto error;
 
-	pos = (char *) row->body[0].iov_base;
+	pos = (char *)row->body[0].iov_base;
 	if (mp_typeof(*pos) != MP_MAP)
 		goto error;
 	map_size = mp_decode_map(&pos);
@@ -1314,7 +1323,8 @@ xrow_decode_error(struct xrow_header *row)
 			uint32_t len;
 			const char *str = mp_decode_str(&pos, &len);
 			if (!is_stack_parsed) {
-				snprintf(error, sizeof(error), "%.*s", len, str);
+				snprintf(error, sizeof(error), "%.*s", len,
+					 str);
 				box_error_set(__FILE__, __LINE__, code, error);
 			}
 		} else if (key == IPROTO_ERROR) {
@@ -1356,7 +1366,7 @@ xrow_decode_ballot(struct xrow_header *row, struct ballot *ballot)
 		goto err;
 	assert(row->bodycnt == 1);
 
-	const char *data = start = (const char *) row->body[0].iov_base;
+	const char *data = start = (const char *)row->body[0].iov_base;
 	end = data + row->body[0].iov_len;
 	const char *tmp = data;
 	if (mp_check(&tmp, end) != 0 || mp_typeof(*data) != MP_MAP)
@@ -1402,8 +1412,8 @@ xrow_decode_ballot(struct xrow_header *row, struct ballot *ballot)
 			ballot->is_anon = mp_decode_bool(&data);
 			break;
 		case IPROTO_BALLOT_VCLOCK:
-			if (mp_decode_vclock_ignore0(&data,
-						     &ballot->vclock) != 0)
+			if (mp_decode_vclock_ignore0(&data, &ballot->vclock) !=
+			    0)
 				goto err;
 			break;
 		case IPROTO_BALLOT_GC_VCLOCK:
@@ -1427,12 +1437,11 @@ xrow_encode_register(struct xrow_header *row,
 		     const struct vclock *vclock)
 {
 	memset(row, 0, sizeof(*row));
-	size_t size = mp_sizeof_map(2) +
-		      mp_sizeof_uint(IPROTO_INSTANCE_UUID) +
+	size_t size = mp_sizeof_map(2) + mp_sizeof_uint(IPROTO_INSTANCE_UUID) +
 		      mp_sizeof_str(UUID_STR_LEN) +
 		      mp_sizeof_uint(IPROTO_VCLOCK) +
 		      mp_sizeof_vclock_ignore0(vclock);
-	char *buf = (char *) region_alloc(&fiber()->gc, size);
+	char *buf = (char *)region_alloc(&fiber()->gc, size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "buf");
 		return -1;
@@ -1459,9 +1468,8 @@ xrow_encode_subscribe(struct xrow_header *row,
 		      uint32_t id_filter)
 {
 	memset(row, 0, sizeof(*row));
-	size_t size = XROW_BODY_LEN_MAX +
-		      mp_sizeof_vclock_ignore0(vclock);
-	char *buf = (char *) region_alloc(&fiber()->gc, size);
+	size_t size = XROW_BODY_LEN_MAX + mp_sizeof_vclock_ignore0(vclock);
+	char *buf = (char *)region_alloc(&fiber()->gc, size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "buf");
 		return -1;
@@ -1483,8 +1491,7 @@ xrow_encode_subscribe(struct xrow_header *row,
 		data = mp_encode_uint(data, IPROTO_ID_FILTER);
 		data = mp_encode_array(data, filter_size);
 		struct bit_iterator it;
-		bit_iterator_init(&it, &id_filter, sizeof(id_filter),
-				  true);
+		bit_iterator_init(&it, &id_filter, sizeof(id_filter), true);
 		for (size_t id = bit_iterator_next(&it); id < VCLOCK_MAX;
 		     id = bit_iterator_next(&it)) {
 			data = mp_encode_uint(data, id);
@@ -1501,15 +1508,14 @@ xrow_encode_subscribe(struct xrow_header *row,
 int
 xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 		      struct tt_uuid *instance_uuid, struct vclock *vclock,
-		      uint32_t *version_id, bool *anon,
-		      uint32_t *id_filter)
+		      uint32_t *version_id, bool *anon, uint32_t *id_filter)
 {
 	if (row->bodycnt == 0) {
 		diag_set(ClientError, ER_INVALID_MSGPACK, "request body");
 		return -1;
 	}
 	assert(row->bodycnt == 1);
-	const char * const data = (const char *) row->body[0].iov_base;
+	const char *const data = (const char *)row->body[0].iov_base;
 	const char *end = data + row->body[0].iov_len;
 	const char *d = data;
 	if (mp_check(&d, end) != 0 || mp_typeof(*data) != MP_MAP) {
@@ -1536,8 +1542,8 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (replicaset_uuid == NULL)
 				goto skip;
 			if (xrow_decode_uuid(&d, replicaset_uuid) != 0) {
-				xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
-						   "UUID");
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK, "UUID");
 				return -1;
 			}
 			break;
@@ -1545,8 +1551,8 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (instance_uuid == NULL)
 				goto skip;
 			if (xrow_decode_uuid(&d, instance_uuid) != 0) {
-				xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
-						   "UUID");
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK, "UUID");
 				return -1;
 			}
 			break;
@@ -1554,7 +1560,8 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (vclock == NULL)
 				goto skip;
 			if (mp_decode_vclock_ignore0(&d, vclock) != 0) {
-				xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK,
 						   "invalid VCLOCK");
 				return -1;
 			}
@@ -1563,7 +1570,8 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (version_id == NULL)
 				goto skip;
 			if (mp_typeof(*d) != MP_UINT) {
-				xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK,
 						   "invalid VERSION");
 				return -1;
 			}
@@ -1573,7 +1581,8 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (anon == NULL)
 				goto skip;
 			if (mp_typeof(*d) != MP_BOOL) {
-				xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK,
 						   "invalid REPLICA_ANON flag");
 				return -1;
 			}
@@ -1583,7 +1592,9 @@ xrow_decode_subscribe(struct xrow_header *row, struct tt_uuid *replicaset_uuid,
 			if (id_filter == NULL)
 				goto skip;
 			if (mp_typeof(*d) != MP_ARRAY) {
-id_filter_decode_err:		xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
+			id_filter_decode_err:
+				xrow_on_decode_err(data, end,
+						   ER_INVALID_MSGPACK,
 						   "invalid ID_FILTER");
 				return -1;
 			}
@@ -1597,7 +1608,8 @@ id_filter_decode_err:		xrow_on_decode_err(data, end, ER_INVALID_MSGPACK,
 				*id_filter |= 1 << val;
 			}
 			break;
-		default: skip:
+		default:
+		skip:
 			mp_next(&d); /* value */
 		}
 	}
@@ -1610,7 +1622,7 @@ xrow_encode_join(struct xrow_header *row, const struct tt_uuid *instance_uuid)
 	memset(row, 0, sizeof(*row));
 
 	size_t size = 64;
-	char *buf = (char *) region_alloc(&fiber()->gc, size);
+	char *buf = (char *)region_alloc(&fiber()->gc, size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "buf");
 		return -1;
@@ -1636,7 +1648,7 @@ xrow_encode_vclock(struct xrow_header *row, const struct vclock *vclock)
 
 	/* Add vclock to response body */
 	size_t size = 8 + mp_sizeof_vclock_ignore0(vclock);
-	char *buf = (char *) region_alloc(&fiber()->gc, size);
+	char *buf = (char *)region_alloc(&fiber()->gc, size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "buf");
 		return -1;
@@ -1659,12 +1671,11 @@ xrow_encode_subscribe_response(struct xrow_header *row,
 			       const struct vclock *vclock)
 {
 	memset(row, 0, sizeof(*row));
-	size_t size = mp_sizeof_map(2) +
-		      mp_sizeof_uint(IPROTO_VCLOCK) +
+	size_t size = mp_sizeof_map(2) + mp_sizeof_uint(IPROTO_VCLOCK) +
 		      mp_sizeof_vclock_ignore0(vclock) +
 		      mp_sizeof_uint(IPROTO_CLUSTER_UUID) +
 		      mp_sizeof_str(UUID_STR_LEN);
-	char *buf = (char *) region_alloc(&fiber()->gc, size);
+	char *buf = (char *)region_alloc(&fiber()->gc, size);
 	if (buf == NULL) {
 		diag_set(OutOfMemory, size, "region_alloc", "buf");
 		return -1;
@@ -1698,8 +1709,9 @@ greeting_encode(char *greetingbuf, uint32_t version_id,
 {
 	int h = IPROTO_GREETING_SIZE / 2;
 	int r = snprintf(greetingbuf, h + 1, "Tarantool %u.%u.%u (Binary) ",
-		version_id_major(version_id), version_id_minor(version_id),
-		version_id_patch(version_id));
+			 version_id_major(version_id),
+			 version_id_minor(version_id),
+			 version_id_patch(version_id));
 
 	assert(r + UUID_STR_LEN < h);
 	tt_uuid_to_string(uuid, greetingbuf + r);
@@ -1726,17 +1738,19 @@ greeting_decode(const char *greetingbuf, struct greeting *greeting)
 	int h = IPROTO_GREETING_SIZE / 2;
 	const char *pos = greetingbuf + strlen("Tarantool ");
 	const char *end = greetingbuf + h;
-	for (; pos < end && *pos == ' '; ++pos); /* skip spaces */
+	for (; pos < end && *pos == ' '; ++pos)
+		; /* skip spaces */
 
 	/* Extract a version string - a string until ' ' */
 	char version[20];
-	const char *vend = (const char *) memchr(pos, ' ', end - pos);
+	const char *vend = (const char *)memchr(pos, ' ', end - pos);
 	if (vend == NULL || (size_t)(vend - pos) >= sizeof(version))
 		return -1;
 	memcpy(version, pos, vend - pos);
 	version[vend - pos] = '\0';
 	pos = vend + 1;
-	for (; pos < end && *pos == ' '; ++pos); /* skip spaces */
+	for (; pos < end && *pos == ' '; ++pos)
+		; /* skip spaces */
 
 	/* Parse a version string - 1.6.6-83-gc6b2129 or 1.6.7 */
 	unsigned major, minor, patch;
@@ -1746,7 +1760,7 @@ greeting_decode(const char *greetingbuf, struct greeting *greeting)
 
 	if (*pos == '(') {
 		/* Extract protocol name - a string between (parentheses) */
-		vend = (const char *) memchr(pos + 1, ')', end - pos);
+		vend = (const char *)memchr(pos + 1, ')', end - pos);
 		if (!vend || (vend - pos - 1) > GREETING_PROTOCOL_LEN_MAX)
 			return -1;
 		memcpy(greeting->protocol, pos + 1, vend - pos - 1);
@@ -1759,10 +1773,12 @@ greeting_decode(const char *greetingbuf, struct greeting *greeting)
 		if (greeting->version_id >= version_id(1, 6, 7)) {
 			if (*(pos++) != ' ')
 				return -1;
-			for (; pos < end && *pos == ' '; ++pos); /* spaces */
+			for (; pos < end && *pos == ' '; ++pos)
+				; /* spaces */
 			if (end - pos < UUID_STR_LEN)
 				return -1;
-			if (tt_uuid_from_strl(pos, UUID_STR_LEN, &greeting->uuid))
+			if (tt_uuid_from_strl(pos, UUID_STR_LEN,
+					      &greeting->uuid))
 				return -1;
 		}
 	} else if (greeting->version_id < version_id(1, 6, 7)) {
@@ -1776,7 +1792,8 @@ greeting_decode(const char *greetingbuf, struct greeting *greeting)
 	greeting->salt_len = base64_decode(greetingbuf + h, h - 1,
 					   greeting->salt,
 					   sizeof(greeting->salt));
-	if (greeting->salt_len < SCRAMBLE_SIZE || greeting->salt_len >= (uint32_t)h)
+	if (greeting->salt_len < SCRAMBLE_SIZE ||
+	    greeting->salt_len >= (uint32_t)h)
 		return -1;
 
 	return 0;

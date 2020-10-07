@@ -53,9 +53,9 @@ struct vy_run_env;
 struct vy_worker;
 struct vy_scheduler;
 
-typedef void
-(*vy_scheduler_dump_complete_f)(struct vy_scheduler *scheduler,
-				int64_t dump_generation, double dump_duration);
+typedef void (*vy_scheduler_dump_complete_f)(struct vy_scheduler *scheduler,
+					     int64_t dump_generation,
+					     double dump_duration);
 
 struct vy_worker_pool {
 	/** Name of the pool. Used for naming threads. */

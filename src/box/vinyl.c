@@ -104,7 +104,7 @@ struct vy_env {
 	/** Memory pool for index iterator. */
 	struct mempool iterator_pool;
 	/** Memory quota */
-	struct vy_quota     quota;
+	struct vy_quota quota;
 	/** Statement environment. */
 	struct vy_stmt_env stmt_env;
 	/** Common LSM tree environment. */
@@ -134,14 +134,14 @@ struct vy_env {
 /** Mask passed to vy_gc(). */
 enum {
 	/** Delete incomplete runs. */
-	VY_GC_INCOMPLETE	= 1 << 0,
+	VY_GC_INCOMPLETE = 1 << 0,
 	/** Delete dropped runs. */
-	VY_GC_DROPPED		= 1 << 1,
+	VY_GC_DROPPED = 1 << 1,
 };
 
 static void
-vy_gc(struct vy_env *env, struct vy_recovery *recovery,
-      unsigned int gc_mask, int64_t gc_lsn);
+vy_gc(struct vy_env *env, struct vy_recovery *recovery, unsigned int gc_mask,
+      int64_t gc_lsn);
 
 struct vinyl_iterator {
 	struct iterator base;
@@ -259,8 +259,9 @@ vy_info_append_regulator(struct vy_env *env, struct info_handler *h)
 	info_append_int(h, "write_rate", r->write_rate);
 	info_append_int(h, "dump_bandwidth", r->dump_bandwidth);
 	info_append_int(h, "dump_watermark", r->dump_watermark);
-	info_append_int(h, "rate_limit", vy_quota_get_rate_limit(r->quota,
-							VY_QUOTA_CONSUMER_TX));
+	info_append_int(h, "rate_limit",
+			vy_quota_get_rate_limit(r->quota,
+						VY_QUOTA_CONSUMER_TX));
 	info_table_end(h); /* regulator */
 }
 
@@ -419,9 +420,12 @@ vinyl_index_stat(struct index *index, struct info_handler *h)
 	info_table_begin(h, "compaction");
 	info_append_int(h, "count", stat->disk.compaction.count);
 	info_append_double(h, "time", stat->disk.compaction.time);
-	vy_info_append_disk_stmt_counter(h, "input", &stat->disk.compaction.input);
-	vy_info_append_disk_stmt_counter(h, "output", &stat->disk.compaction.output);
-	vy_info_append_disk_stmt_counter(h, "queue", &stat->disk.compaction.queue);
+	vy_info_append_disk_stmt_counter(h, "input",
+					 &stat->disk.compaction.input);
+	vy_info_append_disk_stmt_counter(h, "output",
+					 &stat->disk.compaction.output);
+	vy_info_append_disk_stmt_counter(h, "queue",
+					 &stat->disk.compaction.queue);
 	info_table_end(h); /* compaction */
 	info_append_int(h, "index_size", lsm->page_index_size);
 	info_append_int(h, "bloom_size", lsm->bloom_size);
@@ -504,7 +508,7 @@ vinyl_engine_memory_stat(struct engine *engine, struct engine_memory_stat *stat)
 	struct vy_env *env = vy_env(engine);
 
 	stat->data += lsregion_used(&env->mem_env.allocator) -
-				env->mem_env.tree_extent_size;
+		      env->mem_env.tree_extent_size;
 	stat->index += env->mem_env.tree_extent_size;
 	stat->index += env->lsm_env.bloom_size;
 	stat->index += env->lsm_env.page_index_size;
@@ -563,7 +567,7 @@ vy_lsm_find(struct space *space, uint32_t iid)
  * Wrapper around vy_lsm_find() which ensures that
  * the found index is unique.
  */
-static  struct vy_lsm *
+static struct vy_lsm *
 vy_lsm_find_unique(struct space *space, uint32_t index_id)
 {
 	struct vy_lsm *lsm = vy_lsm_find(space, index_id);
@@ -578,8 +582,8 @@ static int
 vinyl_engine_check_space_def(struct space_def *def)
 {
 	if (def->opts.is_temporary) {
-		diag_set(ClientError, ER_ALTER_SPACE,
-			 def->name, "engine does not support temporary flag");
+		diag_set(ClientError, ER_ALTER_SPACE, def->name,
+			 "engine does not support temporary flag");
 		return -1;
 	}
 	return 0;
@@ -592,8 +596,7 @@ vinyl_engine_create_space(struct engine *engine, struct space_def *def,
 	struct vy_env *env = vy_env(engine);
 	struct space *space = malloc(sizeof(*space));
 	if (space == NULL) {
-		diag_set(OutOfMemory, sizeof(*space),
-			 "malloc", "struct space");
+		diag_set(OutOfMemory, sizeof(*space), "malloc", "struct space");
 		return NULL;
 	}
 
@@ -625,8 +628,8 @@ vinyl_engine_create_space(struct engine *engine, struct space_def *def,
 	}
 	tuple_format_ref(format);
 
-	if (space_create(space, engine, &vinyl_space_vtab,
-			 def, key_list, format) != 0) {
+	if (space_create(space, engine, &vinyl_space_vtab, def, key_list,
+			 format) != 0) {
 		tuple_format_unref(format);
 		free(space);
 		return NULL;
@@ -647,8 +650,8 @@ static int
 vinyl_space_check_index_def(struct space *space, struct index_def *index_def)
 {
 	if (index_def->type != TREE) {
-		diag_set(ClientError, ER_INDEX_TYPE,
-			 index_def->name, space_name(space));
+		diag_set(ClientError, ER_INDEX_TYPE, index_def->name,
+			 space_name(space));
 		return -1;
 	}
 
@@ -663,8 +666,8 @@ vinyl_space_check_index_def(struct space *space, struct index_def *index_def)
 		struct key_part *part = &key_def->parts[i];
 		if (part->type <= FIELD_TYPE_ANY ||
 		    part->type >= FIELD_TYPE_ARRAY) {
-			diag_set(ClientError, ER_MODIFY_INDEX,
-				 index_def->name, space_name(space),
+			diag_set(ClientError, ER_MODIFY_INDEX, index_def->name,
+				 space_name(space),
 				 tt_sprintf("field type '%s' is not supported",
 					    field_type_strs[part->type]));
 			return -1;
@@ -694,8 +697,8 @@ vinyl_space_create_index(struct space *space, struct index_def *index_def)
 	if (lsm == NULL)
 		return NULL;
 
-	if (index_create(&lsm->base, &env->base,
-			 &vinyl_index_vtab, index_def) != 0) {
+	if (index_create(&lsm->base, &env->base, &vinyl_index_vtab,
+			 index_def) != 0) {
 		vy_lsm_delete(lsm);
 		return NULL;
 	}
@@ -1143,8 +1146,8 @@ vinyl_space_swap_index(struct space *old_space, struct space *new_space,
 	 * Swap the two indexes between the two spaces,
 	 * but leave tuple formats.
 	 */
-	generic_space_swap_index(old_space, new_space,
-				 old_index_id, new_index_id);
+	generic_space_swap_index(old_space, new_space, old_index_id,
+				 new_index_id);
 
 	SWAP(old_lsm, new_lsm);
 	SWAP(old_lsm->mem_format, new_lsm->mem_format);
@@ -1201,8 +1204,8 @@ vinyl_index_bsize(struct index *index)
 	 * they are only needed for building the index.
 	 */
 	struct vy_lsm *lsm = vy_lsm(index);
-	ssize_t bsize = vy_lsm_mem_tree_size(lsm) +
-		lsm->page_index_size + lsm->bloom_size;
+	ssize_t bsize = vy_lsm_mem_tree_size(lsm) + lsm->page_index_size +
+			lsm->bloom_size;
 	if (lsm->index_id > 0)
 		bsize += lsm->stat.disk.count.bytes;
 	return bsize;
@@ -1266,8 +1269,8 @@ vy_is_committed(struct vy_env *env, struct vy_lsm *lsm)
  */
 static int
 vy_get_by_secondary_tuple(struct vy_lsm *lsm, struct vy_tx *tx,
-			  const struct vy_read_view **rv,
-			  struct vy_entry entry, struct vy_entry *result)
+			  const struct vy_read_view **rv, struct vy_entry entry,
+			  struct vy_entry *result)
 {
 	int rc = 0;
 	assert(lsm->index_id > 0);
@@ -1306,8 +1309,8 @@ vy_get_by_secondary_tuple(struct vy_lsm *lsm, struct vy_tx *tx,
 	struct vy_entry full_entry;
 	if (pk_entry.stmt != NULL) {
 		vy_stmt_foreach_entry(full_entry, pk_entry.stmt, lsm->cmp_def) {
-			if (vy_entry_compare(full_entry, entry,
-					     lsm->cmp_def) == 0) {
+			if (vy_entry_compare(full_entry, entry, lsm->cmp_def) ==
+			    0) {
 				match = true;
 				break;
 			}
@@ -1354,8 +1357,8 @@ vy_get_by_secondary_tuple(struct vy_lsm *lsm, struct vy_tx *tx,
 	}
 
 	if ((*rv)->vlsn == INT64_MAX) {
-		vy_cache_add(&lsm->pk->cache, pk_entry,
-			     vy_entry_none(), key, ITER_EQ);
+		vy_cache_add(&lsm->pk->cache, pk_entry, vy_entry_none(), key,
+			     ITER_EQ);
 	}
 
 	vy_stmt_counter_acct_tuple(&lsm->pk->stat.get, pk_entry.stmt);
@@ -1378,8 +1381,7 @@ out:
  * @param -1 Memory error or read error.
  */
 static int
-vy_get(struct vy_lsm *lsm, struct vy_tx *tx,
-       const struct vy_read_view **rv,
+vy_get(struct vy_lsm *lsm, struct vy_tx *tx, const struct vy_read_view **rv,
        struct tuple *key_stmt, struct tuple **result)
 {
 	double start_time = ev_monotonic_now(loop());
@@ -1407,8 +1409,8 @@ vy_get(struct vy_lsm *lsm, struct vy_tx *tx,
 		if (vy_point_lookup(lsm, tx, rv, key, &partial) != 0)
 			return -1;
 		if (lsm->index_id > 0 && partial.stmt != NULL) {
-			rc = vy_get_by_secondary_tuple(lsm, tx, rv,
-						       partial, &entry);
+			rc = vy_get_by_secondary_tuple(lsm, tx, rv, partial,
+						       &entry);
 			tuple_unref(partial.stmt);
 			if (rc != 0)
 				return -1;
@@ -1416,8 +1418,8 @@ vy_get(struct vy_lsm *lsm, struct vy_tx *tx,
 			entry = partial;
 		}
 		if ((*rv)->vlsn == INT64_MAX) {
-			vy_cache_add(&lsm->cache, entry,
-				     vy_entry_none(), key, ITER_EQ);
+			vy_cache_add(&lsm->cache, entry, vy_entry_none(), key,
+				     ITER_EQ);
 		}
 		goto out;
 	}
@@ -1472,12 +1474,11 @@ out:
  */
 static int
 vy_get_by_raw_key(struct vy_lsm *lsm, struct vy_tx *tx,
-		  const struct vy_read_view **rv,
-		  const char *key_raw, uint32_t part_count,
-		  struct tuple **result)
+		  const struct vy_read_view **rv, const char *key_raw,
+		  uint32_t part_count, struct tuple **result)
 {
-	struct tuple *key = vy_key_new(lsm->env->key_format,
-				       key_raw, part_count);
+	struct tuple *key =
+		vy_key_new(lsm->env->key_format, key_raw, part_count);
 	if (key == NULL)
 		return -1;
 	int rc = vy_get(lsm, tx, rv, key, result);
@@ -1512,15 +1513,15 @@ vy_check_is_unique_primary(struct vy_tx *tx, const struct vy_read_view **rv,
 		return -1;
 	if (found != NULL) {
 		tuple_unref(found);
-		diag_set(ClientError, ER_TUPLE_FOUND,
-			 index_name, space_name);
+		diag_set(ClientError, ER_TUPLE_FOUND, index_name, space_name);
 		return -1;
 	}
 	return 0;
 }
 
 static int
-vy_check_is_unique_secondary_one(struct vy_tx *tx, const struct vy_read_view **rv,
+vy_check_is_unique_secondary_one(struct vy_tx *tx,
+				 const struct vy_read_view **rv,
 				 const char *space_name, const char *index_name,
 				 struct vy_lsm *lsm, struct tuple *stmt,
 				 int multikey_idx)
@@ -1560,8 +1561,7 @@ vy_check_is_unique_secondary_one(struct vy_tx *tx, const struct vy_read_view **r
 	}
 	if (found != NULL) {
 		tuple_unref(found);
-		diag_set(ClientError, ER_TUPLE_FOUND,
-			 index_name, space_name);
+		diag_set(ClientError, ER_TUPLE_FOUND, index_name, space_name);
 		return -1;
 	}
 	return 0;
@@ -1587,14 +1587,15 @@ vy_check_is_unique_secondary(struct vy_tx *tx, const struct vy_read_view **rv,
 {
 	assert(lsm->opts.is_unique);
 	if (!lsm->cmp_def->is_multikey) {
-		return vy_check_is_unique_secondary_one(tx, rv,
-				space_name, index_name, lsm, stmt,
-				MULTIKEY_NONE);
+		return vy_check_is_unique_secondary_one(tx, rv, space_name,
+							index_name, lsm, stmt,
+							MULTIKEY_NONE);
 	}
 	int count = tuple_multikey_count(stmt, lsm->cmp_def);
 	for (int i = 0; i < count; ++i) {
-		if (vy_check_is_unique_secondary_one(tx, rv,
-				space_name, index_name, lsm, stmt, i) != 0)
+		if (vy_check_is_unique_secondary_one(tx, rv, space_name,
+						     index_name, lsm, stmt,
+						     i) != 0)
 			return -1;
 	}
 	return 0;
@@ -1616,9 +1617,8 @@ vy_check_is_unique_secondary(struct vy_tx *tx, const struct vy_read_view **rv,
  * @retval -1 Duplicate is found or read error occurred.
  */
 static int
-vy_check_is_unique(struct vy_env *env, struct vy_tx *tx,
-		   struct space *space, struct tuple *stmt,
-		   uint64_t column_mask)
+vy_check_is_unique(struct vy_env *env, struct vy_tx *tx, struct space *space,
+		   struct tuple *stmt, uint64_t column_mask)
 {
 	assert(space->index_count > 0);
 	assert(vy_stmt_type(stmt) == IPROTO_INSERT ||
@@ -1641,8 +1641,8 @@ vy_check_is_unique(struct vy_env *env, struct vy_tx *tx,
 	    vy_stmt_type(stmt) == IPROTO_INSERT) {
 		struct vy_lsm *lsm = vy_lsm(space->index[0]);
 		if (vy_check_is_unique_primary(tx, rv, space_name(space),
-					       index_name_by_id(space, 0),
-					       lsm, stmt) != 0)
+					       index_name_by_id(space, 0), lsm,
+					       stmt) != 0)
 			return -1;
 	}
 
@@ -1678,8 +1678,7 @@ vy_check_is_unique(struct vy_env *env, struct vy_tx *tx,
  *            in the diagnostics area.
  */
 static inline int
-vy_unique_key_validate(struct vy_lsm *lsm, const char *key,
-		       uint32_t part_count)
+vy_unique_key_validate(struct vy_lsm *lsm, const char *key, uint32_t part_count)
 {
 	assert(lsm->opts.is_unique);
 	assert(key != NULL || part_count == 0);
@@ -1694,8 +1693,8 @@ vy_unique_key_validate(struct vy_lsm *lsm, const char *key,
 	 */
 	uint32_t original_part_count = lsm->key_def->part_count;
 	if (original_part_count != part_count) {
-		diag_set(ClientError, ER_EXACT_MATCH,
-			 original_part_count, part_count);
+		diag_set(ClientError, ER_EXACT_MATCH, original_part_count,
+			 part_count);
 		return -1;
 	}
 	const char *key_end;
@@ -1740,8 +1739,8 @@ vy_delete(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	 * - if deletion is done by a secondary index.
 	 */
 	if (lsm->index_id > 0 || !rlist_empty(&space->on_replace)) {
-		if (vy_get_by_raw_key(lsm, tx, vy_tx_read_view(tx),
-				      key, part_count, &stmt->old_tuple) != 0)
+		if (vy_get_by_raw_key(lsm, tx, vy_tx_read_view(tx), key,
+				      part_count, &stmt->old_tuple) != 0)
 			return -1;
 		if (stmt->old_tuple == NULL)
 			return 0;
@@ -1763,8 +1762,8 @@ vy_delete(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 		}
 	} else {
 		assert(lsm->index_id == 0);
-		delete = vy_stmt_new_delete(pk->env->key_format,
-					    request->key, request->key_end);
+		delete = vy_stmt_new_delete(pk->env->key_format, request->key,
+					    request->key_end);
 		if (delete == NULL)
 			return -1;
 		if (space->index_count > 1)
@@ -1797,8 +1796,8 @@ vy_check_update(struct space *space, const struct vy_lsm *pk,
 		uint64_t column_mask)
 {
 	if (!key_update_can_be_skipped(pk->key_def->column_mask, column_mask) &&
-	    vy_stmt_compare(old_tuple, HINT_NONE, new_tuple,
-			    HINT_NONE, pk->key_def) != 0) {
+	    vy_stmt_compare(old_tuple, HINT_NONE, new_tuple, HINT_NONE,
+			    pk->key_def) != 0) {
 		diag_set(ClientError, ER_CANT_UPDATE_PRIMARY_KEY,
 			 index_name_by_id(space, pk->index_id),
 			 space_name(space));
@@ -1821,8 +1820,8 @@ vy_perform_update(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	assert(stmt->old_tuple != NULL);
 	assert(stmt->new_tuple != NULL);
 
-	if (vy_check_is_unique(env, tx, space, stmt->new_tuple,
-			       column_mask) != 0)
+	if (vy_check_is_unique(env, tx, space, stmt->new_tuple, column_mask) !=
+	    0)
 		return -1;
 
 	vy_stmt_set_flags(stmt->new_tuple, VY_STMT_UPDATE);
@@ -1832,8 +1831,8 @@ vy_perform_update(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	if (space->index_count == 1)
 		return 0;
 
-	struct tuple *delete = vy_stmt_new_surrogate_delete(pk->mem_format,
-							    stmt->old_tuple);
+	struct tuple *delete =
+		vy_stmt_new_surrogate_delete(pk->mem_format, stmt->old_tuple);
 	if (delete == NULL)
 		return -1;
 
@@ -1884,8 +1883,8 @@ vy_update(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	if (vy_unique_key_validate(lsm, key, part_count))
 		return -1;
 
-	if (vy_get_by_raw_key(lsm, tx, vy_tx_read_view(tx),
-			      key, part_count, &stmt->old_tuple) != 0)
+	if (vy_get_by_raw_key(lsm, tx, vy_tx_read_view(tx), key, part_count,
+			      &stmt->old_tuple) != 0)
 		return -1;
 	/* Nothing to update. */
 	if (stmt->old_tuple == NULL)
@@ -1910,8 +1909,8 @@ vy_update(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	 */
 	if (tuple_validate_raw(pk->mem_format, new_tuple))
 		return -1;
-	stmt->new_tuple = vy_stmt_new_replace(pk->mem_format, new_tuple,
-					      new_tuple_end);
+	stmt->new_tuple =
+		vy_stmt_new_replace(pk->mem_format, new_tuple, new_tuple_end);
 	if (stmt->new_tuple == NULL)
 		return -1;
 	if (vy_check_update(space, pk, stmt->old_tuple, stmt->new_tuple,
@@ -1966,9 +1965,8 @@ vy_insert_first_upsert(struct vy_env *env, struct vy_tx *tx,
  * @retval -1 Memory error.
  */
 static int
-vy_lsm_upsert(struct vy_tx *tx, struct vy_lsm *lsm,
-	  const char *tuple, const char *tuple_end,
-	  const char *expr, const char *expr_end)
+vy_lsm_upsert(struct vy_tx *tx, struct vy_lsm *lsm, const char *tuple,
+	      const char *tuple_end, const char *expr, const char *expr_end)
 {
 	assert(tx == NULL || tx->state == VINYL_TX_READY);
 	struct tuple *vystmt;
@@ -2006,7 +2004,7 @@ request_normalize_ops(struct request *request)
 		ops_end = mp_encode_array(ops_end, op_len);
 
 		uint32_t op_name_len;
-		const char  *op_name = mp_decode_str(&pos, &op_name_len);
+		const char *op_name = mp_decode_str(&pos, &op_name_len);
 		ops_end = mp_encode_str(ops_end, op_name, op_name_len);
 
 		int field_no;
@@ -2122,9 +2120,9 @@ vy_upsert(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	 *   to delete old tuples from secondary indexes.
 	 */
 	/* Find the old tuple using the primary key. */
-	struct tuple *key = vy_stmt_extract_key_raw(tuple, tuple_end,
-					pk->key_def, pk->env->key_format,
-					MULTIKEY_NONE);
+	struct tuple *key =
+		vy_stmt_extract_key_raw(tuple, tuple_end, pk->key_def,
+					pk->env->key_format, MULTIKEY_NONE);
 	if (key == NULL)
 		return -1;
 	int rc = vy_get(pk, tx, vy_tx_read_view(tx), key, &stmt->old_tuple);
@@ -2136,8 +2134,8 @@ vy_upsert(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	 * turns into INSERT.
 	 */
 	if (stmt->old_tuple == NULL) {
-		stmt->new_tuple = vy_stmt_new_insert(pk->mem_format,
-						     tuple, tuple_end);
+		stmt->new_tuple =
+			vy_stmt_new_insert(pk->mem_format, tuple, tuple_end);
 		if (stmt->new_tuple == NULL)
 			return -1;
 		return vy_insert_first_upsert(env, tx, space, stmt->new_tuple);
@@ -2159,8 +2157,8 @@ vy_upsert(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	if (tuple_validate_raw(pk->mem_format, new_tuple))
 		return -1;
 	new_tuple_end = new_tuple + new_size;
-	stmt->new_tuple = vy_stmt_new_replace(pk->mem_format, new_tuple,
-					      new_tuple_end);
+	stmt->new_tuple =
+		vy_stmt_new_replace(pk->mem_format, new_tuple, new_tuple_end);
 	if (stmt->new_tuple == NULL)
 		return -1;
 	if (vy_check_update(space, pk, stmt->old_tuple, stmt->new_tuple,
@@ -2263,8 +2261,8 @@ vy_replace(struct vy_env *env, struct vy_tx *tx, struct txn_stmt *stmt,
 	 * need to pass the old tuple to trigger callbacks.
 	 */
 	if (!rlist_empty(&space->on_replace)) {
-		if (vy_get(pk, tx, vy_tx_read_view(tx),
-			   stmt->new_tuple, &stmt->old_tuple) != 0)
+		if (vy_get(pk, tx, vy_tx_read_view(tx), stmt->new_tuple,
+			   &stmt->old_tuple) != 0)
 			return -1;
 		if (stmt->old_tuple == NULL) {
 			/*
@@ -2365,7 +2363,7 @@ vinyl_space_execute_update(struct space *space, struct txn *txn,
 
 static int
 vinyl_space_execute_upsert(struct space *space, struct txn *txn,
-                           struct request *request)
+			   struct request *request)
 {
 	struct vy_env *env = vy_env(space->engine);
 	struct vy_tx *tx = txn->engine_tx;
@@ -2391,8 +2389,7 @@ vinyl_engine_prepare(struct engine *engine, struct txn *txn)
 	struct vy_tx *tx = txn->engine_tx;
 	assert(tx != NULL);
 
-	if (tx->write_size > 0 &&
-	    vinyl_check_wal(env, "DML") != 0)
+	if (tx->write_size > 0 && vinyl_check_wal(env, "DML") != 0)
 		return -1;
 
 	/*
@@ -2401,16 +2398,16 @@ vinyl_engine_prepare(struct engine *engine, struct txn *txn)
 	 * available for the admin to track the lag so let the applier
 	 * wait as long as necessary for memory dump to complete.
 	 */
-	double timeout = (tx->is_applier_session ?
-			  TIMEOUT_INFINITY : env->timeout);
+	double timeout =
+		(tx->is_applier_session ? TIMEOUT_INFINITY : env->timeout);
 	/*
 	 * Reserve quota needed by the transaction before allocating
 	 * memory. Since this may yield, which opens a time window for
 	 * the transaction to be sent to read view or aborted, we call
 	 * it before checking for conflicts.
 	 */
-	if (vy_quota_use(&env->quota, VY_QUOTA_CONSUMER_TX,
-			 tx->write_size, timeout) != 0)
+	if (vy_quota_use(&env->quota, VY_QUOTA_CONSUMER_TX, tx->write_size,
+			 timeout) != 0)
 		return -1;
 
 	size_t mem_used_before = lsregion_used(&env->mem_env.allocator);
@@ -2419,8 +2416,8 @@ vinyl_engine_prepare(struct engine *engine, struct txn *txn)
 
 	size_t mem_used_after = lsregion_used(&env->mem_env.allocator);
 	assert(mem_used_after >= mem_used_before);
-	vy_quota_adjust(&env->quota, VY_QUOTA_CONSUMER_TX,
-			tx->write_size, mem_used_after - mem_used_before);
+	vy_quota_adjust(&env->quota, VY_QUOTA_CONSUMER_TX, tx->write_size,
+			mem_used_after - mem_used_before);
 	vy_regulator_check_dump_watermark(&env->regulator);
 	return rc;
 }
@@ -2522,8 +2519,8 @@ vy_env_trigger_dump_cb(struct vy_regulator *regulator)
 }
 
 static void
-vy_env_dump_complete_cb(struct vy_scheduler *scheduler,
-			int64_t dump_generation, double dump_duration)
+vy_env_dump_complete_cb(struct vy_scheduler *scheduler, int64_t dump_generation,
+			double dump_duration)
 {
 	struct vy_env *env = container_of(scheduler, struct vy_env, scheduler);
 
@@ -2557,8 +2554,8 @@ vy_squash_schedule(struct vy_lsm *lsm, struct vy_entry entry,
 		   void /* struct vy_env */ *arg);
 
 static struct vy_env *
-vy_env_new(const char *path, size_t memory,
-	   int read_threads, int write_threads, bool force_recovery)
+vy_env_new(const char *path, size_t memory, int read_threads, int write_threads,
+	   bool force_recovery)
 {
 	struct vy_env *e = malloc(sizeof(*e));
 	if (unlikely(e == NULL)) {
@@ -2571,8 +2568,7 @@ vy_env_new(const char *path, size_t memory,
 	e->force_recovery = force_recovery;
 	e->path = strdup(path);
 	if (e->path == NULL) {
-		diag_set(OutOfMemory, strlen(path),
-			 "malloc", "env->path");
+		diag_set(OutOfMemory, strlen(path), "malloc", "env->path");
 		goto error_path;
 	}
 
@@ -2586,22 +2582,20 @@ vy_env_new(const char *path, size_t memory,
 	vy_stmt_env_create(&e->stmt_env);
 	vy_mem_env_create(&e->mem_env, memory);
 	vy_scheduler_create(&e->scheduler, write_threads,
-			    vy_env_dump_complete_cb,
-			    &e->run_env, &e->xm->read_views);
+			    vy_env_dump_complete_cb, &e->run_env,
+			    &e->xm->read_views);
 
-	if (vy_lsm_env_create(&e->lsm_env, e->path,
-			      &e->scheduler.generation,
-			      e->stmt_env.key_format,
-			      vy_squash_schedule, e) != 0)
+	if (vy_lsm_env_create(&e->lsm_env, e->path, &e->scheduler.generation,
+			      e->stmt_env.key_format, vy_squash_schedule,
+			      e) != 0)
 		goto error_lsm_env;
 
 	vy_quota_create(&e->quota, memory, vy_env_quota_exceeded_cb);
-	vy_regulator_create(&e->regulator, &e->quota,
-			    vy_env_trigger_dump_cb);
+	vy_regulator_create(&e->regulator, &e->quota, vy_env_trigger_dump_cb);
 
 	struct slab_cache *slab_cache = cord_slab_cache();
 	mempool_create(&e->iterator_pool, slab_cache,
-	               sizeof(struct vinyl_iterator));
+		       sizeof(struct vinyl_iterator));
 	vy_cache_env_create(&e->cache_env, slab_cache);
 	vy_run_env_create(&e->run_env, read_threads);
 	vy_log_init(e->path);
@@ -2655,8 +2649,8 @@ vy_env_complete_recovery(struct vy_env *env)
 }
 
 struct engine *
-vinyl_engine_new(const char *dir, size_t memory,
-		 int read_threads, int write_threads, bool force_recovery)
+vinyl_engine_new(const char *dir, size_t memory, int read_threads,
+		 int write_threads, bool force_recovery)
 {
 	struct vy_env *env = vy_env_new(dir, memory, read_threads,
 					write_threads, force_recovery);
@@ -2734,7 +2728,7 @@ vinyl_engine_set_snap_io_rate_limit(struct engine *engine, double limit)
 static int
 vinyl_engine_begin_checkpoint(struct engine *engine, bool is_scheduled)
 {
-	(void) is_scheduled;
+	(void)is_scheduled;
 	struct vy_env *env = vy_env(engine);
 	assert(env->status == VINYL_ONLINE);
 	/*
@@ -2750,8 +2744,7 @@ vinyl_engine_begin_checkpoint(struct engine *engine, bool is_scheduled)
 }
 
 static int
-vinyl_engine_wait_checkpoint(struct engine *engine,
-			     const struct vclock *vclock)
+vinyl_engine_wait_checkpoint(struct engine *engine, const struct vclock *vclock)
 {
 	struct vy_env *env = vy_env(engine);
 	assert(env->status == VINYL_ONLINE);
@@ -2941,8 +2934,8 @@ vy_join_add_space(struct space *space, void *arg)
 		return 0;
 	struct vy_join_entry *entry = malloc(sizeof(*entry));
 	if (entry == NULL) {
-		diag_set(OutOfMemory, sizeof(*entry),
-			 "malloc", "struct vy_join_entry");
+		diag_set(OutOfMemory, sizeof(*entry), "malloc",
+			 "struct vy_join_entry");
 		return -1;
 	}
 	entry->space_id = space_id(space);
@@ -2961,8 +2954,8 @@ vinyl_engine_prepare_join(struct engine *engine, void **arg)
 	(void)engine;
 	struct vy_join_ctx *ctx = malloc(sizeof(*ctx));
 	if (ctx == NULL) {
-		diag_set(OutOfMemory, sizeof(*ctx),
-			 "malloc", "struct vy_join_ctx");
+		diag_set(OutOfMemory, sizeof(*ctx), "malloc",
+			 "struct vy_join_ctx");
 		return -1;
 	}
 	rlist_create(&ctx->entries);
@@ -2975,8 +2968,8 @@ vinyl_engine_prepare_join(struct engine *engine, void **arg)
 }
 
 static int
-vy_join_send_tuple(struct xstream *stream, uint32_t space_id,
-		   const char *data, size_t size)
+vy_join_send_tuple(struct xstream *stream, uint32_t space_id, const char *data,
+		   size_t size)
 {
 	struct request_replace_body body;
 	request_replace_body_create(&body, space_id);
@@ -3007,8 +3000,8 @@ vinyl_engine_join(struct engine *engine, void *arg, struct xstream *stream)
 		uint32_t size;
 		const char *data;
 		while ((rc = it->next(it, &data, &size)) == 0 && data != NULL) {
-			if (vy_join_send_tuple(stream, entry->space_id,
-					       data, size) != 0)
+			if (vy_join_send_tuple(stream, entry->space_id, data,
+					       size) != 0)
 				return -1;
 		}
 		if (rc != 0)
@@ -3043,8 +3036,7 @@ vinyl_engine_complete_join(struct engine *engine, void *arg)
  * next log rotation.
  */
 static void
-vy_gc_run(struct vy_env *env,
-	  struct vy_lsm_recovery_info *lsm_info,
+vy_gc_run(struct vy_env *env, struct vy_lsm_recovery_info *lsm_info,
 	  struct vy_run_recovery_info *run_info)
 {
 	/* Try to delete files. */
@@ -3072,8 +3064,7 @@ vy_gc_run(struct vy_env *env,
 static void
 vy_gc_lsm(struct vy_lsm_recovery_info *lsm_info)
 {
-	assert(lsm_info->drop_lsn >= 0 ||
-	       lsm_info->create_lsn < 0);
+	assert(lsm_info->drop_lsn >= 0 || lsm_info->create_lsn < 0);
 
 	vy_log_tx_begin();
 	if (lsm_info->drop_lsn < 0) {
@@ -3097,8 +3088,7 @@ vy_gc_lsm(struct vy_lsm_recovery_info *lsm_info)
 			vy_log_drop_run(run_info->id, run_info->gc_lsn);
 		}
 	}
-	if (rlist_empty(&lsm_info->ranges) &&
-	    rlist_empty(&lsm_info->runs))
+	if (rlist_empty(&lsm_info->ranges) && rlist_empty(&lsm_info->runs))
 		vy_log_forget_lsm(lsm_info->id);
 	vy_log_tx_try_commit();
 }
@@ -3111,8 +3101,8 @@ vy_gc_lsm(struct vy_lsm_recovery_info *lsm_info)
  * @param gc_lsn   LSN of the oldest checkpoint to save.
  */
 static void
-vy_gc(struct vy_env *env, struct vy_recovery *recovery,
-      unsigned int gc_mask, int64_t gc_lsn)
+vy_gc(struct vy_env *env, struct vy_recovery *recovery, unsigned int gc_mask,
+      int64_t gc_lsn)
 {
 	int loops = 0;
 	struct vy_lsm_recovery_info *lsm_info;
@@ -3246,8 +3236,8 @@ struct vy_squash_queue {
 };
 
 static struct vy_squash *
-vy_squash_new(struct mempool *pool, struct vy_env *env,
-	      struct vy_lsm *lsm, struct vy_entry entry)
+vy_squash_new(struct mempool *pool, struct vy_env *env, struct vy_lsm *lsm,
+	      struct vy_entry entry)
 {
 	struct vy_squash *squash;
 	squash = mempool_alloc(pool);
@@ -3319,7 +3309,8 @@ vy_squash_process(struct vy_squash *squash)
 	uint8_t n_upserts = 0;
 	while (!vy_mem_tree_iterator_is_invalid(&mem_itr)) {
 		struct vy_entry mem_entry;
-		mem_entry = *vy_mem_tree_iterator_get_elem(&mem->tree, &mem_itr);
+		mem_entry =
+			*vy_mem_tree_iterator_get_elem(&mem->tree, &mem_itr);
 		if (vy_entry_compare(result, mem_entry, lsm->cmp_def) != 0 ||
 		    vy_stmt_type(mem_entry.stmt) != IPROTO_UPSERT)
 			break;
@@ -3367,8 +3358,7 @@ vy_squash_queue_new(void)
 	sq->fiber = NULL;
 	fiber_cond_create(&sq->cond);
 	stailq_create(&sq->queue);
-	mempool_create(&sq->pool, cord_slab_cache(),
-		       sizeof(struct vy_squash));
+	mempool_create(&sq->pool, cord_slab_cache(), sizeof(struct vy_squash));
 	return sq;
 }
 
@@ -3414,8 +3404,8 @@ vy_squash_schedule(struct vy_lsm *lsm, struct vy_entry entry, void *arg)
 	struct vy_env *env = arg;
 	struct vy_squash_queue *sq = env->squash_queue;
 
-	say_verbose("%s: schedule upsert optimization for %s",
-		    vy_lsm_name(lsm), vy_stmt_str(entry.stmt));
+	say_verbose("%s: schedule upsert optimization for %s", vy_lsm_name(lsm),
+		    vy_stmt_str(entry.stmt));
 
 	/* Start the upsert squashing fiber on demand. */
 	if (sq->fiber == NULL) {
@@ -3443,8 +3433,8 @@ static int
 vinyl_iterator_on_tx_destroy(struct trigger *trigger, void *event)
 {
 	(void)event;
-	struct vinyl_iterator *it = container_of(trigger,
-			struct vinyl_iterator, on_tx_destroy);
+	struct vinyl_iterator *it =
+		container_of(trigger, struct vinyl_iterator, on_tx_destroy);
 	it->tx = NULL;
 	return 0;
 }
@@ -3647,12 +3637,12 @@ vinyl_index_create_iterator(struct index *base, enum iterator_type type,
 
 	struct vinyl_iterator *it = mempool_alloc(&env->iterator_pool);
 	if (it == NULL) {
-	        diag_set(OutOfMemory, sizeof(struct vinyl_iterator),
-			 "mempool", "struct vinyl_iterator");
+		diag_set(OutOfMemory, sizeof(struct vinyl_iterator), "mempool",
+			 "struct vinyl_iterator");
 		return NULL;
 	}
-	it->key = vy_entry_key_new(lsm->env->key_format, lsm->cmp_def,
-				   key, part_count);
+	it->key = vy_entry_key_new(lsm->env->key_format, lsm->cmp_def, key,
+				   part_count);
 	if (it->key.stmt == NULL) {
 		mempool_free(&env->iterator_pool, it);
 		return NULL;
@@ -3671,8 +3661,8 @@ vinyl_index_create_iterator(struct index *base, enum iterator_type type,
 		 * Register a trigger that will abort this iterator
 		 * when the transaction ends.
 		 */
-		trigger_create(&it->on_tx_destroy,
-			       vinyl_iterator_on_tx_destroy, NULL, NULL);
+		trigger_create(&it->on_tx_destroy, vinyl_iterator_on_tx_destroy,
+			       NULL, NULL);
 		trigger_add(&tx->on_destroy, &it->on_tx_destroy);
 	} else {
 		tx = &it->tx_autocommit;
@@ -3687,8 +3677,8 @@ vinyl_index_create_iterator(struct index *base, enum iterator_type type,
 }
 
 static int
-vinyl_snapshot_iterator_next(struct snapshot_iterator *base,
-			     const char **data, uint32_t *size)
+vinyl_snapshot_iterator_next(struct snapshot_iterator *base, const char **data,
+			     uint32_t *size)
 {
 	assert(base->next == vinyl_snapshot_iterator_next);
 	struct vinyl_snapshot_iterator *it =
@@ -3734,8 +3724,8 @@ vinyl_index_create_snapshot_iterator(struct index *base)
 		free(it);
 		return NULL;
 	}
-	vy_read_iterator_open(&it->iterator, lsm, NULL,
-			      ITER_ALL, lsm->env->empty_key,
+	vy_read_iterator_open(&it->iterator, lsm, NULL, ITER_ALL,
+			      lsm->env->empty_key,
 			      (const struct vy_read_view **)&it->rv);
 	/*
 	 * The index may be dropped while we are reading it.
@@ -3747,8 +3737,8 @@ vinyl_index_create_snapshot_iterator(struct index *base)
 }
 
 static int
-vinyl_index_get(struct index *index, const char *key,
-		uint32_t part_count, struct tuple **ret)
+vinyl_index_get(struct index *index, const char *key, uint32_t part_count,
+		struct tuple **ret)
 {
 	assert(index->def->opts.is_unique);
 	assert(index->def->key_def->part_count == part_count);
@@ -3756,8 +3746,9 @@ vinyl_index_get(struct index *index, const char *key,
 	struct vy_lsm *lsm = vy_lsm(index);
 	struct vy_env *env = vy_env(index->engine);
 	struct vy_tx *tx = in_txn() ? in_txn()->engine_tx : NULL;
-	const struct vy_read_view **rv = (tx != NULL ? vy_tx_read_view(tx) :
-					  &env->xm->p_global_read_view);
+	const struct vy_read_view **rv = (tx != NULL ?
+							vy_tx_read_view(tx) :
+							&env->xm->p_global_read_view);
 
 	if (tx != NULL && tx->state == VINYL_TX_ABORT) {
 		diag_set(ClientError, ER_TRANSACTION_CONFLICT);
@@ -3832,14 +3823,14 @@ vy_build_on_replace(struct trigger *trigger, void *event)
 	/* Check key uniqueness if necessary. */
 	if (ctx->check_unique_constraint && stmt->new_tuple != NULL &&
 	    vy_check_is_unique_secondary(tx, vy_tx_read_view(tx),
-					 ctx->space_name, ctx->index_name,
-					 lsm, stmt->new_tuple) != 0)
+					 ctx->space_name, ctx->index_name, lsm,
+					 stmt->new_tuple) != 0)
 		goto err;
 
 	/* Forward the statement to the new LSM tree. */
 	if (stmt->old_tuple != NULL) {
-		struct tuple *delete = vy_stmt_new_surrogate_delete(format,
-							stmt->old_tuple);
+		struct tuple *delete =
+			vy_stmt_new_surrogate_delete(format, stmt->old_tuple);
 		if (delete == NULL)
 			goto err;
 		int rc = vy_tx_set(tx, lsm, delete);
@@ -3850,8 +3841,8 @@ vy_build_on_replace(struct trigger *trigger, void *event)
 	if (stmt->new_tuple != NULL) {
 		uint32_t data_len;
 		const char *data = tuple_data_range(stmt->new_tuple, &data_len);
-		struct tuple *insert = vy_stmt_new_insert(format, data,
-							  data + data_len);
+		struct tuple *insert =
+			vy_stmt_new_insert(format, data, data + data_len);
 		if (insert == NULL)
 			goto err;
 		int rc = vy_tx_set(tx, lsm, insert);
@@ -3880,11 +3871,12 @@ err:
  * being built.
  */
 static int
-vy_build_insert_stmt(struct vy_lsm *lsm, struct vy_mem *mem,
-		     struct tuple *stmt, int64_t lsn)
+vy_build_insert_stmt(struct vy_lsm *lsm, struct vy_mem *mem, struct tuple *stmt,
+		     int64_t lsn)
 {
 	struct tuple *region_stmt = vy_stmt_dup_lsregion(stmt,
-				&mem->env->allocator, mem->generation);
+							 &mem->env->allocator,
+							 mem->generation);
 	if (region_stmt == NULL)
 		return -1;
 	vy_stmt_set_lsn(region_stmt, lsn);
@@ -3920,8 +3912,8 @@ vy_build_insert_tuple(struct vy_env *env, struct vy_lsm *lsm,
 	/* Reallocate the new tuple using the new space format. */
 	uint32_t data_len;
 	const char *data = tuple_data_range(tuple, &data_len);
-	struct tuple *stmt = vy_stmt_new_replace(new_format, data,
-						 data + data_len);
+	struct tuple *stmt =
+		vy_stmt_new_replace(new_format, data, data + data_len);
 	if (stmt == NULL)
 		return -1;
 
@@ -3946,9 +3938,9 @@ vy_build_insert_tuple(struct vy_env *env, struct vy_lsm *lsm,
 	 */
 	if (check_unique_constraint) {
 		vy_mem_pin(mem);
-		rc = vy_check_is_unique_secondary(NULL,
-				&env->xm->p_committed_read_view,
-				space_name, index_name, lsm, stmt);
+		rc = vy_check_is_unique_secondary(
+			NULL, &env->xm->p_committed_read_view, space_name,
+			index_name, lsm, stmt);
 		vy_mem_unpin(mem);
 		if (rc != 0) {
 			tuple_unref(stmt);
@@ -4023,19 +4015,19 @@ vy_build_recover_stmt(struct vy_lsm *lsm, struct vy_lsm *pk,
 	if (type == IPROTO_REPLACE || type == IPROTO_INSERT) {
 		uint32_t data_len;
 		const char *data = tuple_data_range(mem_stmt, &data_len);
-		insert = vy_stmt_new_insert(lsm->mem_format,
-					    data, data + data_len);
+		insert = vy_stmt_new_insert(lsm->mem_format, data,
+					    data + data_len);
 		if (insert == NULL)
 			goto err;
 	} else if (type == IPROTO_UPSERT) {
-		struct tuple *new_tuple = vy_apply_upsert(mem_stmt, old_tuple,
-							  pk->cmp_def, true);
+		struct tuple *new_tuple =
+			vy_apply_upsert(mem_stmt, old_tuple, pk->cmp_def, true);
 		if (new_tuple == NULL)
 			goto err;
 		uint32_t data_len;
 		const char *data = tuple_data_range(new_tuple, &data_len);
-		insert = vy_stmt_new_insert(lsm->mem_format,
-					    data, data + data_len);
+		insert = vy_stmt_new_insert(lsm->mem_format, data,
+					    data + data_len);
 		tuple_unref(new_tuple);
 		if (insert == NULL)
 			goto err;
@@ -4105,7 +4097,8 @@ vy_build_recover(struct vy_env *env, struct vy_lsm *lsm, struct vy_lsm *pk)
 	size_t mem_used_before, mem_used_after;
 
 	mem_used_before = lsregion_used(&env->mem_env.allocator);
-	rlist_foreach_entry_reverse(mem, &pk->sealed, in_sealed) {
+	rlist_foreach_entry_reverse(mem, &pk->sealed, in_sealed)
+	{
 		rc = vy_build_recover_mem(lsm, pk, mem);
 		if (rc != 0)
 			break;
@@ -4474,8 +4467,10 @@ vy_deferred_delete_on_replace(struct trigger *trigger, void *event)
 			break;
 		}
 		vy_mem_pin(mem);
-		trigger_create(on_commit, vy_deferred_delete_on_commit, mem, NULL);
-		trigger_create(on_rollback, vy_deferred_delete_on_rollback, mem, NULL);
+		trigger_create(on_commit, vy_deferred_delete_on_commit, mem,
+			       NULL);
+		trigger_create(on_rollback, vy_deferred_delete_on_rollback, mem,
+			       NULL);
 		txn_on_commit(txn, on_commit);
 		txn_on_rollback(txn, on_rollback);
 	}
@@ -4557,7 +4552,7 @@ static const struct index_vtab vinyl_index_vtab = {
 	/* .update_def = */ vinyl_index_update_def,
 	/* .depends_on_pk = */ vinyl_index_depends_on_pk,
 	/* .def_change_requires_rebuild = */
-		vinyl_index_def_change_requires_rebuild,
+	vinyl_index_def_change_requires_rebuild,
 	/* .size = */ vinyl_index_size,
 	/* .bsize = */ vinyl_index_bsize,
 	/* .min = */ generic_index_min,
@@ -4568,7 +4563,7 @@ static const struct index_vtab vinyl_index_vtab = {
 	/* .replace = */ generic_index_replace,
 	/* .create_iterator = */ vinyl_index_create_iterator,
 	/* .create_snapshot_iterator = */
-		vinyl_index_create_snapshot_iterator,
+	vinyl_index_create_snapshot_iterator,
 	/* .stat = */ vinyl_index_stat,
 	/* .compact = */ vinyl_index_compact,
 	/* .reset_stat = */ vinyl_index_reset_stat,

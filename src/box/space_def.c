@@ -76,8 +76,8 @@ space_def_sizeof(uint32_t name_len, const struct field_def *fields,
 	*fields_offset = small_align(sizeof(struct space_def) + name_len + 1,
 				     alignof(typeof(fields[0])));
 	*names_offset = *fields_offset + field_count * sizeof(struct field_def);
-	*def_expr_offset = small_align(*names_offset + field_strs_size,
-				       alignof(uint64_t));
+	*def_expr_offset =
+		small_align(*names_offset + field_strs_size, alignof(uint64_t));
 	return *def_expr_offset + def_exprs_size;
 }
 
@@ -110,7 +110,7 @@ space_def_dup(const struct space_def *src)
 	size_t size = space_def_sizeof(strlen(src->name), src->fields,
 				       src->field_count, &strs_offset,
 				       &fields_offset, &def_expr_offset);
-	struct space_def *ret = (struct space_def *) malloc(size);
+	struct space_def *ret = (struct space_def *)malloc(size);
 	if (ret == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "ret");
 		return NULL;
@@ -131,7 +131,7 @@ space_def_dup(const struct space_def *src)
 			struct Expr *e = src->fields[i].default_value_expr;
 			if (e != NULL) {
 				char *expr_pos_old = expr_pos;
-				(void) expr_pos_old;
+				(void)expr_pos_old;
 				e = sql_expr_dup(sql_get(), e, 0, &expr_pos);
 				assert(e != NULL);
 				/* Note: due to SQL legacy
@@ -156,16 +156,15 @@ space_def_dup(const struct space_def *src)
 
 struct space_def *
 space_def_new(uint32_t id, uint32_t uid, uint32_t exact_field_count,
-	      const char *name, uint32_t name_len,
-	      const char *engine_name, uint32_t engine_len,
-	      const struct space_opts *opts, const struct field_def *fields,
-	      uint32_t field_count)
+	      const char *name, uint32_t name_len, const char *engine_name,
+	      uint32_t engine_len, const struct space_opts *opts,
+	      const struct field_def *fields, uint32_t field_count)
 {
 	uint32_t strs_offset, fields_offset, def_expr_offset;
 	size_t size = space_def_sizeof(name_len, fields, field_count,
 				       &strs_offset, &fields_offset,
 				       &def_expr_offset);
-	struct space_def *def = (struct space_def *) malloc(size);
+	struct space_def *def = (struct space_def *)malloc(size);
 	if (def == NULL) {
 		diag_set(OutOfMemory, size, "malloc", "def");
 		return NULL;
@@ -212,7 +211,7 @@ space_def_new(uint32_t id, uint32_t uid, uint32_t exact_field_count,
 			struct Expr *e = def->fields[i].default_value_expr;
 			if (e != NULL) {
 				char *expr_pos_old = expr_pos;
-				(void) expr_pos_old;
+				(void)expr_pos_old;
 				e = sql_expr_dup(sql_get(), e, 0, &expr_pos);
 				assert(e != NULL);
 				/* Note: due to SQL legacy
@@ -235,7 +234,7 @@ space_def_new(uint32_t id, uint32_t uid, uint32_t exact_field_count,
 	return def;
 }
 
-struct space_def*
+struct space_def *
 space_def_new_ephemeral(uint32_t exact_field_count, struct field_def *fields)
 {
 	struct space_opts opts = space_opts_default;
@@ -246,11 +245,10 @@ space_def_new_ephemeral(uint32_t exact_field_count, struct field_def *fields)
 		fields = (struct field_def *)&field_def_default;
 		field_count = 0;
 	}
-	struct space_def *space_def = space_def_new(0, 0, exact_field_count,
-						    "ephemeral",
-						    strlen("ephemeral"),
-						    "memtx", strlen("memtx"),
-						    &opts, fields, field_count);
+	struct space_def *space_def =
+		space_def_new(0, 0, exact_field_count, "ephemeral",
+			      strlen("ephemeral"), "memtx", strlen("memtx"),
+			      &opts, fields, field_count);
 	return space_def;
 }
 

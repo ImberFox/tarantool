@@ -68,7 +68,7 @@ fill_stat_item(struct lua_State *L, int rps, int64_t total)
 static int
 set_stat_item(const char *name, int rps, int64_t total, void *cb_ctx)
 {
-	struct lua_State *L = (struct lua_State *) cb_ctx;
+	struct lua_State *L = (struct lua_State *)cb_ctx;
 
 	lua_pushstring(L, name);
 	lua_newtable(L);
@@ -87,7 +87,7 @@ set_stat_item(const char *name, int rps, int64_t total, void *cb_ctx)
 static int
 seek_stat_item(const char *name, int rps, int64_t total, void *cb_ctx)
 {
-	struct lua_State *L = (struct lua_State *) cb_ctx;
+	struct lua_State *L = (struct lua_State *)cb_ctx;
 	if (strcmp(name, lua_tostring(L, -1)) != 0)
 		return 0;
 
@@ -211,28 +211,25 @@ lbox_stat_sql(struct lua_State *L)
 	return 1;
 }
 
-static const struct luaL_Reg lbox_stat_meta [] = {
-	{"__index", lbox_stat_index},
-	{"__call",  lbox_stat_call},
-	{NULL, NULL}
-};
+static const struct luaL_Reg lbox_stat_meta[] = { { "__index",
+						    lbox_stat_index },
+						  { "__call", lbox_stat_call },
+						  { NULL, NULL } };
 
-static const struct luaL_Reg lbox_stat_net_meta [] = {
-	{"__index", lbox_stat_net_index},
-	{"__call",  lbox_stat_net_call},
-	{NULL, NULL}
+static const struct luaL_Reg lbox_stat_net_meta[] = {
+	{ "__index", lbox_stat_net_index },
+	{ "__call", lbox_stat_net_call },
+	{ NULL, NULL }
 };
 
 /** Initialize box.stat package. */
 void
 box_lua_stat_init(struct lua_State *L)
 {
-	static const struct luaL_Reg statlib [] = {
-		{"vinyl", lbox_stat_vinyl},
-		{"reset", lbox_stat_reset},
-		{"sql", lbox_stat_sql},
-		{NULL, NULL}
-	};
+	static const struct luaL_Reg statlib[] = { { "vinyl", lbox_stat_vinyl },
+						   { "reset", lbox_stat_reset },
+						   { "sql", lbox_stat_sql },
+						   { NULL, NULL } };
 
 	luaL_register_module(L, "box.stat", statlib);
 
@@ -241,9 +238,7 @@ box_lua_stat_init(struct lua_State *L)
 	lua_setmetatable(L, -2);
 	lua_pop(L, 1); /* stat module */
 
-	static const struct luaL_Reg netstatlib [] = {
-		{NULL, NULL}
-	};
+	static const struct luaL_Reg netstatlib[] = { { NULL, NULL } };
 
 	luaL_register_module(L, "box.stat.net", netstatlib);
 
@@ -252,4 +247,3 @@ box_lua_stat_init(struct lua_State *L)
 	lua_setmetatable(L, -2);
 	lua_pop(L, 1); /* stat net module */
 }
-

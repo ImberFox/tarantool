@@ -144,8 +144,8 @@ struct relay {
 	struct {
 		/* Align to prevent false-sharing with tx thread */
 		alignas(CACHELINE_SIZE)
-		/** Known relay vclock. */
-		struct vclock vclock;
+			/** Known relay vclock. */
+			struct vclock vclock;
 		/**
 		 * True if the relay needs Raft updates. It can live fine
 		 * without sending Raft updates, if it is a relay to an
@@ -155,7 +155,7 @@ struct relay {
 	} tx;
 };
 
-struct diag*
+struct diag *
 relay_get_diag(struct relay *relay)
 {
 	return &relay->diag;
@@ -189,10 +189,10 @@ relay_send_row(struct xstream *stream, struct xrow_header *row);
 struct relay *
 relay_new(struct replica *replica)
 {
-	struct relay *relay = (struct relay *) calloc(1, sizeof(struct relay));
+	struct relay *relay = (struct relay *)calloc(1, sizeof(struct relay));
 	if (relay == NULL) {
 		diag_set(OutOfMemory, sizeof(struct relay), "malloc",
-			  "struct relay");
+			 "struct relay");
 		return NULL;
 	}
 	relay->replica = replica;
@@ -206,7 +206,7 @@ relay_new(struct replica *replica)
 
 static void
 relay_start(struct relay *relay, int fd, uint64_t sync,
-	     void (*stream_write)(struct xstream *, struct xrow_header *))
+	    void (*stream_write)(struct xstream *, struct xrow_header *))
 {
 	xstream_create(&relay->stream, stream_write);
 	/*
@@ -256,8 +256,9 @@ static void
 relay_stop(struct relay *relay)
 {
 	struct relay_gc_msg *gc_msg, *next_gc_msg;
-	stailq_foreach_entry_safe(gc_msg, next_gc_msg,
-				  &relay->pending_gc, in_pending) {
+	stailq_foreach_entry_safe(gc_msg, next_gc_msg, &relay->pending_gc,
+				  in_pending)
+	{
 		free(gc_msg);
 	}
 	stailq_create(&relay->pending_gc);
@@ -290,7 +291,7 @@ relay_set_cord_name(int fd)
 	char name[FIBER_NAME_MAX];
 	struct sockaddr_storage peer;
 	socklen_t addrlen = sizeof(peer);
-	if (getpeername(fd, ((struct sockaddr*)&peer), &addrlen) == 0) {
+	if (getpeername(fd, ((struct sockaddr *)&peer), &addrlen) == 0) {
 		snprintf(name, sizeof(name), "relay/%s",
 			 sio_strfaddr((struct sockaddr *)&peer, addrlen));
 	} else {
@@ -315,9 +316,8 @@ relay_initial_join(int fd, uint64_t sync, struct vclock *vclock)
 	/* Freeze a read view in engines. */
 	struct engine_join_ctx ctx;
 	engine_prepare_join_xc(&ctx);
-	auto join_guard = make_scoped_guard([&] {
-		engine_complete_join(&ctx);
-	});
+	auto join_guard =
+		make_scoped_guard([&] { engine_complete_join(&ctx); });
 
 	/*
 	 * Sync WAL to make sure that all changes visible from
@@ -355,8 +355,8 @@ relay_final_join_f(va_list ap)
 
 	/* Send all WALs until stop_vclock */
 	assert(relay->stream.write != NULL);
-	recover_remaining_wals(relay->r, &relay->stream,
-			       &relay->stop_vclock, true);
+	recover_remaining_wals(relay->r, &relay->stream, &relay->stop_vclock,
+			       true);
 	assert(vclock_compare(&relay->r->vclock, &relay->stop_vclock) == 0);
 	return 0;
 }
@@ -378,8 +378,8 @@ relay_final_join(int fd, uint64_t sync, struct vclock *start_vclock,
 	relay->r = recovery_new(wal_dir(), false, start_vclock);
 	vclock_copy(&relay->stop_vclock, stop_vclock);
 
-	int rc = cord_costart(&relay->cord, "final_join",
-			      relay_final_join_f, relay);
+	int rc = cord_costart(&relay->cord, "final_join", relay_final_join_f,
+			      relay);
 	if (rc == 0)
 		rc = cord_cojoin(&relay->cord);
 	if (rc != 0)
@@ -423,9 +423,8 @@ tx_status_update(struct cmsg *msg)
 		txn_limbo_ack(&txn_limbo, status->relay->replica->id,
 			      vclock_get(&status->vclock, instance_id));
 	}
-	static const struct cmsg_hop route[] = {
-		{relay_status_update, NULL}
-	};
+	static const struct cmsg_hop route[] = { { relay_status_update,
+						   NULL } };
 	cmsg_init(msg, route);
 	cpipe_push(&status->relay->relay_pipe, msg);
 }
@@ -444,9 +443,7 @@ tx_gc_advance(struct cmsg *msg)
 static int
 relay_on_close_log_f(struct trigger *trigger, void * /* event */)
 {
-	static const struct cmsg_hop route[] = {
-		{tx_gc_advance, NULL}
-	};
+	static const struct cmsg_hop route[] = { { tx_gc_advance, NULL } };
 	struct relay *relay = (struct relay *)trigger->data;
 	struct relay_gc_msg *m = (struct relay_gc_msg *)malloc(sizeof(*m));
 	if (m == NULL) {
@@ -477,7 +474,8 @@ static inline void
 relay_schedule_pending_gc(struct relay *relay, const struct vclock *vclock)
 {
 	struct relay_gc_msg *curr, *next, *gc_msg = NULL;
-	stailq_foreach_entry_safe(curr, next, &relay->pending_gc, in_pending) {
+	stailq_foreach_entry_safe(curr, next, &relay->pending_gc, in_pending)
+	{
 		/*
 		 * We may delete a WAL file only if its vclock is
 		 * less than or equal to the vclock acknowledged by
@@ -548,8 +546,9 @@ relay_reader_f(va_list ap)
 	try {
 		while (!fiber_is_cancelled()) {
 			struct xrow_header xrow;
-			coio_read_xrow_timeout_xc(&io, &ibuf, &xrow,
-					replication_disconnect_timeout());
+			coio_read_xrow_timeout_xc(
+				&io, &ibuf, &xrow,
+				replication_disconnect_timeout());
 			/* vclock is followed while decoding, zeroing it. */
 			vclock_create(&relay->recv_vclock);
 			xrow_decode_vclock_xc(&xrow, &relay->recv_vclock);
@@ -706,8 +705,8 @@ relay_subscribe_f(va_list ap)
 	 */
 	while (!fiber_is_cancelled()) {
 		double timeout = replication_timeout;
-		struct errinj *inj = errinj(ERRINJ_RELAY_REPORT_INTERVAL,
-					    ERRINJ_DOUBLE);
+		struct errinj *inj =
+			errinj(ERRINJ_RELAY_REPORT_INTERVAL, ERRINJ_DOUBLE);
 		if (inj != NULL && inj->dparam != 0)
 			timeout = inj->dparam;
 
@@ -741,9 +740,8 @@ relay_subscribe_f(va_list ap)
 		if (vclock_sum(&relay->status_msg.vclock) ==
 		    vclock_sum(send_vclock))
 			continue;
-		static const struct cmsg_hop route[] = {
-			{tx_status_update, NULL}
-		};
+		static const struct cmsg_hop route[] = { { tx_status_update,
+							   NULL } };
 		cmsg_init(&relay->status_msg.msg, route);
 		vclock_copy(&relay->status_msg.vclock, send_vclock);
 		relay->status_msg.relay = relay;
@@ -775,8 +773,8 @@ relay_subscribe_f(va_list ap)
 	fiber_join(reader);
 
 	/* Destroy cpipe to tx. */
-	cbus_unpair(&relay->tx_pipe, &relay->relay_pipe,
-		    NULL, NULL, cbus_process);
+	cbus_unpair(&relay->tx_pipe, &relay->relay_pipe, NULL, NULL,
+		    cbus_process);
 	cbus_endpoint_destroy(&relay->endpoint, cbus_process);
 
 	relay_exit(relay);
@@ -817,8 +815,8 @@ relay_subscribe(struct replica *replica, int fd, uint64_t sync,
 
 	relay->id_filter = replica_id_filter;
 
-	int rc = cord_costart(&relay->cord, "subscribe",
-			      relay_subscribe_f, relay);
+	int rc = cord_costart(&relay->cord, "subscribe", relay_subscribe_f,
+			      relay);
 	if (rc == 0)
 		rc = cord_cojoin(&relay->cord);
 	if (rc != 0)
@@ -982,12 +980,11 @@ relay_send_row(struct xstream *stream, struct xrow_header *packet)
 	    packet->replica_id != relay->replica->id ||
 	    packet->lsn <= vclock_get(&relay->local_vclock_at_subscribe,
 				      packet->replica_id)) {
-		struct errinj *inj = errinj(ERRINJ_RELAY_BREAK_LSN,
-					    ERRINJ_INT);
+		struct errinj *inj = errinj(ERRINJ_RELAY_BREAK_LSN, ERRINJ_INT);
 		if (inj != NULL && packet->lsn == inj->iparam) {
 			packet->lsn = inj->iparam - 1;
 			say_warn("injected broken lsn: %lld",
-				 (long long) packet->lsn);
+				 (long long)packet->lsn);
 		}
 		relay_send(relay, packet);
 	}

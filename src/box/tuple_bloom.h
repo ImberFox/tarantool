@@ -189,9 +189,8 @@ tuple_bloom_maybe_has(const struct tuple_bloom *bloom, struct tuple *tuple,
  *  the bloom, false if there is definitely no such tuple
  */
 bool
-tuple_bloom_maybe_has_key(const struct tuple_bloom *bloom,
-			  const char *key, uint32_t part_count,
-			  struct key_def *key_def);
+tuple_bloom_maybe_has_key(const struct tuple_bloom *bloom, const char *key,
+			  uint32_t part_count, struct key_def *key_def);
 
 /**
  * Return the size of a tuple bloom filter when encoded.

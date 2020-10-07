@@ -28,7 +28,7 @@ test:do_execsql_test(
         INSERT INTO t1 VALUES(1), (2), (3);
         CREATE TABLE t2(b1 INTEGER PRIMARY KEY);
         INSERT INTO t2 VALUES(4), (5);
-        SELECT (SELECT group_concat(a1,'x') FROM t2 LIMIT 1) FROM t1;
+        SELECT (SELECT group_concat(CAST(a1 AS STRING),'x') FROM t2 LIMIT 1) FROM t1;
     ]],
     {
         -- <aggnested-1.1>
@@ -40,7 +40,7 @@ test:do_execsql_test(
     "aggnested-1.2",
     [[
         SELECT
-         (SELECT group_concat(a1,'x') || '-' || group_concat(b1,'y') FROM t2)
+         (SELECT group_concat(CAST(a1 AS STRING),'x') || '-' || group_concat(CAST(b1 AS STRING),'y') FROM t2)
         FROM t1;
     ]],
     {
@@ -51,7 +51,7 @@ test:do_execsql_test(
 
 test:do_execsql_test("aggnested-1.3",
     [[
-        SELECT (SELECT group_concat(b1,a1) FROM t2) FROM t1;
+        SELECT (SELECT group_concat(CAST(b1 AS STRING),CAST(a1 AS STRING)) FROM t2) FROM t1;
     ]],
     {
         -- <aggnested-1.3>
@@ -61,7 +61,7 @@ test:do_execsql_test("aggnested-1.3",
 
 test:do_execsql_test("aggnested-1.4",
     [[
-        SELECT (SELECT group_concat(a1,b1) FROM t2) FROM t1;
+        SELECT (SELECT group_concat(CAST(a1 AS STRING),CAST(b1 AS STRING)) FROM t2) FROM t1;
     ]],
     {
         -- <aggnested-1.4>

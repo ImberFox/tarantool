@@ -940,7 +940,7 @@ test:do_select_tests(
         {"4", "SELECT *, count(*) FROM a1 JOIN a2", {4, 10, 10, 4, 16}},
         {"5", "SELECT *, sum(three) FROM a1 NATURAL JOIN a2", {3, 6, 2, 3}},
         {"6", "SELECT *, sum(three) FROM a1 NATURAL JOIN a2", {3, 6, 2, 3}},
-        {"7", "SELECT group_concat(three, ''), a1.* FROM a1 NATURAL JOIN a2", {"12", 3, 6}},
+        {"7", "SELECT group_concat(CAST(three AS STRING), ''), a1.* FROM a1 NATURAL JOIN a2", {"12", 3, 6}},
     })
 
 -- EVIDENCE-OF: R-04486-07266 Or, if the dataset contains zero rows, then
@@ -1022,10 +1022,10 @@ test:do_execsql_test(
 test:do_select_tests(
     "e_select-4.9",
     {
-        {"1", "SELECT group_concat(one), two FROM b1 GROUP BY two", {"4,5","f","1","o","6,7","s","2,3","t"}},
-        {"2", "SELECT group_concat(one), sum(one) FROM b1 GROUP BY (one>4)", {"1,2,3,4",10,"5,6,7",18}},
-        {"3", "SELECT group_concat(one) FROM b1 GROUP BY (two>'o'), one%2", {"4","1,5","2,6","3,7"}},
-        {"4", "SELECT group_concat(one) FROM b1 GROUP BY (one==2 OR two=='o')", {"3,4,5,6,7","1,2"}},
+        {"1", "SELECT group_concat(CAST(one AS STRING)), two FROM b1 GROUP BY two", {"4,5","f","1","o","6,7","s","2,3","t"}},
+        {"2", "SELECT group_concat(CAST(one AS STRING)), sum(one) FROM b1 GROUP BY (one>4)", {"1,2,3,4",10,"5,6,7",18}},
+        {"3", "SELECT group_concat(CAST(one AS STRING)) FROM b1 GROUP BY (two>'o'), one%2", {"4","1,5","2,6","3,7"}},
+        {"4", "SELECT group_concat(CAST(one AS STRING)) FROM b1 GROUP BY (one==2 OR two=='o')", {"3,4,5,6,7","1,2"}},
     })
 
 -- EVIDENCE-OF: R-14926-50129 For the purposes of grouping rows, NULL
@@ -1034,7 +1034,7 @@ test:do_select_tests(
 test:do_select_tests(
     "e_select-4.10",
     {
-        {"1", "SELECT group_concat(y) FROM b2 GROUP BY x", {"0,1","3","2,4"}},
+        {"1", "SELECT group_concat(CAST(y AS STRING)) FROM b2 GROUP BY x", {"0,1","3","2,4"}},
         {"2", "SELECT count(*) FROM b2 GROUP BY CASE WHEN y<4 THEN NULL ELSE 0 END", {4, 1}},
     })
 

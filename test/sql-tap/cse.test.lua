@@ -198,7 +198,7 @@ test:do_execsql_test(
 test:do_execsql_test(
     "cse-1.13",
     [[
-        SELECT upper(b), typeof(b), b FROM t1
+        SELECT upper(CAST(b AS STRING)), typeof(b), b FROM t1
     ]], {
         -- <cse-1.13>
         "11", "integer", 11, "21", "integer", 21
@@ -208,7 +208,7 @@ test:do_execsql_test(
 test:do_execsql_test(
     "cse-1.14",
     [[
-        SELECT b, typeof(b), upper(b), typeof(b), b FROM t1
+        SELECT b, typeof(b), upper(CAST(b AS STRING)), typeof(b), b FROM t1
     ]], {
         -- <cse-1.14>
         11, "integer", "11", "integer", 11, 21, "integer", "21", "integer", 21

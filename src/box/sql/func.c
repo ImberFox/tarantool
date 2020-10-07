@@ -467,30 +467,21 @@ lengthFunc(sql_context * context, int argc, sql_value ** argv)
 
 	assert(argc == 1);
 	UNUSED_PARAMETER(argc);
-	switch (sql_value_type(argv[0])) {
-	case MP_BIN:
-	case MP_ARRAY:
-	case MP_MAP:
-	case MP_INT:
-	case MP_UINT:
-	case MP_BOOL:
-	case MP_DOUBLE:{
-			sql_result_uint(context, sql_value_bytes(argv[0]));
-			break;
-		}
-	case MP_STR:{
-			const unsigned char *z = sql_value_text(argv[0]);
-			if (z == 0)
-				return;
-			len = sql_utf8_char_count(z, sql_value_bytes(argv[0]));
-			sql_result_uint(context, len);
-			break;
-		}
-	default:{
-			sql_result_null(context);
-			break;
-		}
+	enum mp_type type = mem_mp_type(argv[0]);
+	if (type == MP_NIL)
+		return sql_result_null(context);
+	if (type == MP_STR) {
+		const unsigned char *z = sql_value_text(argv[0]);
+		if (z == NULL)
+			return sql_result_null(context);
+		len = sql_utf8_char_count(z, sql_value_bytes(argv[0]));
+		return sql_result_uint(context, len);
 	}
+	if (type == MP_BIN)
+		return sql_result_uint(context, sql_value_bytes(argv[0]));
+	diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+		 sql_value_to_diag_str(argv[0]), "string or varbinary");
+	context->is_aborted = true;
 }
 
 /*
@@ -504,44 +495,24 @@ absFunc(sql_context * context, int argc, sql_value ** argv)
 {
 	assert(argc == 1);
 	UNUSED_PARAMETER(argc);
-	switch (sql_value_type(argv[0])) {
-	case MP_UINT: {
-		sql_result_uint(context, sql_value_uint64(argv[0]));
-		break;
-	}
-	case MP_INT: {
+	enum mp_type type = mem_mp_type(argv[0]);
+	if (type == MP_NIL)
+		return sql_result_null(context);
+	if (type == MP_UINT)
+		return sql_result_uint(context, sql_value_uint64(argv[0]));
+	if (type == MP_INT) {
 		int64_t value = sql_value_int64(argv[0]);
-		assert(value < 0);
-		sql_result_uint(context, -value);
-		break;
+		return sql_result_uint(context, (uint64_t)(-value));
 	}
-	case MP_NIL:{
-			/* IMP: R-37434-19929 Abs(X) returns NULL if X is NULL. */
-			sql_result_null(context);
-			break;
-		}
-	case MP_BOOL:
-	case MP_BIN:
-	case MP_ARRAY:
-	case MP_MAP: {
-		diag_set(ClientError, ER_INCONSISTENT_TYPES, "number",
-			 mem_type_to_str(argv[0]));
-		context->is_aborted = true;
-		return;
+	if (type == MP_DOUBLE) {
+		double value = sql_value_double(argv[0]);
+		if (value < 0)
+			value = -value;
+		return sql_result_double(context, value);
 	}
-	default:{
-			/* Because sql_value_double() returns 0.0 if the argument is not
-			 * something that can be converted into a number, we have:
-			 * IMP: R-01992-00519 Abs(X) returns 0.0 if X is a string or blob
-			 * that cannot be converted to a numeric value.
-			 */
-			double rVal = sql_value_double(argv[0]);
-			if (rVal < 0)
-				rVal = -rVal;
-			sql_result_double(context, rVal);
-			break;
-		}
-	}
+	diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+		 sql_value_to_diag_str(argv[0]), "number");
+	context->is_aborted = true;
 }
 
 /**
@@ -564,34 +535,31 @@ position_func(struct sql_context *context, int argc, struct Mem **argv)
 	enum mp_type needle_type = sql_value_type(needle);
 	enum mp_type haystack_type = sql_value_type(haystack);
 
-	if (haystack_type == MP_NIL || needle_type == MP_NIL)
-		return;
-	/*
-	 * Position function can be called only with string
-	 * or blob params.
-	 */
-	struct Mem *inconsistent_type_arg = NULL;
-	if (needle_type != MP_STR && needle_type != MP_BIN)
-		inconsistent_type_arg = needle;
-	if (haystack_type != MP_STR && haystack_type != MP_BIN)
-		inconsistent_type_arg = haystack;
-	if (inconsistent_type_arg != NULL) {
-		diag_set(ClientError, ER_INCONSISTENT_TYPES,
-			 "text or varbinary",
-			 mem_type_to_str(inconsistent_type_arg));
+	if (needle_type != MP_NIL && needle_type != MP_STR &&
+	    needle_type != MP_BIN) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(needle), "string or varbinary");
 		context->is_aborted = true;
 		return;
 	}
-	/*
-	 * Both params of Position function must be of the same
-	 * type.
-	 */
-	if (haystack_type != needle_type) {
-		diag_set(ClientError, ER_INCONSISTENT_TYPES,
-			 mem_type_to_str(needle), mem_type_to_str(haystack));
-		context->is_aborted = true;
-		return;
+	if (haystack_type != MP_NIL && haystack_type != needle_type) {
+		if (needle_type != MP_NIL) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(haystack),
+				 mem_type_to_str(needle));
+			context->is_aborted = true;
+			return;
+		}
+		if (haystack_type != MP_STR && haystack_type != MP_BIN) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(haystack),
+				 "string or varbinary");
+			context->is_aborted = true;
+			return;
+		}
 	}
+	if (needle_type == MP_NIL || haystack_type == MP_NIL)
+		return;
 
 	int n_needle_bytes = sql_value_bytes(needle);
 	int n_haystack_bytes = sql_value_bytes(haystack);
@@ -707,6 +675,17 @@ printfFunc(sql_context * context, int argc, sql_value ** argv)
 	}
 }
 
+static bool
+is_num_to_int_possible(struct Mem *mem)
+{
+	enum mp_type type = mem_mp_type(mem);
+	assert(mp_type_is_numeric(type));
+	if (type == MP_INT || type == MP_UINT)
+		return true;
+	assert(type == MP_DOUBLE);
+	return mem->u.r >= (double)INT64_MIN && mem->u.r < (double)UINT64_MAX;
+}
+
 /*
  * Implementation of the substr() function.
  *
@@ -725,7 +704,6 @@ substrFunc(sql_context * context, int argc, sql_value ** argv)
 	const unsigned char *z;
 	const unsigned char *z2;
 	int len;
-	int p0type;
 	i64 p1, p2;
 	int negP2 = 0;
 
@@ -735,22 +713,45 @@ substrFunc(sql_context * context, int argc, sql_value ** argv)
 		context->is_aborted = true;
 		return;
 	}
-	if (sql_value_is_null(argv[1])
-	    || (argc == 3 && sql_value_is_null(argv[2]))
-	    ) {
+	enum mp_type type0 = mem_mp_type(argv[0]);
+	if (type0 != MP_NIL && type0 != MP_STR && type0 != MP_BIN) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string or varbinary");
+		context->is_aborted = true;
 		return;
 	}
-	p0type = sql_value_type(argv[0]);
+	enum mp_type type1 = mem_mp_type(argv[1]);
+	if (type1 != MP_NIL && (!mp_type_is_numeric(type1) ||
+				!is_num_to_int_possible(argv[1]))) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[1]), "integer");
+		context->is_aborted = true;
+		return;
+	}
+	enum mp_type type2 = MP_UINT;
+	if (argc == 3) {
+		type2 = mem_mp_type(argv[2]);
+		if (type2 != MP_NIL && (!mp_type_is_numeric(type2) ||
+					!is_num_to_int_possible(argv[2]))) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[2]), "integer");
+			context->is_aborted = true;
+			return;
+		}
+	}
+	if (type0 == MP_NIL || type1 == MP_NIL || type2 == MP_NIL)
+		return;
+
 	p1 = sql_value_int(argv[1]);
-	if (p0type == MP_BIN) {
+	if (type0 == MP_BIN) {
 		len = sql_value_bytes(argv[0]);
 		z = sql_value_blob(argv[0]);
-		if (z == 0)
+		if (z == NULL)
 			return;
 		assert(len == sql_value_bytes(argv[0]));
 	} else {
 		z = sql_value_text(argv[0]);
-		if (z == 0)
+		if (z == NULL)
 			return;
 		len = 0;
 		if (p1 < 0)
@@ -763,9 +764,9 @@ substrFunc(sql_context * context, int argc, sql_value ** argv)
 			negP2 = 1;
 		}
 	} else {
-		p2 = sql_context_db_handle(context)->
-		    aLimit[SQL_LIMIT_LENGTH];
+		p2 = sql_context_db_handle(context)->aLimit[SQL_LIMIT_LENGTH];
 	}
+
 	if (p1 < 0) {
 		p1 += len;
 		if (p1 < 0) {
@@ -787,7 +788,7 @@ substrFunc(sql_context * context, int argc, sql_value ** argv)
 		}
 	}
 	assert(p1 >= 0 && p2 >= 0);
-	if (p0type != MP_BIN) {
+	if (type0 != MP_BIN) {
 		/*
 		 * In the code below 'cnt' and 'n_chars' is
 		 * used because '\0' is not supposed to be
@@ -836,21 +837,31 @@ roundFunc(sql_context * context, int argc, sql_value ** argv)
 		context->is_aborted = true;
 		return;
 	}
-	if (argc == 2) {
-		if (sql_value_is_null(argv[1]))
-			return;
-		n = sql_value_int(argv[1]);
-		if (n < 0)
-			n = 0;
-	}
-	if (sql_value_is_null(argv[0]))
-		return;
-	enum mp_type mp_type = sql_value_type(argv[0]);
-	if (mp_type_is_bloblike(mp_type)) {
+	enum mp_type type0 = mem_mp_type(argv[0]);
+	if (type0!= MP_NIL && !mp_type_is_numeric(type0)) {
 		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
 			 sql_value_to_diag_str(argv[0]), "numeric");
 		context->is_aborted = true;
 		return;
+	}
+	enum mp_type type1 = MP_UINT;
+	if (argc == 2) {
+		type1 = mem_mp_type(argv[1]);
+		if (type1 != MP_NIL && (!mp_type_is_numeric(type1) ||
+					!is_num_to_int_possible(argv[1]))) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[1]), "integer");
+			context->is_aborted = true;
+			return;
+		}
+	}
+	if (type0 == MP_NIL || type1 == MP_NIL)
+		return;
+
+	if (argc == 2) {
+		n = sql_value_int(argv[1]);
+		if (n < 0)
+			n = 0;
 	}
 	r = sql_value_double(argv[0]);
 	/* If Y==0 and X will fit in a 64-bit int,
@@ -907,9 +918,11 @@ case_type##ICUFunc(sql_context *context, int argc, sql_value **argv)   \
 	int n;                                                                 \
 	UNUSED_PARAMETER(argc);                                                \
 	int arg_type = sql_value_type(argv[0]);                                \
-	if (mp_type_is_bloblike(arg_type)) {                                   \
-		diag_set(ClientError, ER_INCONSISTENT_TYPES, "text",           \
-			 "varbinary");                                         \
+	if (arg_type == MP_NIL)                                                \
+		return;                                                        \
+	if (arg_type != MP_STR) {                                              \
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,                    \
+			 sql_value_to_diag_str(argv[0]), "string");            \
 		context->is_aborted = true;                                    \
 		return;                                                        \
 	}                                                                      \
@@ -988,9 +1001,12 @@ randomBlob(sql_context * context, int argc, sql_value ** argv)
 	unsigned char *p;
 	assert(argc == 1);
 	UNUSED_PARAMETER(argc);
-	if (mp_type_is_bloblike(sql_value_type(argv[0]))) {
+	if (sql_value_is_null(argv[0]))
+		return;
+	if (!mp_type_is_numeric(mem_mp_type(argv[0])) ||
+	    !is_num_to_int_possible(argv[0])) {
 		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
-			 sql_value_to_diag_str(argv[0]), "numeric");
+			 sql_value_to_diag_str(argv[0]), "integer");
 		context->is_aborted = true;
 		return;
 	}
@@ -1238,17 +1254,20 @@ likeFunc(sql_context *context, int argc, sql_value **argv)
 	int rhs_type = sql_value_type(argv[0]);
 	int lhs_type = sql_value_type(argv[1]);
 
-	if (lhs_type != MP_STR || rhs_type != MP_STR) {
-		if (lhs_type == MP_NIL || rhs_type == MP_NIL)
-			return;
-		char *inconsistent_type = rhs_type != MP_STR ?
-					  mem_type_to_str(argv[0]) :
-					  mem_type_to_str(argv[1]);
-		diag_set(ClientError, ER_INCONSISTENT_TYPES, "text",
-			 inconsistent_type);
+	if (rhs_type != MP_NIL && rhs_type != MP_STR) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string");
 		context->is_aborted = true;
 		return;
 	}
+	if (lhs_type != MP_NIL && lhs_type != MP_STR) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[1]), "string");
+		context->is_aborted = true;
+		return;
+	}
+	if (rhs_type == MP_NIL || lhs_type == MP_NIL)
+		return;
 	const char *zB = (const char *) sql_value_text(argv[0]);
 	const char *zA = (const char *) sql_value_text(argv[1]);
 	const char *zB_end = zB + sql_value_bytes(argv[0]);
@@ -1452,6 +1471,15 @@ quoteFunc(sql_context * context, int argc, sql_value ** argv)
 static void
 unicodeFunc(sql_context * context, int argc, sql_value ** argv)
 {
+	enum mp_type type = mem_mp_type(argv[0]);
+	if (type == MP_NIL)
+		return;
+	if (type != MP_STR && type != MP_BIN) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
 	const unsigned char *z = sql_value_text(argv[0]);
 	(void)argc;
 	if (z && z[0])
@@ -1476,10 +1504,17 @@ charFunc(sql_context * context, int argc, sql_value ** argv)
 	for (i = 0; i < argc; i++) {
 		uint64_t x;
 		unsigned c;
-		if (sql_value_type(argv[i]) == MP_INT)
-			x = 0xfffd;
-		else
-			x = sql_value_uint64(argv[i]);
+		if (sql_value_is_null(argv[i]))
+			continue;
+		if (!mp_type_is_numeric(mem_mp_type(argv[i])) ||
+		    !is_num_to_int_possible(argv[i])) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[i]), "integer");
+			context->is_aborted = true;
+			return;
+		}
+		int64_t y = sql_value_int(argv[i]);
+		x = y < 0 ? 0xfffd : y;
 		if (x > 0x10ffff)
 			x = 0xfffd;
 		c = (unsigned)(x & 0x1fffff);
@@ -1514,6 +1549,15 @@ hexFunc(sql_context * context, int argc, sql_value ** argv)
 	char *zHex, *z;
 	assert(argc == 1);
 	UNUSED_PARAMETER(argc);
+	enum mp_type type = mem_mp_type(argv[0]);
+	if (type == MP_NIL)
+		return;
+	if (type != MP_BIN && type != MP_STR) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
 	pBlob = sql_value_blob(argv[0]);
 	n = sql_value_bytes(argv[0]);
 	assert(pBlob == sql_value_blob(argv[0]));	/* No encoding change */
@@ -1538,6 +1582,15 @@ zeroblobFunc(sql_context * context, int argc, sql_value ** argv)
 	i64 n;
 	assert(argc == 1);
 	UNUSED_PARAMETER(argc);
+	if (sql_value_is_null(argv[0]))
+		return;
+	if (!mp_type_is_numeric(mem_mp_type(argv[0])) ||
+	    !is_num_to_int_possible(argv[0])) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "integer");
+		context->is_aborted = true;
+		return;
+	}
 	n = sql_value_int64(argv[0]);
 	if (n < 0)
 		n = 0;
@@ -1570,6 +1623,49 @@ replaceFunc(sql_context * context, int argc, sql_value ** argv)
 
 	assert(argc == 3);
 	UNUSED_PARAMETER(argc);
+	enum mp_type type0 = mem_mp_type(argv[0]);
+	if (type0 != MP_NIL && type0 != MP_STR && type0 != MP_BIN) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
+	enum mp_type type1 = mem_mp_type(argv[1]);
+	if (type1 != MP_NIL && type1 != type0) {
+		if (type0 != MP_NIL) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[1]),
+				 mem_type_to_str(argv[0]));
+			context->is_aborted = true;
+			return;
+		}
+		if (type1 != MP_STR && type1 != MP_BIN) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[1]),
+				 "string or varbinary");
+			context->is_aborted = true;
+			return;
+		}
+	}
+	enum mp_type type2 = mem_mp_type(argv[2]);
+	if (type2 != MP_NIL && type2 != type0) {
+		if (type0 != MP_NIL) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[2]),
+				 mem_type_to_str(argv[0]));
+			context->is_aborted = true;
+			return;
+		}
+		if (type2 != MP_STR && type2 != MP_BIN) {
+			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+				 sql_value_to_diag_str(argv[2]),
+				 "string or varbinary");
+			context->is_aborted = true;
+			return;
+		}
+	}
+	if (type0 == MP_NIL || type1 == MP_NIL || type2 == MP_NIL)
+		return;
 	zStr = sql_value_text(argv[0]);
 	if (zStr == 0)
 		return;
@@ -1750,6 +1846,12 @@ trim_func_one_arg(struct sql_context *context, sql_value *arg)
 	enum mp_type val_type = sql_value_type(arg);
 	if (val_type == MP_NIL)
 		return;
+	if (val_type != MP_STR && !mp_type_is_bloblike(val_type)) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(arg), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
 	if (mp_type_is_bloblike(val_type))
 		default_trim = (const unsigned char *) "\0";
 	else
@@ -1777,26 +1879,47 @@ trim_func_two_args(struct sql_context *context, sql_value *arg1,
 		   sql_value *arg2)
 {
 	const unsigned char *input_str, *trim_set;
-	if ((input_str = sql_value_text(arg2)) == NULL)
+	enum mp_type type2 = sql_value_type(arg2);
+	if (type2 != MP_NIL && type2 != MP_STR && !mp_type_is_bloblike(type2)) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(arg2), "string or varbinary");
+		context->is_aborted = true;
 		return;
+	}
 
-	int input_str_sz = sql_value_bytes(arg2);
+	enum mp_type type1 = sql_value_type(arg1);
 	if (sql_value_type(arg1) == MP_INT || sql_value_type(arg1) == MP_UINT) {
+		if ((input_str = sql_value_text(arg2)) == NULL)
+			return;
+		int input_str_sz = sql_value_bytes(arg2);
 		uint8_t len_one = 1;
 		trim_procedure(context, sql_value_int(arg1),
 			       (const unsigned char *) " ", &len_one, 1,
 			       input_str, input_str_sz);
-	} else if ((trim_set = sql_value_text(arg1)) != NULL) {
-		int trim_set_sz = sql_value_bytes(arg1);
-		uint8_t *char_len;
-		int char_cnt = trim_prepare_char_len(context, trim_set,
-						     trim_set_sz, &char_len);
-		if (char_cnt == -1)
-			return;
-		trim_procedure(context, TRIM_BOTH, trim_set, char_len, char_cnt,
-			       input_str, input_str_sz);
-		sql_free(char_len);
+		return;
 	}
+	if (type1 != MP_NIL && type1 != MP_STR && !mp_type_is_bloblike(type1)) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(arg1), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
+	input_str = sql_value_text(arg2);
+	if (input_str == NULL)
+		return;
+	trim_set = sql_value_text(arg1);
+	if (trim_set == NULL)
+		return;
+	int input_str_sz = sql_value_bytes(arg2);
+	int trim_set_sz = sql_value_bytes(arg1);
+	uint8_t *char_len;
+	int char_cnt = trim_prepare_char_len(context, trim_set, trim_set_sz,
+					     &char_len);
+	if (char_cnt == -1)
+		return;
+	trim_procedure(context, TRIM_BOTH, trim_set, char_len, char_cnt,
+		       input_str, input_str_sz);
+	sql_free(char_len);
 }
 
 /**
@@ -1811,6 +1934,20 @@ trim_func_three_args(struct sql_context *context, sql_value *arg1,
 		     sql_value *arg2, sql_value *arg3)
 {
 	assert(sql_value_type(arg1) == MP_INT || sql_value_type(arg1) == MP_UINT);
+	enum mp_type type2 = sql_value_type(arg2);
+	if (type2 != MP_NIL && type2 != MP_STR && !mp_type_is_bloblike(type2)) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(arg2), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
+	enum mp_type type3 = sql_value_type(arg3);
+	if (type3 != MP_NIL && type3 != MP_STR && !mp_type_is_bloblike(type3)) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(arg2), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
 	const unsigned char *input_str, *trim_set;
 	if ((input_str = sql_value_text(arg3)) == NULL ||
 	    (trim_set = sql_value_text(arg2)) == NULL)
@@ -1880,7 +2017,9 @@ soundexFunc(sql_context * context, int argc, sql_value ** argv)
 	};
 	assert(argc == 1);
 	enum mp_type mp_type = sql_value_type(argv[0]);
-	if (mp_type_is_bloblike(mp_type)) {
+	if (mp_type == MP_NIL)
+		return;
+	if (mp_type != MP_STR) {
 		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
 			 sql_value_to_diag_str(argv[0]), "text");
 		context->is_aborted = true;
@@ -1953,13 +2092,10 @@ sum_step(struct sql_context *context, int argc, sql_value **argv)
 	if (type == MP_NIL || p == NULL)
 		return;
 	if (type != MP_DOUBLE && type != MP_INT && type != MP_UINT) {
-		if (mem_apply_numeric_type(argv[0]) != 0) {
-			diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
-				 sql_value_to_diag_str(argv[0]), "number");
-			context->is_aborted = true;
-			return;
-		}
-		type = sql_value_type(argv[0]);
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "number");
+		context->is_aborted = true;
+		return;
 	}
 	p->cnt++;
 	if (type == MP_INT || type == MP_UINT) {
@@ -2121,7 +2257,35 @@ groupConcatStep(sql_context * context, int argc, sql_value ** argv)
 		context->is_aborted = true;
 		return;
 	}
-	if (sql_value_is_null(argv[0]))
+	enum mp_type type0 = mem_mp_type(argv[0]);
+	if (type0 != MP_NIL && type0 != MP_STR && type0 != MP_BIN) {
+		diag_set(ClientError, ER_SQL_TYPE_MISMATCH,
+			 sql_value_to_diag_str(argv[0]), "string or varbinary");
+		context->is_aborted = true;
+		return;
+	}
+	if (argc == 2) {
+		enum mp_type type1 = mem_mp_type(argv[1]);
+		if (type1 != MP_NIL && type1 != type0) {
+			if (type0 != MP_NIL) {
+				diag_set(ClientError,
+					 ER_SQL_TYPE_MISMATCH,
+					 sql_value_to_diag_str(argv[1]),
+					 mem_type_to_str(argv[0]));
+				context->is_aborted = true;
+				return;
+			}
+			if (type1 != MP_STR && type1 != MP_BIN) {
+				diag_set(ClientError,
+					 ER_SQL_TYPE_MISMATCH,
+					 sql_value_to_diag_str(argv[1]),
+					 "string or varbinary");
+				context->is_aborted = true;
+				return;
+			}
+		}
+	}
+	if (type0 == MP_NIL)
 		return;
 	pAccum =
 	    (StrAccum *) sql_aggregate_context(context, sizeof(*pAccum));

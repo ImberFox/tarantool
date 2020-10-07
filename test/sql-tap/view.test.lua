@@ -1317,7 +1317,7 @@ test:do_execsql_test(
             a(t) AS (
                 SELECT group_concat( substr('a', 1+least(iter/7,4), 1), '') FROM m2 GROUP BY cy
             )
-          SELECT group_concat(trim(t),x'0a') FROM a;
+          SELECT group_concat(trim(t),CAST(x'0a' AS STRING)) FROM a;
         SELECT * FROM v;
     ]], {
         -- <view-24.5>

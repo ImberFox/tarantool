@@ -276,29 +276,17 @@ SELECT is_boolean('true');
 SELECT abs(a) FROM t0;
  | ---
  | - null
- | - 'Inconsistent types: expected number got boolean'
+ | - 'Type mismatch: can not convert FALSE to number'
  | ...
 SELECT lower(a) FROM t0;
  | ---
- | - metadata:
- |   - name: COLUMN_1
- |     type: string
- |   rows:
- |   - ['false']
- |   - ['true']
- |   - [null]
- |   - [null]
+ | - null
+ | - 'Type mismatch: can not convert FALSE to string'
  | ...
 SELECT upper(a) FROM t0;
  | ---
- | - metadata:
- |   - name: COLUMN_1
- |     type: string
- |   rows:
- |   - ['FALSE']
- |   - ['TRUE']
- |   - [null]
- |   - [null]
+ | - null
+ | - 'Type mismatch: can not convert FALSE to string'
  | ...
 SELECT quote(a) FROM t0;
  | ---
@@ -314,14 +302,8 @@ SELECT quote(a) FROM t0;
 -- gh-4462: LENGTH didn't take BOOLEAN arguments.
 SELECT length(a) FROM t0;
  | ---
- | - metadata:
- |   - name: COLUMN_1
- |     type: integer
- |   rows:
- |   - [5]
- |   - [4]
- |   - [null]
- |   - [null]
+ | - null
+ | - 'Type mismatch: can not convert FALSE to string or varbinary'
  | ...
 SELECT typeof(a) FROM t0;
  | ---
@@ -377,11 +359,8 @@ SELECT TOTAL(a) FROM t0;
  | ...
 SELECT GROUP_CONCAT(a, ' +++ ') FROM t0;
  | ---
- | - metadata:
- |   - name: COLUMN_1
- |     type: string
- |   rows:
- |   - ['FALSE +++ TRUE']
+ | - null
+ | - 'Type mismatch: can not convert FALSE to string or varbinary'
  | ...
 
 -- Check BOOLEAN as binding parameter.

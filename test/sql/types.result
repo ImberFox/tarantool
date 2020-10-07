@@ -215,25 +215,22 @@ box.execute("INSERT INTO t1 VALUES (randomblob(5));")
 box.execute("SELECT * FROM t1 WHERE s LIKE 'blob';")
 ---
 - null
-- 'Inconsistent types: expected text got varbinary'
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("SELECT * FROM t1 WHERE 'blob' LIKE s;")
 ---
 - null
-- 'Inconsistent types: expected text got varbinary'
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("SELECT * FROM t1 WHERE 'blob' LIKE x'0000';")
 ---
 - null
-- 'Inconsistent types: expected text got varbinary'
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("SELECT s LIKE NULL FROM t1;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: integer
-  rows:
-  - [null]
+- null
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("DELETE FROM t1;")
 ---
@@ -246,20 +243,17 @@ box.execute("INSERT INTO t1 VALUES (1);")
 box.execute("SELECT * FROM t1 WHERE s LIKE 'int';")
 ---
 - null
-- 'Inconsistent types: expected text got unsigned'
+- 'Type mismatch: can not convert 1 to string'
 ...
 box.execute("SELECT * FROM t1 WHERE 'int' LIKE 4;")
 ---
 - null
-- 'Inconsistent types: expected text got unsigned'
+- 'Type mismatch: can not convert 4 to string'
 ...
 box.execute("SELECT NULL LIKE s FROM t1;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: integer
-  rows:
-  - [null]
+- null
+- 'Type mismatch: can not convert 1 to string'
 ...
 box.space.T1:drop()
 ---
@@ -818,11 +812,8 @@ box.execute("SELECT count(i) FROM t;")
 ...
 box.execute("SELECT group_concat(i) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['1,-1,18446744073709551613']
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
 ...
 box.execute("DELETE FROM t WHERE i < 18446744073709551613;")
 ---
@@ -830,19 +821,13 @@ box.execute("DELETE FROM t WHERE i < 18446744073709551613;")
 ...
 box.execute("SELECT lower(i) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['18446744073709551613']
+- null
+- 'Type mismatch: can not convert 18446744073709551613 to string'
 ...
 box.execute("SELECT upper(i) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['18446744073709551613']
+- null
+- 'Type mismatch: can not convert 18446744073709551613 to string'
 ...
 box.execute("SELECT abs(i) FROM t;")
 ---
@@ -1312,17 +1297,17 @@ box.execute("SELECT group_concat(v) FROM t;")
 box.execute("SELECT lower(v) FROM t;")
 ---
 - null
-- 'Inconsistent types: expected text got varbinary'
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("SELECT upper(v) FROM t;")
 ---
 - null
-- 'Inconsistent types: expected text got varbinary'
+- 'Type mismatch: can not convert varbinary to string'
 ...
 box.execute("SELECT abs(v) FROM t;")
 ---
 - null
-- 'Inconsistent types: expected number got varbinary'
+- 'Type mismatch: can not convert varbinary to number'
 ...
 box.execute("SELECT typeof(v) FROM t;")
 ---
@@ -1871,33 +1856,18 @@ box.execute("SELECT count(d) FROM t;")
 ...
 box.execute("SELECT group_concat(d) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['10.0,-2.0,3.3,1.8e+19']
+- null
+- 'Type mismatch: can not convert 10.0 to string or varbinary'
 ...
 box.execute("SELECT lower(d) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['10.0']
-  - ['-2.0']
-  - ['3.3']
-  - ['1.8e+19']
+- null
+- 'Type mismatch: can not convert 10.0 to string'
 ...
 box.execute("SELECT upper(d) FROM t;")
 ---
-- metadata:
-  - name: COLUMN_1
-    type: string
-  rows:
-  - ['10.0']
-  - ['-2.0']
-  - ['3.3']
-  - ['1.8E+19']
+- null
+- 'Type mismatch: can not convert 10.0 to string'
 ...
 box.execute("SELECT abs(d) FROM t;")
 ---
@@ -2792,6 +2762,2456 @@ box.execute([[DROP TABLE tv;]])
 - row_count: 1
 ...
 box.execute([[DROP TABLE ts;]])
+---
+- row_count: 1
+...
+-- Make sure the function argument types are checked.
+box.execute([[SELECT abs(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1]
+...
+box.execute([[SELECT abs(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1]
+...
+box.execute([[SELECT abs(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT abs(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT abs(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to number'
+...
+box.execute([[SELECT abs('a');]])
+---
+- null
+- 'Type mismatch: can not convert a to number'
+...
+box.execute([[SELECT abs(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to number'
+...
+box.execute([[SELECT abs(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [null]
+...
+box.execute([[SELECT char(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['�']
+...
+box.execute([[SELECT char(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ["\x01"]
+...
+box.execute([[SELECT char(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ["\x01"]
+...
+box.execute([[SELECT char(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['�']
+...
+box.execute([[SELECT char(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to integer'
+...
+box.execute([[SELECT char('a');]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT char(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT char(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['']
+...
+box.execute([[SELECT character_length(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT character_length(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT character_length(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT character_length(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT character_length(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT character_length('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT character_length(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT character_length(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT char_length(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT char_length(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT char_length(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT char_length(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT char_length(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT char_length('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT char_length(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT char_length(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT coalesce(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1]
+...
+box.execute([[SELECT coalesce(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT coalesce(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT coalesce(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT coalesce(true, true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [true]
+...
+box.execute([[SELECT coalesce('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['a']
+...
+box.execute([[SELECT coalesce(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['3']
+...
+box.execute([[SELECT coalesce(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT coalesce(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT coalesce(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT greatest(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1]
+...
+box.execute([[SELECT greatest(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT greatest(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT greatest(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT greatest(true, true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [true]
+...
+box.execute([[SELECT greatest('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['a']
+...
+box.execute([[SELECT greatest(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['3']
+...
+box.execute([[SELECT greatest(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT greatest(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT greatest(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT hex(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT hex(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT hex(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT hex(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT hex(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT hex('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['61']
+...
+box.execute([[SELECT hex(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['33']
+...
+box.execute([[SELECT hex(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT ifnull(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-1]
+...
+box.execute([[SELECT ifnull(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT ifnull(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT ifnull(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT ifnull(true, true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [true]
+...
+box.execute([[SELECT ifnull('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - ['a']
+...
+box.execute([[SELECT ifnull(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - ['3']
+...
+box.execute([[SELECT ifnull(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT ifnull(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT ifnull(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT least(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1]
+...
+box.execute([[SELECT least(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT least(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT least(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT least(true, true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [true]
+...
+box.execute([[SELECT least('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['a']
+...
+box.execute([[SELECT least(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['3']
+...
+box.execute([[SELECT least(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT least(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT least(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT length(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT length(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT length(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT length(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT length(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT length('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT length(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT length(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT likelihood(-1, -1);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(1, 1);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(1.5, 1.5);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(-1.5, -1.5);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(true, true);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood('a', 'a');]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(X'33', X'33');]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(NULL, NULL);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(NULL, 1);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likelihood(1, NULL);]])
+---
+- null
+- Illegal parameters, second argument to likelihood() must be a constant between 0.0
+  and 1.0
+...
+box.execute([[SELECT likely(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-1]
+...
+box.execute([[SELECT likely(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT likely(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: double
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT likely(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: double
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT likely(true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: boolean
+  rows:
+  - [true]
+...
+box.execute([[SELECT likely('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT likely(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ['3']
+...
+box.execute([[SELECT likely(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT lower(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string'
+...
+box.execute([[SELECT lower(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT lower(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string'
+...
+box.execute([[SELECT lower(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string'
+...
+box.execute([[SELECT lower(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string'
+...
+box.execute([[SELECT lower('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT lower(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to string'
+...
+box.execute([[SELECT lower(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(true, true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT nullif(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT position(-1, -1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT position(1, 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT position(1.5, 1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT position(-1.5, -1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT position(true, true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT position('a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT position('a', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to text'
+...
+box.execute([[SELECT position(1, 'a');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT position(X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT position(X'33', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to varbinary'
+...
+box.execute([[SELECT position(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT position(NULL, 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT position('a', NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT position(NULL, 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT position(1, NULL);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT printf(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['-1']
+...
+box.execute([[SELECT printf(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['1']
+...
+box.execute([[SELECT printf(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['1.5']
+...
+box.execute([[SELECT printf(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['-1.5']
+...
+box.execute([[SELECT printf(true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['TRUE']
+...
+box.execute([[SELECT printf('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT printf(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['3']
+...
+box.execute([[SELECT printf(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT quote(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [-1]
+...
+box.execute([[SELECT quote(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [1]
+...
+box.execute([[SELECT quote(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['1.5']
+...
+box.execute([[SELECT quote(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['-1.5']
+...
+box.execute([[SELECT quote(true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['TRUE']
+...
+box.execute([[SELECT quote('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['''a''']
+...
+box.execute([[SELECT quote(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['X''33''']
+...
+box.execute([[SELECT quote(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['NULL']
+...
+box.execute([[SELECT randomblob(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT randomblob(0);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT randomblob(0.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT randomblob(-0.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT randomblob(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to integer'
+...
+box.execute([[SELECT randomblob('a');]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT randomblob(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT randomblob(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace(-1, -1, -1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT replace(1, 1, 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT replace(1.5, 1.5, 1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT replace(-1.5, -1.5, -1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT replace(true, true, true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT replace('a', 'a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT replace('a', 'a', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to text'
+...
+box.execute([[SELECT replace('a', 1, 'a');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to text'
+...
+box.execute([[SELECT replace(1, 'a', 'a');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT replace('a', 'a', X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to text'
+...
+box.execute([[SELECT replace('a', X'33', 'a');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to text'
+...
+box.execute([[SELECT replace(X'33', 'a', X'33');]])
+---
+- null
+- 'Type mismatch: can not convert a to varbinary'
+...
+box.execute([[SELECT replace(X'33', X'33', 'a');]])
+---
+- null
+- 'Type mismatch: can not convert a to varbinary'
+...
+box.execute([[SELECT replace(X'33', X'33', X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['3']
+...
+box.execute([[SELECT replace(X'33', X'33', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to varbinary'
+...
+box.execute([[SELECT replace(X'33', 1, X'33');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to varbinary'
+...
+box.execute([[SELECT replace(1, X'33', X'33');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT replace(NULL, NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace(NULL, NULL, 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace(NULL, 'a', NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace(NULL, 'a', 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace('a', NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace('a', NULL, 'a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace('a', 'a', NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT replace(NULL, 1, 'a');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT replace('a', NULL, 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to text'
+...
+box.execute([[SELECT replace(1, 'a', NULL);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT round(-1, -1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-1]
+...
+box.execute([[SELECT round(1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT round(1.5, 1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT round(-1.5, -1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-2]
+...
+box.execute([[SELECT round(1.5, true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to integer'
+...
+box.execute([[SELECT round(true, 1.5);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to numeric'
+...
+box.execute([[SELECT round(true, true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to numeric'
+...
+box.execute([[SELECT round('a', 'a');]])
+---
+- null
+- 'Type mismatch: can not convert a to numeric'
+...
+box.execute([[SELECT round(X'33', X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to numeric'
+...
+box.execute([[SELECT round(NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT round(NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT round(1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT soundex(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to text'
+...
+box.execute([[SELECT soundex(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to text'
+...
+box.execute([[SELECT soundex(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to text'
+...
+box.execute([[SELECT soundex(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to text'
+...
+box.execute([[SELECT soundex(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to text'
+...
+box.execute([[SELECT soundex('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['A000']
+...
+box.execute([[SELECT soundex(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to text'
+...
+box.execute([[SELECT soundex(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT substr(-1, -1, -1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT substr(1, 1, 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT substr(1.5, 1.5, 1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT substr(true, true, true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT substr('a', 'a', 'a');]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT substr('a', 'a', 1);]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT substr('a', 1, 'a');]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT substr('a', 1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT substr(X'33', X'33', X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT substr(X'33', X'33', 1);]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT substr(X'33', 1, X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT substr(X'33', 1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['3']
+...
+box.execute([[SELECT substr(1, X'33', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT substr(1, 1, X'33');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT substr(NULL, NULL, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT substr(NULL, 1, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT substr('a', NULL, 1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT substr('a', 1, NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT substr(NULL, '1', 1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to integer'
+...
+box.execute([[SELECT substr('a', NULL, '1');]])
+---
+- null
+- 'Type mismatch: can not convert 1 to integer'
+...
+box.execute([[SELECT substr(1, 1, NULL);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT typeof(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['integer']
+...
+box.execute([[SELECT typeof(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['integer']
+...
+box.execute([[SELECT typeof(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['double']
+...
+box.execute([[SELECT typeof(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['double']
+...
+box.execute([[SELECT typeof(true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['boolean']
+...
+box.execute([[SELECT typeof('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['string']
+...
+box.execute([[SELECT typeof(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['varbinary']
+...
+box.execute([[SELECT typeof(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['boolean']
+...
+box.execute([[SELECT unicode(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT unicode(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT unicode(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT unicode(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT unicode(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT unicode('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [97]
+...
+box.execute([[SELECT unicode(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [51]
+...
+box.execute([[SELECT unicode(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT unlikely(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [-1]
+...
+box.execute([[SELECT unlikely(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT unlikely(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: double
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT unlikely(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: double
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT unlikely(true);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: boolean
+  rows:
+  - [true]
+...
+box.execute([[SELECT unlikely('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT unlikely(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ['3']
+...
+box.execute([[SELECT unlikely(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT upper(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string'
+...
+box.execute([[SELECT upper(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT upper(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string'
+...
+box.execute([[SELECT upper(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string'
+...
+box.execute([[SELECT upper(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string'
+...
+box.execute([[SELECT upper('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['A']
+...
+box.execute([[SELECT upper(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to string'
+...
+box.execute([[SELECT upper(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT zeroblob(-1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ['']
+...
+box.execute([[SELECT zeroblob(1);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ["\0"]
+...
+box.execute([[SELECT zeroblob(1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ["\0"]
+...
+box.execute([[SELECT zeroblob(-1.5);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - ['']
+...
+box.execute([[SELECT zeroblob(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to integer'
+...
+box.execute([[SELECT zeroblob('a');]])
+---
+- null
+- 'Type mismatch: can not convert a to integer'
+...
+box.execute([[SELECT zeroblob(X'33');]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to integer'
+...
+box.execute([[SELECT zeroblob(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: varbinary
+  rows:
+  - [null]
+...
+box.execute([[SELECT trim(-1);]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT trim(1);]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT trim(1.5);]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT trim(-1.5);]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT trim(true);]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT trim('a');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT trim(X'33');]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['3']
+...
+box.execute([[SELECT trim(NULL);]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT -1 like -1;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string'
+...
+box.execute([[SELECT 1 like 1;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT 1.5 like 1.5;]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string'
+...
+box.execute([[SELECT true like true;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string'
+...
+box.execute([[SELECT 'a' like 'a';]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [true]
+...
+box.execute([[SELECT 'a' like 1;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT 1 like 'a';]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT X'33' like X'33';]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to string'
+...
+box.execute([[SELECT NULL like NULL;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT 'a' like NULL;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT NULL like 'a';]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [null]
+...
+box.execute([[SELECT 1 like NULL;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[SELECT NULL like 1;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string'
+...
+box.execute([[CREATE TABLE t (i INTEGER PRIMARY KEY, u UNSIGNED, d DOUBLE, o DOUBLE, b BOOLEAN, s STRING, v VARBINARY, n SCALAR);]])
+---
+- row_count: 1
+...
+box.execute([[INSERT INTO t VALUES (-1, 1, 1.5, -1.5, true, 'a', X'33', NULL);]])
+---
+- row_count: 1
+...
+box.execute([[SELECT avg(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [-1]
+...
+box.execute([[SELECT avg(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1]
+...
+box.execute([[SELECT avg(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT avg(0) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [0]
+...
+box.execute([[SELECT avg(b) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to number'
+...
+box.execute([[SELECT avg(s) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert a to number'
+...
+box.execute([[SELECT avg(v) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to number'
+...
+box.execute([[SELECT avg(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [null]
+...
+box.execute([[SELECT count(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(0) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(b) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(s) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(v) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [1]
+...
+box.execute([[SELECT count(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: integer
+  rows:
+  - [0]
+...
+box.execute([[SELECT group_concat(i) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT group_concat(u) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT group_concat(d) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT group_concat(o) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT group_concat(b) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT group_concat(s) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT group_concat(v) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['3']
+...
+box.execute([[SELECT group_concat(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT group_concat(i, i) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT group_concat(u, u) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert 1 to string or varbinary'
+...
+box.execute([[SELECT group_concat(d, d) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert 1.5 to string or varbinary'
+...
+box.execute([[SELECT group_concat(o, o) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1.5 to string or varbinary'
+...
+box.execute([[SELECT group_concat(b, b) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to string or varbinary'
+...
+box.execute([[SELECT group_concat(s, i) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to text'
+...
+box.execute([[SELECT group_concat(s, s) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - ['a']
+...
+box.execute([[SELECT group_concat(s, v) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to text'
+...
+box.execute([[SELECT group_concat(v, s) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert a to varbinary'
+...
+box.execute([[SELECT group_concat(n, n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: string
+  rows:
+  - [null]
+...
+box.execute([[SELECT group_concat(n, i) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT group_concat(i, n) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert -1 to string or varbinary'
+...
+box.execute([[SELECT max(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1]
+...
+box.execute([[SELECT max(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT max(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT max(o) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT max(b) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [true]
+...
+box.execute([[SELECT max(s) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['a']
+...
+box.execute([[SELECT max(v) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['3']
+...
+box.execute([[SELECT max(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT min(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1]
+...
+box.execute([[SELECT min(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1]
+...
+box.execute([[SELECT min(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT min(o) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT min(b) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [true]
+...
+box.execute([[SELECT min(s) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['a']
+...
+box.execute([[SELECT min(v) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - ['3']
+...
+box.execute([[SELECT min(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: scalar
+  rows:
+  - [null]
+...
+box.execute([[SELECT sum(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [-1]
+...
+box.execute([[SELECT sum(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1]
+...
+box.execute([[SELECT sum(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT sum(o) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT sum(b) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to number'
+...
+box.execute([[SELECT sum(s) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert a to number'
+...
+box.execute([[SELECT sum(v) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to number'
+...
+box.execute([[SELECT sum(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [null]
+...
+box.execute([[SELECT total(i) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [-1]
+...
+box.execute([[SELECT total(u) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1]
+...
+box.execute([[SELECT total(d) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [1.5]
+...
+box.execute([[SELECT total(o) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [-1.5]
+...
+box.execute([[SELECT total(b) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert TRUE to number'
+...
+box.execute([[SELECT total(s) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert a to number'
+...
+box.execute([[SELECT total(v) FROM t;]])
+---
+- null
+- 'Type mismatch: can not convert varbinary to number'
+...
+box.execute([[SELECT total(n) FROM t;]])
+---
+- metadata:
+  - name: COLUMN_1
+    type: number
+  rows:
+  - [0]
+...
+box.execute([[DROP TABLE t;]])
 ---
 - row_count: 1
 ...

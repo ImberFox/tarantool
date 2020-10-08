@@ -120,11 +120,18 @@ package: deploy_prepare
 
 deploy: package
 	echo ${GPG_SECRET_KEY} | base64 -d | gpg --batch --import || true
-	./tools/update_repo.sh -o=${OS} -d=${DIST} \
-		-b="${LIVE_REPO_S3_DIR}/${BUCKET}" build
+	# If the commit tagged, then push packages to 'live' repository with force
+	# push '-f -s' flags to be sure that if occasionaly the commit before current
+	# commit pushed packages with the current branch naming then the current push
+	# won't fail on it and will push the packages to the release repository after.
 	if [ "${CI_COMMIT_TAG}" != "" ]; then \
 		./tools/update_repo.sh -o=${OS} -d=${DIST} \
+			-b="${LIVE_REPO_S3_DIR}/${BUCKET}" -f -s build ; \
+		./tools/update_repo.sh -o=${OS} -d=${DIST} \
 			-b="${RELEASE_REPO_S3_DIR}/${BUCKET}" build ; \
+	else \
+		./tools/update_repo.sh -o=${OS} -d=${DIST} \
+			-b="${LIVE_REPO_S3_DIR}/${BUCKET}" build ; \
 	fi
 
 source: deploy_prepare

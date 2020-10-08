@@ -256,6 +256,13 @@ jepsen:
       - jepsen-tests-prefix/src/jepsen-tests/store
     expire_in: 6 month
 
+default_gcc_centos_7:
+  <<: *pack_test_definition
+  variables:
+    PACKPACK_EXTRA_DOCKER_RUN_PARAMS: '-e CC=/usr/bin/gcc -e CXX=/usr/bin/g++'
+    OS: 'el'
+    DIST: '7'
+
 # ####
 # Perf
 # ####

@@ -1107,7 +1107,7 @@ luaL_iscallable(lua_State *L, int idx)
 }
 
 struct ibuf *
-luaL_checkibuf(struct lua_State *L, int idx)
+luaT_toibuf(struct lua_State *L, int idx)
 {
 	if (lua_type(L, idx) != LUA_TCDATA)
 		return NULL;

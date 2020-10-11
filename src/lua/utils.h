@@ -505,6 +505,14 @@ luaT_state(void);
 LUA_API const char *
 luaT_tolstring(lua_State *L, int idx, size_t *ssize);
 
+/**
+ * Check if a value on @a L stack by index @a idx is an ibuf
+ * object. Both 'struct ibuf' and 'struct ibuf *' are accepted.
+ * Returns NULL, if can't convert - not an ibuf object.
+ */
+LUA_API struct ibuf *
+luaT_toibuf(struct lua_State *L, int idx);
+
 /** \endcond public */
 
 void
@@ -589,12 +597,16 @@ luaL_checkfinite(struct lua_State *L, struct luaL_serializer *cfg,
 }
 
 /**
- * Check if a value on @a L stack by index @a idx is an ibuf
- * object. Both 'struct ibuf' and 'struct ibuf *' are accepted.
- * Returns NULL, if can't convert - not an ibuf object.
+ * @brief Creates a new Lua coroutine in a protected frame. If
+ * <lua_newthread> call underneath succeeds, the created Lua state
+ * is on the top of the guest stack and a pointer to this state is
+ * returned. Otherwise LUA_ERRMEM error is handled and the result
+ * is NULL.
+ * @param L is a Lua state
+ * @sa <lua_newthread>
  */
-struct ibuf *
-luaL_checkibuf(struct lua_State *L, int idx);
+struct lua_State *
+luaT_newthread(struct lua_State *L);
 
 /**
  * Check if a value on @a L stack by index @a idx is pointer at

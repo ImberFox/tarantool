@@ -1030,7 +1030,7 @@ luaT_tolstring(lua_State *L, int idx, size_t *len)
 }
 
 struct ibuf *
-luaL_checkibuf(struct lua_State *L, int idx)
+luaT_toibuf(struct lua_State *L, int idx)
 {
 	if (lua_type(L, idx) != LUA_TCDATA)
 		return NULL;

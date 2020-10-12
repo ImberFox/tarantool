@@ -566,6 +566,26 @@ box_key_def_extract_key(box_key_def_t *key_def, box_tuple_t *tuple,
 API_EXPORT int
 box_key_def_validate_key(const box_key_def_t *key_def, const char *key);
 
+/**
+ * Check a full key against given key definition.
+ *
+ * Verifies key parts against given key_def's field types with
+ * respect to nullability.
+ *
+ * Imposes the same parts count in @a key as in @a key_def.
+ * Absense of trailing key parts fails the check.
+ *
+ * Note: nil is accepted for nullable fields, but only for them.
+ *
+ * @param key_def  Key definition.
+ * @param key      MessagePack'ed data for matching.
+ *
+ * @retval 0   The key is valid.
+ * @retval -1  The key is invalid.
+ */
+API_EXPORT int
+box_key_def_validate_full_key(const box_key_def_t *key_def, const char *key);
+
 /** \endcond public */
 
 /*

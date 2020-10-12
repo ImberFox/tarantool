@@ -1706,7 +1706,8 @@ test_key_def_extract_key(struct lua_State *L)
 }
 
 /**
- * Basic <box_key_def_validate_key>() test.
+ * Basic <box_key_def_validate_key>() and
+ * <box_key_def_validate_full_key>() test.
  */
 static int
 test_key_def_validate_key(struct lua_State *L)
@@ -1736,15 +1737,16 @@ test_key_def_validate_key(struct lua_State *L)
 	/*
 	 * Create keys to validate them against given key_def.
 	 *
-	 *  | # | key            | Is valid? |
-	 *  | - | -------------- | --------- |
-	 *  | 0 | [1, 1]         | valid     |
-	 *  | 1 | [1, null]      | valid     |
-	 *  | 2 | [1]            | valid     |
-	 *  | 3 | []             | valid     |
-	 *  | 4 | [null]         | invalid   |
-	 *  | 5 | [1, 2, 3]      | invalid   |
-	 *  | 6 | [1, -1]        | invalid   |
+	 *  | # | key            | Is valid? | Is valid? |
+	 *  |   |                | (partial) |   (full)  |
+	 *  | - | -------------- | --------- | --------- |
+	 *  | 0 | [1, 1]         | valid     | valid     |
+	 *  | 1 | [1, null]      | valid     | valid     |
+	 *  | 2 | [1]            | valid     | invalid   |
+	 *  | 3 | []             | valid     | invalid   |
+	 *  | 4 | [null]         | invalid   | invalid   |
+	 *  | 5 | [1, 2, 3]      | invalid   | invalid   |
+	 *  | 6 | [1, -1]        | invalid   | invalid   |
 	 */
 	const char *keys[] = {
 		/* [0] = */ "\x92\x01\x01",
@@ -1755,33 +1757,44 @@ test_key_def_validate_key(struct lua_State *L)
 		/* [5] = */ "\x93\x01\x02\x03",
 		/* [6] = */ "\x92\x01\xff",
 	};
-	int expected_results[] = {
-		/* [0] = */ 0,
-		/* [1] = */ 0,
-		/* [2] = */ 0,
-		/* [3] = */ 0,
-		/* [4] = */ -1,
-		/* [5] = */ -1,
-		/* [6] = */ -1,
+	int expected_results[][2] = {
+		/* [0] = */ {0,  0 },
+		/* [1] = */ {0,  0 },
+		/* [2] = */ {0,  -1},
+		/* [3] = */ {0,  -1},
+		/* [4] = */ {-1, -1},
+		/* [5] = */ {-1, -1},
+		/* [6] = */ {-1, -1},
 	};
-	uint32_t expected_error_codes[] = {
-		/* [0] = */ box_error_code_MAX,
-		/* [1] = */ box_error_code_MAX,
-		/* [2] = */ box_error_code_MAX,
-		/* [3] = */ box_error_code_MAX,
-		/* [4] = */ ER_KEY_PART_TYPE,
-		/* [5] = */ ER_KEY_PART_COUNT,
-		/* [6] = */ ER_KEY_PART_TYPE,
+	uint32_t expected_error_codes[][2] = {
+		/* [0] = */ {box_error_code_MAX, box_error_code_MAX},
+		/* [1] = */ {box_error_code_MAX, box_error_code_MAX},
+		/* [2] = */ {box_error_code_MAX, ER_EXACT_MATCH    },
+		/* [3] = */ {box_error_code_MAX, ER_EXACT_MATCH    },
+		/* [4] = */ {ER_KEY_PART_TYPE,   ER_EXACT_MATCH    },
+		/* [5] = */ {ER_KEY_PART_COUNT,  ER_EXACT_MATCH    },
+		/* [6] = */ {ER_KEY_PART_TYPE,   ER_KEY_PART_TYPE  },
+	};
+
+	typedef int (*key_def_validate_key_f)(const box_key_def_t *key_def,
+					      const char *key);
+	key_def_validate_key_f funcs[] = {
+		box_key_def_validate_key,
+		box_key_def_validate_full_key,
 	};
 
 	for (size_t i = 0; i < lengthof(keys); ++i) {
-		int rc = box_key_def_validate_key(key_def, keys[i]);
-		assert(rc == expected_results[i]);
+		for (size_t f = 0; f < lengthof(funcs); ++f) {
+			int exp_res = expected_results[i][f];
+			uint32_t exp_err_code = expected_error_codes[i][f];
+			int rc = funcs[f](key_def, keys[i]);
+			assert(rc == exp_res);
 
-		if (expected_error_codes[i] != box_error_code_MAX) {
-			assert(rc != 0);
-			box_error_t *e = box_error_last();
-			assert(box_error_code(e) == expected_error_codes[i]);
+			if (exp_err_code != box_error_code_MAX) {
+				assert(rc != 0);
+				box_error_t *e = box_error_last();
+				assert(box_error_code(e) == exp_err_code);
+			}
 		}
 	}
 

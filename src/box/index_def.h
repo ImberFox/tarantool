@@ -165,6 +165,10 @@ struct index_opts {
 	struct index_stat *stat;
 	/** Identifier of the functional index function. */
 	uint32_t func_id;
+	/**
+	 * Use hint optimization for tree index.
+	 */
+	bool hint;
 };
 
 extern const struct index_opts index_opts_default;
@@ -369,7 +373,8 @@ struct index_def *
 index_def_new(uint32_t space_id, uint32_t iid, const char *name,
 	      uint32_t name_len, enum index_type type,
 	      const struct index_opts *opts,
-	      struct key_def *key_def, struct key_def *pk_def);
+	      struct key_def *key_def, struct key_def *pk_def,
+	      bool is_memtx);
 
 /**
  * Create an array (on a region) of key_defs from list of index

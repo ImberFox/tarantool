@@ -150,6 +150,7 @@ local function fill_in_schema_stats_impl(schema)
         vinyl     = 0,
         temporary = 0,
         ['local'] = 0,
+        sync      = 0,
     }
 
     local indices = {
@@ -188,6 +189,9 @@ local function fill_in_schema_stats_impl(schema)
         if space.is_local then
             spaces['local'] = spaces['local'] + 1
         end
+        if space.is_sync then
+            spaces.sync = spaces.sync + 1
+        end
         fill_in_indices_stats(space, indices)
 
         fiber.yield()
@@ -222,10 +226,19 @@ local function fill_in_features(feedback)
     fill_in_schema_stats(feedback.features)
 end
 
+local function fill_in_options(feedback)
+    local options = {}
+    options.election_mode = box.cfg.election_mode
+    options.replication_synchro_quorum = box.cfg.replication_synchro_quorum
+    options.memtx_use_mvcc_engine = box.cfg.memtx_use_mvcc_engine
+    feedback.options = options
+end
+
 local function fill_in_feedback(feedback)
     fill_in_base_info(feedback)
     fill_in_platform_info(feedback)
     fill_in_features(feedback)
+    fill_in_options(feedback)
 
     return feedback
 end

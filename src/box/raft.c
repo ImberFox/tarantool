@@ -178,6 +178,13 @@ raft_election_quorum(void)
 	return MIN(replication_synchro_quorum, replicaset.registered_count);
 }
 
+/**
+ * Wakeup the Raft worker fiber in order to do some async work. If the fiber
+ * does not exist yet, it is created.
+ */
+static void
+raft_worker_wakeup(void);
+
 /** Schedule broadcast of the complete Raft state to all the followers. */
 static void
 raft_schedule_broadcast(void);
@@ -670,10 +677,8 @@ raft_sm_pause_and_dump(void)
 	if (raft.is_write_in_progress)
 		return;
 	ev_timer_stop(loop(), &raft.timer);
+	raft_worker_wakeup();
 	raft.is_write_in_progress = true;
-	if (raft.worker == NULL)
-		raft.worker = fiber_new("raft_worker", raft_worker_f);
-	fiber_wakeup(raft.worker);
 }
 
 static void
@@ -988,19 +993,26 @@ raft_new_term(void)
 }
 
 static void
+raft_worker_wakeup(void)
+{
+	if (raft.worker == NULL) {
+		raft.worker = fiber_new("raft_worker", raft_worker_f);
+		fiber_set_joinable(raft.worker, true);
+	}
+	/*
+	 * Don't wake the fiber if it writes something. Otherwise it would be a
+	 * spurious wakeup breaking the WAL write not adapted to this. Also
+	 * don't wakeup the current fiber - it leads to undefined behaviour.
+	 */
+	if (!raft.is_write_in_progress && fiber() != raft.worker)
+		fiber_wakeup(raft.worker);
+}
+
+static void
 raft_schedule_broadcast(void)
 {
 	raft.is_broadcast_scheduled = true;
-	/*
-	 * Don't wake the fiber if it writes something. Otherwise it would be a
-	 * spurious wakeup breaking the WAL write not adapted to this.
-	 */
-	if (raft.is_write_in_progress)
-		return;
-	if (raft.worker == NULL)
-		raft.worker = fiber_new("raft_worker", raft_worker_f);
-	if (raft.worker != fiber())
-		fiber_wakeup(raft.worker);
+	raft_worker_wakeup();
 }
 
 void

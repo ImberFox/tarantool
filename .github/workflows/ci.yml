@@ -5,18 +5,20 @@ on: push
 jobs:
   build-ubuntu:
     runs-on: ubuntu-18.04
+    env:
+      PYTHON_DEPS: |
+        python python-pip python-setuptools python-dev
+        python-msgpack python-yaml python-argparse python-six python-gevent
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
 
-  steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
-    
-    - name: Install test dependencies
+      - name: Install test dependencies
         run: |
-          sudo apt-get install python python-pip python-setuptools python-dev \
-          python-msgpack python-yaml python-argparse python-six python-gevent
+          sudo apt-get install ${PYTHON_DEPS}
           echo python --version
 
-    - name: Build tarantool
+      - name: Build tarantool
         run: |
           mkdir build 
           pushd build
@@ -24,8 +26,8 @@ jobs:
           make -j
           popd
 
-    - name: test-build
-      run: |
-        pushd test
-        ./test-run.py --builddir ../build/tarantool-prefix/src/tarantool-build
-        popd
+      - name: test-build
+        run: |
+          pushd test
+          ./test-run.py --builddir ../build/tarantool-prefix/src/tarantool-build
+          popd

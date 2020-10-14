@@ -12,22 +12,25 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Install test dependencies
         run: |
           sudo apt-get install ${PYTHON_DEPS}
           echo python --version
+          pwd
+          git describe
 
       - name: Build tarantool
         run: |
-          mkdir build 
-          pushd build
-          cmake ../static-build -DCMAKE_TARANTOOL_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo;-DENABLE_WERROR=ON"
+          pushd static-build
+          cmake -DCMAKE_TARANTOOL_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo;-DENABLE_WERROR=ON" ..
           make -j
           popd
 
       - name: test-build
         run: |
           pushd test
-          ./test-run.py --builddir ../build/tarantool-prefix/src/tarantool-build
+          ./test-run.py --builddir ../static-build/tarantool-prefix/src/tarantool-build
           popd

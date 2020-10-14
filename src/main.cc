@@ -242,7 +242,7 @@ dump_x86_64_registers(ucontext_t *uc)
 static void
 sig_fatal_cb(int signo, siginfo_t *siginfo, void *context)
 {
-	static volatile sig_atomic_t in_cb = 0;
+	satatic volatile sig_atomic_t in_cb = 0;
 	int fd = STDERR_FILENO;
 	struct sigaction sa;
 

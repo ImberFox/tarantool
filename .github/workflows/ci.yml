@@ -1,0 +1,31 @@
+name: Test CI
+
+on: push
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-18.04
+
+  steps:
+    - name: Git checkout
+      uses: actions/checkout@v2
+    
+    - name: Install test dependencies
+        run: |
+          sudo apt-get install python python-pip python-setuptools python-dev \
+          python-msgpack python-yaml python-argparse python-six python-gevent
+          echo python --version
+
+    - name: Build tarantool
+        run: |
+          mkdir build 
+          pushd build
+          cmake ../static-build -DCMAKE_TARANTOOL_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo;-DENABLE_WERROR=ON"
+          make -j
+          popd
+
+    - name: test-build
+      run: |
+        pushd test
+        ./test-run.py --builddir ../build/tarantool-prefix/src/tarantool-build
+        popd

@@ -24,7 +24,8 @@ jobs:
 
       - name: Build tarantool
         run: |
-          pushd static-build
+          mkdir build
+          pushd build
           cmake -DCMAKE_TARANTOOL_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo;-DENABLE_WERROR=ON" ..
           make -j
           popd
@@ -32,5 +33,5 @@ jobs:
       - name: test-build
         run: |
           pushd test
-          ./test-run.py --builddir ../static-build/tarantool-prefix/src/tarantool-build
+          ./test-run.py --builddir ../build/
           popd

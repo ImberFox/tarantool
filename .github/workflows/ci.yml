@@ -38,5 +38,5 @@ jobs:
           popd
 
       - name: Test cache used properly
-        run: tarantool -v
+        run: ./build/src/tarantool -v
 

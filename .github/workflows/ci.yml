@@ -22,16 +22,21 @@ jobs:
           pwd
           git describe
 
+      - name: Cache build files
+        uses: actions/cache@v2
+        with:
+          path: ./build
+          key: tarantool-build-${{ runner.os }}
+          restore-keys: tarantool-build-
+
       - name: Build tarantool
         run: |
-          mkdir build
+          mkdir -p build
           pushd build
           cmake -DCMAKE_TARANTOOL_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo;-DENABLE_WERROR=ON" ..
           make -j
           popd
 
-      - name: test-build
-        run: |
-          pushd test
-          ./test-run.py --builddir ../build/
-          popd
+      - name: Test cache used properly
+        run: tarantool -v
+
